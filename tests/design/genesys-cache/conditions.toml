@@ -15,7 +15,7 @@
 feature = "genesys-cache"
 source_file = "src/utils/genesys-cache.ts"
 verified = true
-verified_at = "2026-09-15"
+verified_at = "2026-11-22"
 verified_by = "claude"
 test_command = "mise run test:vitest -- tests/unit/utils/genesys-cache.test.ts"
 source_hash = "16350f35f99ef7a6f7fdcd94c7e09c8d7111905f"
@@ -24,9 +24,9 @@ note = "verified=falseは0件。TASK-470でrawEntries保持+ローカル再解�
 # --- timestampToYmd(ts: number): string (非export) ---
 
 [[condition]]
-id = "timestamp_to_ymd.local_date_zero_padded"
+id = "timestamp-to-ymd.local-date-zero-padded"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:99"
 target_function = "timestampToYmd"
-source_lines = "32-37"
 description = "timestampをローカル時刻の年/月/日に変換し、月日を2桁ゼロ埋めしたYYYY-MM-DD文字列を返す"
 given = "now = new Date('2026-07-01T12:00:00') のtimestamp"
 expect_return = "'2026-07-01'"
@@ -34,49 +34,49 @@ expect_return = "'2026-07-01'"
 # --- selectApplicableGenesysList(cache, now): GenesysListEntry | null ---
 
 [[condition]]
-id = "select.no_cache_null"
+id = "select.no-cache-null"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:94"
 target_function = "selectApplicableGenesysList"
-source_lines = "53-54"
 description = "cacheがnullの場合nullを返す"
 given = "cache = null"
 expect_return = "null"
 
 [[condition]]
-id = "select.empty_lists_null"
+id = "select.empty-lists-null"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:94"
 target_function = "selectApplicableGenesysList"
-source_lines = "56-58"
 description = "cacheはあるがlistsが空の場合nullを返す"
 given = "cache.lists = {}"
 expect_return = "null"
 
 [[condition]]
-id = "select.effective_latest_past_or_today"
+id = "select.effective-latest-past-or-today"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:99"
 target_function = "selectApplicableGenesysList"
-source_lines = "61-66"
 description = "effectiveDateが今日以前のentriesだけを対象に、effectiveDate降順sort後の先頭を返す"
 given = "today='2026-07-11'、listsに2026-06-01/2026-04-01/2026-08-01がある"
 expect_return_shape = "effectiveDate='2026-06-01'のGenesysListEntry"
 
 [[condition]]
-id = "select.effective_includes_today"
+id = "select.effective-includes-today"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:115"
 target_function = "selectApplicableGenesysList"
-source_lines = "61-66"
 description = "effectiveDateが今日と同じentryは有効扱いになり、そのentryを返せる"
 given = "today='2026-08-01'、listsにeffectiveDate='2026-08-01'がある"
 expect_return_shape = "effectiveDate='2026-08-01'のGenesysListEntry"
 
 [[condition]]
-id = "select.all_future_uses_latest_list_param"
+id = "select.all-future-uses-latest-list-param"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:124"
 target_function = "selectApplicableGenesysList"
-source_lines = "69-72"
 description = "全entryが未来適用で、latestListParamがtruthyかつlistsに存在する場合、そのentryを返す"
 given = "today='2026-07-11'、latestListParam='202610'、lists['202610']が存在する"
 expect_return_shape = "listParam='202610'のGenesysListEntry"
 
 [[condition]]
-id = "select.all_future_latest_missing_uses_max_effective_date"
+id = "select.all-future-latest-missing-uses-max-effective-date"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:124"
 target_function = "selectApplicableGenesysList"
-source_lines = "70-74"
 description = "全entryが未来適用で、latestListParamがnullまたはlistsに存在しない場合、effectiveDateが最も新しいentryを返す"
 given = "today='2026-07-11'、latestListParam=nullまたは未存在キー、未来entryが複数ある"
 expect_return_shape = "effectiveDateが最大のGenesysListEntry"
@@ -84,79 +84,78 @@ expect_return_shape = "effectiveDateが最大のGenesysListEntry"
 # --- GenesysPointCache#init(): Promise<void> ---
 
 [[condition]]
-id = "init.already_initialized_returns_early"
+id = "genesys-cache.init-already-initialized-returns-early"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:165"
 target_function = "GenesysPointCache#init"
-source_lines = "89-91"
 description = "initializedがtrueの場合、storage読込も更新チェックも行わずreturnする"
 given = "同一インスタンスでinitを2回呼ぶ"
-expect_return = "undefined"
-expect_side_effect = "safeStorageGetとcheckAndUpdateは2回目に呼ばれない"
+expect_return = "undefined。safeStorageGetとcheckAndUpdateは2回目に呼ばれない"
 
 [[condition]]
-id = "init.stored_cache_loaded"
+id = "init.stored-cache-loaded"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:165"
 target_function = "GenesysPointCache#init"
-source_lines = "94-97"
 description = "safeStorageGetの戻り値がtruthyでSTORAGE_KEYの値もtruthyな場合、その値をcacheへ設定する"
 given = "safeStorageGetが { genesysPointList: GenesysPointCacheData } を返す"
-expect_side_effect = "getPoint/getCurrentListParam等がstorageのキャッシュを参照する"
+expect_return_shape = "getPoint/getCurrentListParam等がstorageのキャッシュを参照する"
 
 [[condition]]
-id = "init.no_stored_cache_keeps_null"
+id = "init.no-stored-cache-keeps-null"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:180"
 target_function = "GenesysPointCache#init"
-source_lines = "94-99"
 description = "safeStorageGetの戻り値がnull、またはSTORAGE_KEYの値が無い/falsyの場合、cacheはnullのままinitialized=trueになる"
 given = "safeStorageGetが null または {} を返す"
-expect_side_effect = "getCurrentListParam()はundefined、getAvailableListParams()は[]を返す"
+expect_return_shape = "getCurrentListParam()はundefined、getAvailableListParams()は[]を返す"
 
 [[condition]]
-id = "init.starts_background_check_and_swallows_rejection"
+id = "genesys-cache.init-starts-background-check-and-swallows-rejection"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:238"
 target_function = "GenesysPointCache#init"
-source_lines = "101-104"
 description = "初期化完了後にcheckAndUpdateをバックグラウンド起動し、rejectしてもinit自体はrejectしない"
 given = "checkAndUpdateがrejectするように差し替えたインスタンスでinitする"
 expect_no_throw = true
 
 [[condition]]
-id = "init.startup_ttl_fresh_skips_update"
+id = "init.startup-ttl-fresh-skips-update"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:191"
 target_function = "GenesysPointCache#init"
 source = "src/utils/genesys-cache.ts init()/checkAndUpdate()/needsUpdate()実装（storageから読み込んだcacheのdiscoveredAtがDISCOVERY_TTL以内の場合、起動時checkAndUpdateはGENESYSインデックスを再取得しない）"
-source_lines = "107-123,313-318"
 description = "storageから読み込んだcache.discoveredAtがDISCOVERY_TTL以内の場合、init()完了後のcheckAndUpdateはfetchGenesysIndexを呼ばずキャッシュをそのまま維持する"
 given = "storageのcache.discoveredAtが現在時刻から5日前（DISCOVERY_TTL=6日以内）"
-expect_side_effect = "fetchGenesysIndexは呼ばれず、cacheはstorageから読み込んだ値のまま変化しない"
+expect_return_shape = "fetchGenesysIndexは呼ばれず、cacheはstorageから読み込んだ値のまま変化しない"
 
 [[condition]]
-id = "init.startup_ttl_expired_updates_and_persists"
+id = "init.startup-ttl-expired-updates-and-persists"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:205"
 target_function = "GenesysPointCache#init"
 source = "src/utils/genesys-cache.ts init()/checkAndUpdate()/forceUpdate()実装（storageから読み込んだcacheのdiscoveredAtがDISCOVERY_TTL超過の場合、起動時checkAndUpdateがforceUpdateを実行しstorageへ保存する）"
-source_lines = "107-123,328-346,355-421"
 description = "storageから読み込んだcache.discoveredAtがDISCOVERY_TTL超過の場合、init()完了後のcheckAndUpdateがforceUpdateを実行してdiscoveredAtを更新し、更新後のcacheをsafeStorageSetで保存する"
 given = "storageのcache.discoveredAtが現在時刻から7日前（DISCOVERY_TTL=6日超過）、fetchGenesysIndexが成功する"
-expect_side_effect = "fetchGenesysIndexが1回呼ばれ、cache.discoveredAtが現在時刻に更新され、safeStorageSetに更新後のcacheが渡される"
+expect_return_shape = "fetchGenesysIndexが1回呼ばれ、cache.discoveredAtが現在時刻に更新され、safeStorageSetに更新後のcacheが渡される"
 
 [[condition]]
-id = "init.startup_update_failure_preserves_cache"
+id = "init.startup-update-failure-preserves-cache"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:223"
 target_function = "GenesysPointCache#init"
 source = "src/utils/genesys-cache.ts checkAndUpdate()実装（forceUpdate失敗時はcatchで握りつぶし既存キャッシュを保持する）"
-source_lines = "107-123,328-346"
 description = "storageから読み込んだcache.discoveredAtがDISCOVERY_TTL超過で起動時checkAndUpdateがforceUpdateを実行するが、fetchGenesysIndexが失敗した場合、既存キャッシュとdiscoveredAtをそのまま保持し、safeStorageSetは呼ばれない"
 given = "storageのcache.discoveredAtがDISCOVERY_TTL超過、fetchGenesysIndexがrejectする"
-expect_side_effect = "cacheはstorageから読み込んだ値のまま変化せず、safeStorageSetは呼ばれない"
+expect_return_shape = "cacheはstorageから読み込んだ値のまま変化せず、safeStorageSetは呼ばれない"
 
 # --- GenesysPointCache#getPoint(cardId, listParam?): number | undefined ---
 
 [[condition]]
-id = "get_point.explicit_list_param_lookup"
+id = "get-point.explicit-list-param-lookup"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:249"
 target_function = "GenesysPointCache#getPoint"
-source_lines = "120-122"
 description = "listParamがtruthyの場合、現在有効リスト選択は行わずcache.lists[listParam].points[cardId]を返す"
 given = "現在有効リストと指定listParamで同じcardIdのpointが異なる"
 expect_return_shape = "指定listParam側のpoint、未存在ならundefined"
 
 [[condition]]
-id = "get_point.current_applicable_lookup"
+id = "get-point.current-applicable-lookup"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:261"
 target_function = "GenesysPointCache#getPoint"
-source_lines = "124-125"
 description = "listParamが省略またはfalsyの場合、selectApplicableGenesysList(cache, Date.now())で選ばれたリストのpoints[cardId]を返す"
 given = "現在有効リストにcardIdが存在する/存在しない"
 expect_return_shape = "現在有効リスト側のpoint、未存在ならundefined"
@@ -164,9 +163,9 @@ expect_return_shape = "現在有効リスト側のpoint、未存在ならundefin
 # --- GenesysPointCache#getCurrentListParam(): string | undefined ---
 
 [[condition]]
-id = "current_list_param.selected_or_undefined"
+id = "current-list-param.selected-or-undefined"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:261"
 target_function = "GenesysPointCache#getCurrentListParam"
-source_lines = "131-132"
 description = "selectApplicableGenesysList(cache, Date.now())の戻り値があればlistParamを返し、なければundefinedを返す"
 given = "cacheに現在有効リストがある/ない"
 expect_return_shape = "listParamまたはundefined"
@@ -174,9 +173,9 @@ expect_return_shape = "listParamまたはundefined"
 # --- GenesysPointCache#getCurrentEffectiveDate(): string | undefined ---
 
 [[condition]]
-id = "current_effective_date.selected_or_undefined"
+id = "current-effective-date.selected-or-undefined"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:261"
 target_function = "GenesysPointCache#getCurrentEffectiveDate"
-source_lines = "138-139"
 description = "selectApplicableGenesysList(cache, Date.now())の戻り値があればeffectiveDateを返し、なければundefinedを返す"
 given = "cacheに現在有効リストがある/ない"
 expect_return_shape = "effectiveDateまたはundefined"
@@ -184,25 +183,25 @@ expect_return_shape = "effectiveDateまたはundefined"
 # --- GenesysPointCache#getAvailableListParams(): string[] ---
 
 [[condition]]
-id = "available_params.no_cache_empty"
+id = "available-params.no-cache-empty"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:278"
 target_function = "GenesysPointCache#getAvailableListParams"
-source_lines = "146-148"
 description = "cacheがnullの場合空配列を返す"
 given = "new GenesysPointCache()直後"
 expect_return = "[]"
 
 [[condition]]
-id = "available_params.available_copy"
+id = "available-params.available-copy"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:278"
 target_function = "GenesysPointCache#getAvailableListParams"
-source_lines = "150-151"
 description = "availableListParamsが1件以上ある場合、そのコピーを元の順序のまま返す"
 given = "availableListParams = ['202608','202606']"
 expect_return = "['202608', '202606']"
 
 [[condition]]
-id = "available_params.fallback_list_keys"
+id = "available-params.fallback-list-keys"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:278"
 target_function = "GenesysPointCache#getAvailableListParams"
-source_lines = "150-153"
 description = "availableListParamsが空配列の場合、listsのキー一覧を返す"
 given = "availableListParams = []、lists keys = ['202606','202608']"
 expect_return_shape = "Object.keys(cache.lists)と同じ配列"
@@ -210,35 +209,34 @@ expect_return_shape = "Object.keys(cache.lists)と同じ配列"
 # --- GenesysPointCache#ensureCurrentList(): Promise<GenesysListEntry | null> ---
 
 [[condition]]
-id = "ensure_current.existing_returns_without_update"
+id = "ensure-current.existing-returns-without-update"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:306,tests/unit/utils/genesys-cache.test.ts:562"
 target_function = "GenesysPointCache#ensureCurrentList"
-source_lines = "167-170"
 description = "現在有効なリストが既に選択できる場合、forceUpdateせずそのentryを返す"
 given = "cacheに現在有効リストが存在する"
-expect_return_shape = "現在有効なGenesysListEntry"
-expect_side_effect = "forceUpdateは呼ばれない"
+expect_return_shape = "現在有効なGenesysListEntry。forceUpdateは呼ばれない"
 
 [[condition]]
-id = "ensure_current.force_update_error_returns_null"
+id = "ensure-current.force-update-error-returns-null"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:316,tests/unit/utils/genesys-cache.test.ts:588"
 target_function = "GenesysPointCache#ensureCurrentList"
-source_lines = "173-177"
 description = "現在有効リストが無くforceUpdateが例外を投げた場合、警告ログ後にnullを返し例外は投げない"
 given = "cache=null、forceUpdateがrejectする"
 expect_return = "null"
 
 [[condition]]
-id = "ensure_current.force_update_success_reselects"
+id = "ensure-current.force-update-success-reselects"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:323,tests/unit/utils/genesys-cache.test.ts:534"
 target_function = "GenesysPointCache#ensureCurrentList"
-source_lines = "173-180"
 description = "現在有効リストが無い場合forceUpdateをawaitし、更新後のcacheからselectApplicableGenesysListした結果を返す"
 given = "forceUpdateがcacheに現在有効リストを設定する"
 expect_return_shape = "更新後に選択されたGenesysListEntryまたはnull"
 
 [[condition]]
-id = "ensure_current.incomplete_within_ttl_returns_without_update"
+id = "ensure-current.incomplete-within-ttl-returns-without-update"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:600"
 target_function = "GenesysPointCache#ensureCurrentList"
 source = "tm TASK-302 body: 修正内容(08-29)（ensureList()/ensureCurrentList()がincompleteキャッシュを無条件に返し続けるバグを修正、INCOMPLETE_RETRY_TTLで再取得）。TASK-509で部分解決時の挙動を分離"
-source_lines = "194-217"
 description = "現在有効なentryがincomplete:trueで、ローカル再解決が実行できない（rawEntries無し、またはカードDB件数不変でreresolveLocalがnull）場合、fetchedAtからのINCOMPLETE_RETRY_TTL未経過ならforceUpdateせず既存entryをそのまま返す。TTL超過後は改めてforceUpdateし、再取得結果が解決できればincomplete:falseのentryを返す（部分解決した場合はgenesys-cache.ensure-current-partial-reresolve-persisted-and-returnedのとおり改善済みentryを返す）"
 given = "current.incomplete=true、ローカル再解決不可（rawEntries無しまたはカードDB件数不変）。TTL内/TTL超過の両ケース"
 expect_return_shape = "TTL内はforceUpdateを呼ばず既存incompleteエントリを返す。TTL超過後はforceUpdate経由で再解決されたentryを返す"
@@ -246,70 +244,66 @@ expect_return_shape = "TTL内はforceUpdateを呼ばず既存incompleteエント
 # --- GenesysPointCache#ensureList(listParam): Promise<GenesysListEntry | null> ---
 
 [[condition]]
-id = "ensure_list.existing_returns_without_fetch"
+id = "genesys-cache.ensure-list-existing-returns-without-fetch"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:335,tests/unit/utils/genesys-cache.test.ts:671"
 target_function = "GenesysPointCache#ensureList"
-source_lines = "189-192"
 description = "cache.lists[listParam]がtruthyな場合、その既存entryを返しfetch/update/storage保存は行わない"
 given = "cacheに対象listParamのentryが存在する"
-expect_return_shape = "既存GenesysListEntry"
-expect_side_effect = "forceUpdate/fetchGenesysPointList/safeStorageSetは呼ばれない"
+expect_return_shape = "既存GenesysListEntry。forceUpdate/fetchGenesysPointList/safeStorageSetは呼ばれない"
 
 [[condition]]
-id = "ensure_list.no_available_force_update_error_returns_null"
+id = "ensure-list.no-available-force-update-error-returns-null"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:347"
 target_function = "GenesysPointCache#ensureList"
-source_lines = "195-202"
 description = "対象entryが無くavailableListParamsも取得済みlistキーも空の場合forceUpdateし、forceUpdateが例外ならnullを返す"
 given = "cache=null、forceUpdateがrejectする"
 expect_return = "null"
 
 [[condition]]
-id = "ensure_list.not_in_available_returns_null"
+id = "ensure-list.not-in-available-returns-null"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:354"
 target_function = "GenesysPointCache#ensureList"
-source_lines = "204-208"
 description = "availableListParamsまたはfallback keysにlistParamが含まれない場合nullを返す"
 given = "available=['202608']、listParam='202606'"
-expect_return = "null"
-expect_side_effect = "fetchGenesysPointListは呼ばれない"
+expect_return = "null。fetchGenesysPointListは呼ばれない"
 
 [[condition]]
-id = "ensure_list.after_force_complete_returns"
+id = "ensure-list.after-force-complete-returns"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:362,tests/unit/utils/genesys-cache.test.ts:671"
 target_function = "GenesysPointCache#ensureList"
-source_lines = "211-214"
 description = "forceUpdate後またはavailable確認後にcache.lists[listParam]が存在し、incompleteがfalsyの場合、そのentryを返す"
 given = "cache.lists[listParam]にincomplete未設定またはfalseのentryが存在する"
-expect_return_shape = "afterForceのGenesysListEntry"
-expect_side_effect = "fetchGenesysPointListは追加で呼ばれない"
+expect_return_shape = "afterForceのGenesysListEntry。fetchGenesysPointListは追加で呼ばれない"
 
 [[condition]]
-id = "ensure_list.fetch_success_creates_or_updates_cache"
+id = "ensure-list.fetch-success-creates-or-updates-cache"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:371"
 target_function = "GenesysPointCache#ensureList"
-source_lines = "217-243"
 description = "対象entryが無い、またはincomplete=trueの場合、DB初期化後にfetchGenesysPointListし、resolve結果をentryへ変換してcache.lists[listParam]へ保存する"
 given = "availableに対象listParamが含まれ、fetchGenesysPointListとresolveGenesysEntriesが成功する"
-expect_return_shape = "{ listParam, effectiveDate: listParamToEffectiveDate(listParam), points, fetchedAt: Date.now(), incomplete: unresolved.length > 0 }"
-expect_side_effect = "safeStorageSetに { genesysPointList: this.cache } が渡される"
+expect_return_shape = "{ listParam, effectiveDate: listParamToEffectiveDate(listParam), points, fetchedAt: Date.now(), incomplete: unresolved.length > 0 }。safeStorageSetに { genesysPointList: this.cache } が渡される"
 
 [[condition]]
-id = "ensure_list.unresolved_marks_incomplete"
+id = "ensure-list.unresolved-marks-incomplete"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:371"
 target_function = "GenesysPointCache#ensureList"
-source_lines = "221-233"
 description = "resolveGenesysEntriesのunresolvedが1件以上の場合、警告ログを出し、entry.incompleteをtrueにする"
 given = "resolveGenesysEntriesが unresolved=['未解決'] を返す"
 expect_return_shape = "incomplete=trueのGenesysListEntry"
 
 [[condition]]
-id = "ensure_list.fetch_or_persist_error_returns_null"
+id = "ensure-list.fetch-or-persist-error-returns-null"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:392"
 target_function = "GenesysPointCache#ensureList"
-source_lines = "217-246"
 description = "DB初期化/fetch/resolve/safeStorageSetのtry範囲内で例外が発生した場合、警告ログ後にnullを返し例外は投げない"
 given = "fetchGenesysPointListまたはsafeStorageSetがrejectする"
 expect_return = "null"
 
 [[condition]]
-id = "ensure_list.incomplete_within_ttl_returns_without_refetch"
+id = "ensure-list.incomplete-within-ttl-returns-without-refetch"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:638"
 target_function = "GenesysPointCache#ensureList"
 source = "tm TASK-302 body: 修正内容(08-29)（ensureList()/ensureCurrentList()がincompleteキャッシュを無条件に返し続けるバグを修正、INCOMPLETE_RETRY_TTLで再取得）。TASK-509で部分解決時の挙動を分離"
-source_lines = "234-248"
 description = "既存entryがincomplete:trueで、ローカル再解決が実行できない（rawEntries無し、またはカードDB件数不変でreresolveLocalがnull）場合、fetchedAtからのINCOMPLETE_RETRY_TTL未経過ならfetchGenesysPointListを呼ばずそのentryをそのまま返す。TTL超過後は再度fetchし、解決できればincomplete:falseのentryに更新する（部分解決した場合はgenesys-cache.ensure-list-partial-reresolve-persisted-and-returnedのとおり改善済みentryを返す）"
 given = "existing.incomplete=true、ローカル再解決不可（rawEntries無しまたはカードDB件数不変）。TTL内/TTL超過の両ケース"
 expect_return_shape = "TTL内はfetchGenesysPointListを呼ばず既存incompleteエントリを返す。TTL超過後はfetch経由で再解決されたentryを返す"
@@ -317,17 +311,17 @@ expect_return_shape = "TTL内はfetchGenesysPointListを呼ばず既存incomplet
 # --- GenesysPointCache#needsUpdate(): boolean (private) ---
 
 [[condition]]
-id = "needs_update.no_cache_true"
+id = "genesys-cache.needs-update-no-cache-true"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:402"
 target_function = "GenesysPointCache#needsUpdate"
-source_lines = "256-258"
 description = "cacheがnullの場合trueを返す"
 given = "new GenesysPointCache()直後"
 expect_return = "true"
 
 [[condition]]
-id = "needs_update.discovery_ttl_comparison"
+id = "needs-update.discovery-ttl-comparison"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:402"
 target_function = "GenesysPointCache#needsUpdate"
-source_lines = "260"
 description = "cacheがある場合、Date.now() - discoveredAt > DISCOVERY_TTL の真偽値をそのまま返す"
 given = "discoveredAtが現在時刻から6日超過/6日以内"
 expect_return_shape = "6日超過ならtrue、6日以内ならfalse"
@@ -335,106 +329,105 @@ expect_return_shape = "6日超過ならtrue、6日以内ならfalse"
 # --- GenesysPointCache#checkAndUpdate(): Promise<void> ---
 
 [[condition]]
-id = "check_update.in_flight_returns_same_promise"
+id = "check-update.in-flight-returns-same-promise"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:413"
 target_function = "GenesysPointCache#checkAndUpdate"
-source_lines = "271-273"
 description = "updatePromiseがtruthyの場合、needsUpdateやforceUpdateを新たに実行せず進行中の更新完了を待つ"
 given = "1回目のcheckAndUpdateが未完了の状態で2回目を呼ぶ"
-expect_side_effect = "forceUpdateは1回しか呼ばれず、2回目も進行中の更新完了後にresolveする"
+expect_return_shape = "forceUpdateは1回しか呼ばれず、2回目も進行中の更新完了後にresolveする"
 
 [[condition]]
-id = "check_update.no_update_needed_returns_undefined"
+id = "check-update.no-update-needed-returns-undefined"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:427"
 target_function = "GenesysPointCache#checkAndUpdate"
-source_lines = "275-276"
 description = "needsUpdate()がfalseの場合、forceUpdateせずundefinedを返す"
 given = "cache.discoveredAtがDISCOVERY_TTL以内"
 expect_return = "undefined"
 
 [[condition]]
-id = "check_update.force_update_errors_are_swallowed_and_promise_cleared"
+id = "check-update.force-update-errors-are-swallowed-and-promise-cleared"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:436"
+expect_return_shape = "void（戻り値なし）。完了後に再度checkAndUpdateすると新しいforceUpdateを開始できる"
 target_function = "GenesysPointCache#checkAndUpdate"
-source_lines = "279-288"
 description = "needsUpdate()がtrueの場合forceUpdateを開始し、rejectしてもcatchで握りつぶし、finallyでupdatePromiseをnullに戻す"
 given = "forceUpdateがrejectする"
-expect_no_throw = true
-expect_side_effect = "完了後に再度checkAndUpdateすると新しいforceUpdateを開始できる"
 
 # --- GenesysPointCache#forceUpdate(): Promise<void> ---
 
 [[condition]]
-id = "force_update.fetches_index_initializes_db_and_persists"
+id = "force-update.fetches-index-initializes-db-and-persists"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:449"
 target_function = "GenesysPointCache#forceUpdate"
-source_lines = "298-350"
 description = "fetchGenesysIndexでrefsを取得し、UnifiedCacheDBを初期化し、availableListParams/discoveredAtを含むcacheをsafeStorageSetで保存する"
 given = "fetchGenesysIndexがrefs配列を返す"
-expect_side_effect = "safeStorageSetに { genesysPointList: { lists, latestListParam, availableListParams, discoveredAt } } が渡される"
+expect_return_shape = "safeStorageSetに { genesysPointList: { lists, latestListParam, availableListParams, discoveredAt } } が渡される"
 
 [[condition]]
-id = "force_update.awaits_db_init_before_resolving_entries"
+id = "force-update.awaits-db-init-before-resolving-entries"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:694"
 target_function = "GenesysPointCache#forceUpdate"
 source = "src/utils/genesys-cache.ts forceUpdate()実装（getUnifiedCacheDB().initialize()をrefs処理ループより先にawaitする順序保証。カードDB未初期化だと名前解決が全滅するため）"
-source_lines = "356-359"
 description = "forceUpdateはrefsの各リストに対しfetchGenesysPointList/resolveGenesysEntriesを呼ぶループより前に、必ずgetUnifiedCacheDB().initialize()の完了を待つ"
 given = "db.initializeとresolveGenesysEntriesの両方が呼ばれるシナリオ"
-expect_side_effect = "db.initializeの呼び出しがresolveGenesysEntriesの呼び出しより先に発生する"
+expect_return_shape = "db.initializeの呼び出しがresolveGenesysEntriesの呼び出しより先に発生する"
 
 [[condition]]
-id = "force_update.latest_ref_sets_latest_list_param"
+id = "force-update.latest-ref-sets-latest-list-param"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:449"
 target_function = "GenesysPointCache#forceUpdate"
-source_lines = "307-310,343-346"
 description = "refs内のref.isLatestがtrueならlatestListParamをそのref.listParamへ更新する"
 given = "refsに { listParam: '202608', isLatest: true } が含まれる"
-expect_side_effect = "保存されるcache.latestListParamは'202608'"
+expect_return_shape = "保存されるcache.latestListParamは'202608'"
 
 [[condition]]
-id = "force_update.no_latest_ref_preserves_previous_or_null"
+id = "force-update.no-latest-ref-preserves-previous-or-null"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:489"
 target_function = "GenesysPointCache#forceUpdate"
-source_lines = "302,343-346"
 description = "refsにisLatest=trueが無い場合、既存cache.latestListParamがあればそれを保持し、無ければnullにする"
 given = "refsに最新版refが無い、既存latestListParamあり/なし"
-expect_side_effect = "保存されるcache.latestListParamは既存値またはnull"
+expect_return_shape = "保存されるcache.latestListParamは既存値またはnull"
 
 [[condition]]
-id = "force_update.complete_existing_entry_skipped"
+id = "force-update.complete-existing-entry-skipped"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:449,tests/unit/utils/genesys-cache.test.ts:750"
 target_function = "GenesysPointCache#forceUpdate"
-source_lines = "313-315"
 description = "lists[ref.listParam]が存在し、incompleteがfalsyの場合、そのrefのfetchGenesysPointListを呼ばずcontinueする"
 given = "既存entry incomplete未設定またはfalse"
-expect_side_effect = "対象listParamは再fetchされない"
+expect_return_shape = "対象listParamは再fetchされない"
 
 [[condition]]
-id = "force_update.incomplete_or_missing_entry_fetched"
+id = "force-update.incomplete-or-missing-entry-fetched"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:449"
 target_function = "GenesysPointCache#forceUpdate"
-source_lines = "313-338"
 description = "既存entryが無い、またはincomplete=trueの場合、fetchGenesysPointListしてresolve結果をlists[ref.listParam]へ保存する"
 given = "対象refのentryが未存在またはincomplete=true"
-expect_side_effect = "lists[ref.listParam]が新しいentryで上書きされる"
+expect_return_shape = "lists[ref.listParam]が新しいentryで上書きされる"
 
 [[condition]]
-id = "force_update.fetch_list_error_continues"
+id = "force-update.fetch-list-error-continues"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:489"
 target_function = "GenesysPointCache#forceUpdate"
-source_lines = "319-323"
 description = "個別refのfetchGenesysPointListが例外を投げた場合、そのrefは保存せず次のref処理へcontinueする"
 given = "1件目のfetchGenesysPointListがrejectし、2件目がresolveする"
-expect_side_effect = "2件目は保存され、forceUpdate全体はrejectしない"
+expect_return_shape = "2件目は保存され、forceUpdate全体はrejectしない"
 
 [[condition]]
-id = "force_update.unresolved_marks_incomplete"
+id = "force-update.unresolved-marks-incomplete"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:449"
 target_function = "GenesysPointCache#forceUpdate"
-source_lines = "325-337"
 description = "resolveGenesysEntriesのunresolvedが1件以上の場合、警告ログを出し、保存entry.incompleteをtrueにする"
 given = "resolveGenesysEntriesが unresolved=['未解決'] を返す"
-expect_side_effect = "保存entry.incomplete=true"
+expect_return_shape = "保存entry.incomplete=true"
 
 # --- GenesysPointCache#clear(): Promise<void> ---
 
 [[condition]]
-id = "clear.clears_cache_and_storage"
+id = "clear.clears-cache-and-storage"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:518"
 target_function = "GenesysPointCache#clear"
-source_lines = "356-358"
 description = "cacheをnullにし、safeStorageSet({ genesysPointList: null })をawaitする"
 given = "cacheにデータが入っている"
-expect_side_effect = "getAvailableListParams()は[]になり、storageにはnullが保存される"
+expect_return_shape = "getAvailableListParams()は[]になり、storageにはnullが保存される"
 
 # --- GenesysPointCache#reresolveLocal(entry): Promise<GenesysListEntry | null> (private, TASK-470) ---
 #
@@ -445,16 +438,17 @@ expect_side_effect = "getAvailableListParams()は[]になり、storageにはnull
 # エントリを外部fetch無しでローカル再解決できるようにする。
 
 [[condition]]
-id = "reresolve_local.no_raw_entries_falls_back_to_fetch"
+id = "reresolve-local.no-raw-entries-falls-back-to-fetch"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:772"
 target_function = "GenesysPointCache#reresolveLocal"
 source = "tm TASK-470 body: 修正方針1・2、確定した実装方針の変更内容2"
 description = "entry.rawEntriesが無い/空の場合、ローカル再解決対象が無いためnullを返す。呼び出し側は既存の外部fetchフォールバックへ進む"
 given = "entry.rawEntriesがundefinedまたは空配列"
-expect_return = "null"
-expect_side_effect = "genesysNameResolver.reset()・resolveGenesysEntries()は呼ばれない"
+expect_return = "null。genesysNameResolver.reset()・resolveGenesysEntries()は呼ばれない"
 
 [[condition]]
-id = "reresolve_local.resolves_incomplete_to_complete_without_fetch"
+id = "reresolve-local.resolves-incomplete-to-complete-without-fetch"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:809"
 target_function = "GenesysPointCache#reresolveLocal"
 source = "tm TASK-470 body: 確定した実装方針の変更内容2"
 description = "rawEntriesを保持したincompleteエントリは、カードDB充実後にresolveGenesysEntriesで全件解決できればincomplete:falseの新entryを返す"
@@ -463,6 +457,7 @@ expect_return_shape = "points/incompleteが更新された新しいGenesysListEn
 
 [[condition]]
 id = "genesys-cache.partial-improvement-adopted-by-callers"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:840"
 target_function = "GenesysPointCache#reresolveLocal"
 source = "PR#155レビュー指摘(P1): カードDBがrawEntriesの一部のみ蓄積済みの状況（2つ目のデッキを開いてそのカードがDBへ追加される等のincremental cacheケース）が常態なのに、呼び出し元のguardが完全解決（!relocal.incomplete）のみ採用していたため部分改善が破棄され、新たに解決可能になったカードのポイントがINCOMPLETE_RETRY_TTL(6日)経過まで表示されなかった"
 description = "ローカル再解決で一部のみ解決した（再解決後もunresolvedが残る）場合も、呼び出し元（ensureList/ensureCurrentList/forceUpdate）は改善済みエントリ（incomplete:true・解決済みpoints反映済み）を破棄せず永続化して返す。TTLゲート付き外部fetchへのフォールバックは、ローカル再解決が実行できない（rawEntries無し/カードDB件数不変でnull）場合のみ"
@@ -470,15 +465,17 @@ given = "rawEntries保持済みのincomplete:trueエントリ、カードDB充�
 expect_return_shape = "ensureList/ensureCurrentListは解決済みpointsを含むincomplete:trueの改善済みGenesysListEntryを返す（fetchGenesysPointList/forceUpdateは呼ばれず、safeStorageSetで改善済みentryを含むcacheが保存される）"
 
 [[condition]]
-id = "reresolve_local.resets_name_resolver_before_resolve"
+id = "reresolve-local.resets-name-resolver-before-resolve"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:883"
 target_function = "GenesysPointCache#reresolveLocal"
 source = "tm TASK-470 body 設計レビュー指摘1（重大）: GenesysNameResolver.build()はthis.builtフラグで一度きりしか構築されず、reset()を呼ばない限りカードDBが後で充実しても名前解決マップが更新されない"
 description = "resolveGenesysEntries()を呼ぶ前に必ずgenesysNameResolver.reset()を呼び、構築済みの名前解決マップを破棄してから再構築させる。順序を誤るとローカル再解決機能自体が無意味になる"
 given = "entry.rawEntriesが1件以上ある"
-expect_side_effect = "genesysNameResolver.reset()の呼び出しがresolveGenesysEntries()の呼び出しより先に発生する"
+expect_return_shape = "genesysNameResolver.reset()の呼び出しがresolveGenesysEntries()の呼び出しより先に発生する"
 
 [[condition]]
-id = "reresolve_local.preserves_fetched_at"
+id = "reresolve-local.preserves-fetched-at"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:809"
 target_function = "GenesysPointCache#reresolveLocal"
 source = "tm TASK-470 body 設計レビュー指摘4: fetchedAtは変更せず元の値を保持する（外部取得日時と再解決日時を混同しないため）"
 description = "再解決結果のentryは、元entryのfetchedAt（外部取得日時）をそのまま維持する。再解決を行った時刻では上書きしない"
@@ -493,73 +490,78 @@ expect_return_shape = "返るentryのfetchedAtは入力entryのfetchedAtと同�
 # reset()を含む再解決処理そのものをスキップする。
 
 [[condition]]
-id = "reresolve_local.skips_reresolve_when_card_count_unchanged"
+id = "reresolve-local.skips-reresolve-when-card-count-unchanged"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:1018"
 target_function = "GenesysPointCache#reresolveLocal"
 source = "tm TASK-471 body 確定した実装方針（論点B）"
 description = "getUnifiedCacheDB().getStats().cardTableACountが前回のローカル再解決試行時点(lastReresolveAttemptCardCount)から変化していない場合、genesysNameResolver.reset()・resolveGenesysEntries()を呼ばずnullを返す。呼び出し元は既存のTTLゲート付き外部fetchロジックへフォールバックする"
 given = "entry.rawEntriesが1件以上あり、db.getStats().cardTableACountが前回記録値と同一"
-expect_return = "null"
-expect_side_effect = "genesysNameResolver.reset()・resolveGenesysEntries()は呼ばれない"
+expect_return = "null。genesysNameResolver.reset()・resolveGenesysEntries()は呼ばれない"
 
 [[condition]]
-id = "reresolve_local.retries_reresolve_when_card_count_changed"
+id = "reresolve-local.retries-reresolve-when-card-count-changed"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:1056"
 target_function = "GenesysPointCache#reresolveLocal"
 source = "tm TASK-471 body 確定した実装方針（論点B）"
 description = "cardTableACountが前回記録値と異なる場合、lastReresolveAttemptCardCountを現在値へ更新したうえで通常通りgenesysNameResolver.reset()から再解決処理を実行する"
 given = "entry.rawEntriesが1件以上あり、db.getStats().cardTableACountが前回記録値と異なる（初回呼び出しでlastReresolveAttemptCardCountがnullの場合を含む）"
-expect_side_effect = "genesysNameResolver.reset()が呼ばれ、resolveGenesysEntries()の結果に基づく新しいentryが返る"
+expect_return_shape = "genesysNameResolver.reset()が呼ばれ、resolveGenesysEntries()の結果に基づく新しいentryが返る"
 
 [[condition]]
-id = "reresolve_local.tracks_card_count_per_list_param"
+id = "reresolve-local.tracks-card-count-per-list-param"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:1095"
 target_function = "GenesysPointCache#reresolveLocal"
 source = "TASK-471 コードレビュー指摘（Major）: lastReresolveAttemptCardCountが全listParamで共有（インスタンス単位で1つ）だと、forceUpdate()のループ内で複数の異なるlistParamが同時にincompleteな場合、1件目の解決試行でカード数が記録され、まだ一度もこのDB状態で解決を試みていない2件目以降が誤って即座にスキップされ、本来不要な外部fetchへフォールバックしてしまう（genesysNameResolverは1件目のresetでbuild済みのため2件目以降のresolveGenesysEntries()自体は安価であり、本来スキップする必要は無い）"
 description = "lastReresolveAttemptCardCountはlistParamごとに記録する（Record<string, number>）。entry.listParamをキーとして前回記録値と比較・更新するため、同一listParamの再試行のみがスキップ対象になり、異なるlistParamの初回試行はスキップされない"
 given = "forceUpdate()のループ内で異なる2つのlistParamが両方incomplete:trueかつrawEntries保持済み、db.getStats().cardTableACountはループ全体を通じて不変"
-expect_side_effect = "両方のlistParamでgenesysNameResolver.reset()とresolveGenesysEntries()が呼ばれ、どちらもローカル再解決だけでincomplete:falseに解決される（外部fetchは呼ばれない）"
+expect_return_shape = "両方のlistParamでgenesysNameResolver.reset()とresolveGenesysEntries()が呼ばれ、どちらもローカル再解決だけでincomplete:falseに解決される（外部fetchは呼ばれない）"
 
 # --- ensureList/ensureCurrentList/forceUpdate へのローカル再解決統合 (TASK-470) ---
 
 [[condition]]
-id = "ensure_list.incomplete_existing_tries_local_reresolve_first"
+id = "ensure-list.incomplete-existing-tries-local-reresolve-first"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:809"
 target_function = "GenesysPointCache#ensureList"
 source = "tm TASK-470 body: 確定した実装方針3"
 description = "既存entryがincomplete:trueの場合、TTL判定や外部fetchより先にreresolveLocal()を試す。完全解決できればメモリキャッシュとchrome.storage.localを更新してそれを返し、外部fetchもINCOMPLETE_RETRY_TTL判定もスキップする"
 given = "cache.lists[listParam]が存在しincomplete:true、rawEntriesがカードDB充実後は解決可能"
-expect_return_shape = "incomplete=falseの新entry"
-expect_side_effect = "fetchGenesysPointListは呼ばれず、safeStorageSetでこの新entryを含むcacheが保存される"
+expect_return_shape = "incomplete=falseの新entry。fetchGenesysPointListは呼ばれず、safeStorageSetでこの新entryを含むcacheが保存される"
 
 [[condition]]
-id = "ensure_list.fetch_success_saves_raw_entries"
+id = "ensure-list.fetch-success-saves-raw-entries"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:917"
 target_function = "GenesysPointCache#ensureList"
 source = "tm TASK-470 body: 確定した実装方針6"
 description = "外部fetchが成功した場合、常にrawEntries: parsed.entriesを保存する（次回以降のローカル再解決を可能にするため）"
 given = "fetchGenesysPointListが成功する"
-expect_side_effect = "保存されるentry.rawEntriesにparsed.entriesが設定される（次回呼び出しでrawEntries前提のローカル再解決が成立することで間接的に検証）"
+expect_return_shape = "保存されるentry.rawEntriesにparsed.entriesが設定される（次回呼び出しでrawEntries前提のローカル再解決が成立することで間接的に検証）"
 
 [[condition]]
-id = "ensure_current.incomplete_existing_tries_local_reresolve_first"
+id = "ensure-current.incomplete-existing-tries-local-reresolve-first"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:947"
 target_function = "GenesysPointCache#ensureCurrentList"
 source = "tm TASK-470 body: 確定した実装方針4"
 description = "selectApplicableGenesysListで得た現在有効なentryがincompleteなら、forceUpdate()呼び出し（外部fetch判断）より先にローカル再解決を試す"
 given = "現在有効なentryがincomplete:true、rawEntriesがカードDB充実後は解決可能"
-expect_return_shape = "incomplete=falseの新entry"
-expect_side_effect = "forceUpdateは呼ばれない"
+expect_return_shape = "incomplete=falseの新entry。forceUpdateは呼ばれない"
 
 [[condition]]
-id = "force_update.local_reresolve_skips_fetch_when_fully_resolved"
+id = "force-update.local-reresolve-skips-fetch-when-fully-resolved"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:719"
 target_function = "GenesysPointCache#forceUpdate"
 source = "tm TASK-470 body: 確定した実装方針5、TASK-302回帰テストの更新"
 description = "ループ内で既存entryがincompleteな場合、fetchGenesysPointListより先にローカル再解決を試す。完全解決していればそのlistParamの外部fetchをスキップする"
 given = "lists[ref.listParam]が既存でincomplete:true、rawEntriesがカードDB充実後は解決可能"
-expect_side_effect = "fetchGenesysPointListは呼ばれず、lists[ref.listParam]はローカル再解決結果（incomplete=false）で上書きされる"
+expect_return_shape = "fetchGenesysPointListは呼ばれず、lists[ref.listParam]はローカル再解決結果（incomplete=false）で上書きされる"
 
 [[condition]]
-id = "force_update.fetch_success_saves_raw_entries"
+id = "force-update.fetch-success-saves-raw-entries"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:719"
 target_function = "GenesysPointCache#forceUpdate"
 source = "tm TASK-470 body: 確定した実装方針6"
 description = "外部fetchが成功した場合、常にrawEntries: parsed.entriesを保存する（次回以降のローカル再解決を可能にするため）"
 given = "fetchGenesysPointListが成功する"
-expect_side_effect = "保存されるlists[ref.listParam].rawEntriesにparsed.entriesが設定される（次回forceUpdate呼び出しでrawEntries前提のローカル再解決が成立することで間接的に検証）"
+expect_return_shape = "保存されるlists[ref.listParam].rawEntriesにparsed.entriesが設定される（次回forceUpdate呼び出しでrawEntries前提のローカル再解決が成立することで間接的に検証）"
 
 # --- 部分解決結果の採用（TASK-509、PR#155レビュー指摘P1） ---
 #
@@ -571,27 +573,27 @@ expect_side_effect = "保存されるlists[ref.listParam].rawEntriesにparsed.en
 
 [[condition]]
 id = "genesys-cache.ensure-list-partial-reresolve-persisted-and-returned"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:840"
 target_function = "GenesysPointCache#ensureList"
 source = "PR#155レビュー指摘(P1): incremental cacheケースで部分解決結果が破棄され、TTL branchが古いentryを返していた（src/utils/genesys-cache.ts:234のguard）"
-source_lines = "234-240"
 description = "ローカル再解決で一部のみ解決した場合も、改善済みエントリ（incomplete:true・解決済みpoints反映済み）をpersistResolvedEntryで永続化して返す。外部fetchもINCOMPLETE_RETRY_TTL判定も行わない"
 given = "existing.incomplete=true、rawEntries保持済み、カードDB充実により一部カードのみ解決可能（resolveGenesysEntriesのunresolvedが1件以上残る）"
 expect_return_shape = "解決済みpointsを含むincomplete:trueの改善済みGenesysListEntry（fetchGenesysPointListは呼ばれず、safeStorageSetで改善済みentryを含むcacheが保存される）"
 
 [[condition]]
 id = "genesys-cache.ensure-current-partial-reresolve-persisted-and-returned"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:978"
 target_function = "GenesysPointCache#ensureCurrentList"
 source = "PR#155レビュー指摘(P1): ensureList()と同一のguard問題。forceUpdate（外部fetch）より先に試みたローカル再解決が部分解決でも改善結果を返す必要がある"
-source_lines = "194-200"
 description = "現在有効なentryのローカル再解決で一部のみ解決した場合も、改善済みエントリ（incomplete:true）を永続化して返し、forceUpdateは呼ばない"
 given = "現在有効なentryがincomplete:true、rawEntries保持済み、カードDB充実により一部カードのみ解決可能"
 expect_return_shape = "解決済みpointsを含むincomplete:trueの改善済みGenesysListEntry（forceUpdate/fetchGenesysPointListは呼ばれず、safeStorageSetで改善済みentryを含むcacheが保存される）"
 
 [[condition]]
 id = "genesys-cache.force-update-partial-reresolve-replaces-entry-without-fetch"
+source_lines = "tests/unit/utils/genesys-cache.test.ts:1148"
 target_function = "GenesysPointCache#forceUpdate"
 source = "PR#155レビュー指摘(P1)と同根: forceUpdateループ内の同一guardも部分解決結果を破棄して外部fetchへ進んでいた"
-source_lines = "378-385"
 description = "ループ内で既存entryのローカル再解決が一部のみ解決した場合も、改善済みエントリ（incomplete:true）でlists[ref.listParam]を置き換え、そのlistParamの外部fetchをスキップする"
 given = "lists[ref.listParam]が既存でincomplete:true、rawEntries保持済み、カードDB充実により一部カードのみ解決可能"
 expect_return_shape = "lists[ref.listParam]が解決済みpointsを含むincomplete:trueエントリで上書きされる（fetchGenesysPointListは呼ばれない）"

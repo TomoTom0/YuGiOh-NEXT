@@ -72,7 +72,7 @@ describe('ForbiddenLimitedCache', () => {
   });
 
   describe('init', () => {
-    it('新形式キャッシュを読み込み、2回目のinitはstorageを読まない [covers:cache_data_guard.required_keys_present_true] [covers:init.new_format_loaded] [covers:init.already_initialized_returns_early]', async () => {
+    it('新形式キャッシュを読み込み、2回目のinitはstorageを読まない [covers:cache-data-guard.required-keys-present-true] [covers:init.new-format-loaded] [covers:init.already-initialized-returns-early]', async () => {
       const data = createCacheData();
       storageMocks.safeStorageGet.mockResolvedValue({ [STORAGE_KEY]: data });
       const cache = new ForbiddenLimitedCache();
@@ -85,7 +85,7 @@ describe('ForbiddenLimitedCache', () => {
       expect(cache.getCurrentEffectiveDate()).toBe('2026-01-01');
     });
 
-    it('旧形式キャッシュを新形式へ移行して保存する [covers:old_list_guard.required_keys_present_true] [covers:migrate_old.wraps_single_list] [covers:init.old_format_migrated_and_persisted]', async () => {
+    it('旧形式キャッシュを新形式へ移行して保存する [covers:old-list-guard.required-keys-present-true] [covers:migrate-old.wraps-single-list] [covers:init.old-format-migrated-and-persisted]', async () => {
       const oldList = createList('2025-10-01', Date.now(), { '300': 'semi-limited' });
       storageMocks.safeStorageGet.mockResolvedValue({ [STORAGE_KEY]: oldList });
       const cache = new ForbiddenLimitedCache();
@@ -104,7 +104,7 @@ describe('ForbiddenLimitedCache', () => {
       });
     });
 
-    it('新旧どちらでもないstorage値はcache=nullのまま初期化する [covers:cache_data_guard.non_object_false] [covers:cache_data_guard.required_key_missing_false] [covers:old_list_guard.non_object_false] [covers:old_list_guard.lists_key_present_false] [covers:init.invalid_storage_keeps_cache_null]', async () => {
+    it('新旧どちらでもないstorage値はcache=nullのまま初期化する [covers:cache-data-guard.non-object-false] [covers:cache-data-guard.required-key-missing-false] [covers:old-list-guard.non-object-false] [covers:old-list-guard.lists-key-present-false] [covers:init.invalid-storage-keeps-cache-null]', async () => {
       storageMocks.safeStorageGet.mockResolvedValue({ [STORAGE_KEY]: { lists: {}, effectiveDate: '2026-01-01', regulations: {}, fetchedAt: 1 } });
       const cache = new ForbiddenLimitedCache();
       vi.spyOn(cache, 'checkAndUpdate').mockResolvedValue(undefined);
@@ -116,7 +116,7 @@ describe('ForbiddenLimitedCache', () => {
       expect(storageMocks.safeStorageSet).not.toHaveBeenCalled();
     });
 
-    it('初期化後のバックグラウンド更新がrejectしてもinitはrejectしない [covers:init.starts_background_check_and_swallows_rejection]', async () => {
+    it('初期化後のバックグラウンド更新がrejectしてもinitはrejectしない [covers:init.starts-background-check-and-swallows-rejection]', async () => {
       storageMocks.safeStorageGet.mockResolvedValue({ [STORAGE_KEY]: createCacheData() });
       const cache = new ForbiddenLimitedCache();
       vi.spyOn(cache, 'checkAndUpdate').mockRejectedValue(new Error('background failed'));
@@ -127,7 +127,7 @@ describe('ForbiddenLimitedCache', () => {
   });
 
   describe('read methods', () => {
-    it('cacheが無い場合はnull/undefined/空配列を返す [covers:get_list.no_cache_null] [covers:get_regulation.no_cache_undefined] [covers:current_date.cache_or_nullish_undefined] [covers:available_dates.no_cache_empty]', () => {
+    it('cacheが無い場合はnull/undefined/空配列を返す [covers:get-list.no-cache-null] [covers:get-regulation.no-cache-undefined] [covers:current-date.cache-or-nullish-undefined] [covers:available-dates.no-cache-empty]', () => {
       const cache = new ForbiddenLimitedCache();
 
       expect((cache as any).getList(null)).toBeNull();
@@ -136,7 +136,7 @@ describe('ForbiddenLimitedCache', () => {
       expect(cache.getAvailableDates()).toEqual([]);
     });
 
-    it('最新版または指定日のリストから規制値を取得する [covers:get_list.latest_null_uses_latest_effective_date] [covers:get_list.explicit_date_uses_exact_key] [covers:get_regulation.latest_or_explicit_lookup] [covers:get_regulation.missing_card_or_list_undefined]', () => {
+    it('最新版または指定日のリストから規制値を取得する [covers:get-list.latest-null-uses-latest-effective-date] [covers:get-list.explicit-date-uses-exact-key] [covers:get-regulation.latest-or-explicit-lookup] [covers:get-regulation.missing-card-or-list-undefined]', () => {
       const latest = createList('2026-04-01', Date.now(), { '100': 'forbidden' });
       const old = createList('2026-01-01', Date.now(), { '100': 'limited' });
       const cache = new ForbiddenLimitedCache();
@@ -151,7 +151,7 @@ describe('ForbiddenLimitedCache', () => {
       expect(cache.getRegulation('100', '2099-01-01')).toBeUndefined();
     });
 
-    it('複数カードの規制値をcardIdごとのobjectにする [covers:get_regulations.maps_each_card_id]', () => {
+    it('複数カードの規制値をcardIdごとのobjectにする [covers:get-regulations.maps-each-card-id]', () => {
       const cache = new ForbiddenLimitedCache();
       setInternalCache(cache, createCacheData());
 
@@ -162,14 +162,14 @@ describe('ForbiddenLimitedCache', () => {
       });
     });
 
-    it('latestEffectiveDateがnullの場合はundefinedを返す [covers:current_date.cache_or_nullish_undefined]', () => {
+    it('latestEffectiveDateがnullの場合はundefinedを返す [covers:current-date.cache-or-nullish-undefined]', () => {
       const cache = new ForbiddenLimitedCache();
       setInternalCache(cache, createCacheData({ latestEffectiveDate: null }));
 
       expect(cache.getCurrentEffectiveDate()).toBeUndefined();
     });
 
-    it('availableDatesがあればコピーをsortして返し、空ならlistsキーで代用する [covers:available_dates.available_dates_sorted_copy] [covers:available_dates.fallback_list_keys_sorted]', () => {
+    it('availableDatesがあればコピーをsortして返し、空ならlistsキーで代用する [covers:available-dates.available-dates-sorted-copy] [covers:available-dates.fallback-list-keys-sorted]', () => {
       const cache = new ForbiddenLimitedCache();
       setInternalCache(cache, createCacheData({
         availableDates: ['2026-04-01', '2026-01-01']
@@ -192,7 +192,7 @@ describe('ForbiddenLimitedCache', () => {
   });
 
   describe('ensureList', () => {
-    it('既存リストがあればfetchせずそのまま返す [covers:ensure_list.existing_returns_without_fetch]', async () => {
+    it('既存リストがあればfetchせずそのまま返す [covers:ensure-list.existing-returns-without-fetch]', async () => {
       const existing = createList('2026-01-01', Date.now(), { '100': 'limited' });
       const cache = new ForbiddenLimitedCache();
       setInternalCache(cache, createCacheData({ lists: { '2026-01-01': existing } }));
@@ -202,7 +202,7 @@ describe('ForbiddenLimitedCache', () => {
       expect(storageMocks.safeStorageSet).not.toHaveBeenCalled();
     });
 
-    it('未キャッシュなら取得してcache作成・日付追加・保存を行う [covers:ensure_list.fetch_success_creates_cache_adds_date_persists] [covers:persist.saves_storage_key_with_current_cache]', async () => {
+    it('未キャッシュなら取得してcache作成・日付追加・保存を行う [covers:ensure-list.fetch-success-creates-cache-adds-date-persists] [covers:persist.saves-storage-key-with-current-cache]', async () => {
       const fetched = createList('2026-01-01', Date.now(), { '100': 'limited' });
       apiMocks.fetchForbiddenLimitedList.mockResolvedValue(fetched);
       const cache = new ForbiddenLimitedCache();
@@ -221,7 +221,7 @@ describe('ForbiddenLimitedCache', () => {
       });
     });
 
-    it('availableDatesに既にある日付は重複追加しない [covers:ensure_list.fetch_success_date_already_available_not_duplicated]', async () => {
+    it('availableDatesに既にある日付は重複追加しない [covers:ensure-list.fetch-success-date-already-available-not-duplicated]', async () => {
       const fetched = createList('2026-01-01', Date.now(), { '100': 'limited' });
       apiMocks.fetchForbiddenLimitedList.mockResolvedValue(fetched);
       const cache = new ForbiddenLimitedCache();
@@ -232,7 +232,7 @@ describe('ForbiddenLimitedCache', () => {
       expect(cache.getAvailableDates()).toEqual(['2026-01-01']);
     });
 
-    it('取得失敗時は例外を投げずnullを返す [covers:ensure_list.fetch_error_returns_null]', async () => {
+    it('取得失敗時は例外を投げずnullを返す [covers:ensure-list.fetch-error-returns-null]', async () => {
       apiMocks.fetchForbiddenLimitedList.mockRejectedValue(new Error('network'));
       const cache = new ForbiddenLimitedCache();
 
@@ -241,7 +241,7 @@ describe('ForbiddenLimitedCache', () => {
   });
 
   describe('needsUpdate and checkAndUpdate', () => {
-    it('更新が必要な状態をtrueとして判定する [covers:needs_update.no_cache_true] [covers:needs_update.discovery_ttl_expired_true] [covers:needs_update.latest_missing_true] [covers:needs_update.latest_cache_ttl_expired_true] [covers:needs_update.next_effective_date_reached_true]', () => {
+    it('更新が必要な状態をtrueとして判定する [covers:needs-update.no-cache-true] [covers:needs-update.discovery-ttl-expired-true] [covers:needs-update.latest-missing-true] [covers:needs-update.latest-cache-ttl-expired-true] [covers:needs-update.next-effective-date-reached-true]', () => {
       const cache = new ForbiddenLimitedCache();
       expect((cache as any).needsUpdate()).toBe(true);
 
@@ -261,7 +261,7 @@ describe('ForbiddenLimitedCache', () => {
       expect((cache as any).needsUpdate()).toBe(true);
     });
 
-    it('全て新鮮で次回適用日が未来なら更新不要と判定する [covers:needs_update.all_fresh_false] [covers:check_update.needs_update_false_returns_without_fetch]', async () => {
+    it('全て新鮮で次回適用日が未来なら更新不要と判定する [covers:needs-update.all-fresh-false] [covers:check-update.needs-update-false-returns-without-fetch]', async () => {
       const cache = new ForbiddenLimitedCache();
       setInternalCache(cache, createCacheData());
 
@@ -270,7 +270,7 @@ describe('ForbiddenLimitedCache', () => {
       expect(apiMocks.fetchForbiddenLimitedList).not.toHaveBeenCalled();
     });
 
-    it('更新中は内部updatePromiseを再利用して多重fetchしない [covers:check_update.in_flight_reuses_update_promise]', async () => {
+    it('更新中は内部updatePromiseを再利用して多重fetchしない [covers:check-update.in-flight-reuses-update-promise]', async () => {
       const cache = new ForbiddenLimitedCache();
       apiMocks.fetchForbiddenLimitedList.mockResolvedValue(createList('2026-04-01', Date.now()));
       apiMocks.fetchAvailableEffectiveDates.mockResolvedValue(['2026-04-01']);
@@ -282,7 +282,7 @@ describe('ForbiddenLimitedCache', () => {
       expect(apiMocks.fetchForbiddenLimitedList).toHaveBeenCalledTimes(1);
     });
 
-    it('forceUpdateの失敗は握りつぶし、promiseをresetして次回再試行できる [covers:check_update.force_update_error_swallowed_and_promise_reset]', async () => {
+    it('forceUpdateの失敗は握りつぶし、promiseをresetして次回再試行できる [covers:check-update.force-update-error-swallowed-and-promise-reset]', async () => {
       const cache = new ForbiddenLimitedCache();
       apiMocks.fetchForbiddenLimitedList
         .mockRejectedValueOnce(new Error('first failure'))
@@ -297,7 +297,7 @@ describe('ForbiddenLimitedCache', () => {
   });
 
   describe('forceUpdate and clear', () => {
-    it('最新版と実在日付一覧を取得して保存する [covers:force_update.fetches_latest_and_persists] [covers:force_update.discovery_ttl_expired_fetches_available_dates]', async () => {
+    it('最新版と実在日付一覧を取得して保存する [covers:force-update.fetches-latest-and-persists] [covers:force-update.discovery-ttl-expired-fetches-available-dates]', async () => {
       const latest = createList('2026-04-01', Date.now(), { '400': 'semi-limited' });
       apiMocks.fetchForbiddenLimitedList.mockResolvedValue(latest);
       apiMocks.fetchAvailableEffectiveDates.mockResolvedValue(['2026-01-01', '2026-04-01']);
@@ -315,7 +315,7 @@ describe('ForbiddenLimitedCache', () => {
       });
     });
 
-    it('discovery TTL内なら実在日付一覧fetchをスキップする [covers:force_update.discovery_ttl_fresh_skips_available_dates]', async () => {
+    it('discovery TTL内なら実在日付一覧fetchをスキップする [covers:force-update.discovery-ttl-fresh-skips-available-dates]', async () => {
       const latest = createList('2026-04-01', Date.now());
       const discoveredAt = Date.now();
       apiMocks.fetchForbiddenLimitedList.mockResolvedValue(latest);
@@ -332,7 +332,7 @@ describe('ForbiddenLimitedCache', () => {
       expect(getInternalCache(cache)?.discoveredAt).toBe(discoveredAt);
     });
 
-    it('実在日付一覧fetchが失敗しても既存値を保持して最新版は保存する [covers:force_update.available_dates_fetch_error_keeps_existing]', async () => {
+    it('実在日付一覧fetchが失敗しても既存値を保持して最新版は保存する [covers:force-update.available-dates-fetch-error-keeps-existing]', async () => {
       const latest = createList('2026-04-01', Date.now());
       const discoveredAt = Date.now() - 8 * DAY;
       apiMocks.fetchForbiddenLimitedList.mockResolvedValue(latest);
@@ -350,7 +350,7 @@ describe('ForbiddenLimitedCache', () => {
       expect(getInternalCache(cache)?.discoveredAt).toBe(discoveredAt);
     });
 
-    it('最新版fetchが失敗した場合forceUpdateはrejectする [covers:force_update.latest_fetch_error_rejects]', async () => {
+    it('最新版fetchが失敗した場合forceUpdateはrejectする [covers:force-update.latest-fetch-error-rejects]', async () => {
       apiMocks.fetchForbiddenLimitedList.mockRejectedValue(new Error('latest failed'));
       const cache = new ForbiddenLimitedCache();
 
@@ -359,7 +359,7 @@ describe('ForbiddenLimitedCache', () => {
       expect(storageMocks.safeStorageSet).not.toHaveBeenCalled();
     });
 
-    it('clearはcacheをnullにしstorageにもnullを保存する [covers:clear.sets_cache_null_and_persists_null]', async () => {
+    it('clearはcacheをnullにしstorageにもnullを保存する [covers:clear.sets-cache-null-and-persists-null]', async () => {
       const cache = new ForbiddenLimitedCache();
       setInternalCache(cache, createCacheData());
 
@@ -369,7 +369,7 @@ describe('ForbiddenLimitedCache', () => {
       expect(storageMocks.safeStorageSet).toHaveBeenCalledWith({ [STORAGE_KEY]: null });
     });
 
-    it('グローバルインスタンスをexportする [covers:singleton.instance_created]', () => {
+    it('グローバルインスタンスをexportする [covers:singleton.instance-created]', () => {
       expect(forbiddenLimitedCache).toBeInstanceOf(ForbiddenLimitedCache);
     });
   });
