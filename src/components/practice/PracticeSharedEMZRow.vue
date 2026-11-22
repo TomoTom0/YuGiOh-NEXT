@@ -14,7 +14,7 @@
           :slot-index="i - 1"
           stack-direction="right-up"
           @card-action="(action, cardId) => handleAction(action, cardId, 0)"
-          @card-drop="(cardId, fromZone, fromSlotIndex, dropPos) => handleDrop(i - 1, cardId, dropPos, 0)"
+          @card-drop="(cardId, _fromZone, _fromSlotIndex, dropPos) => handleDrop(i - 1, cardId, dropPos, 0)"
           @deck-card-drop="(cid, ciid, dropPos) => handleDeckDrop(i - 1, cid, ciid, dropPos, 0)"
           :card-width="cardSize.width"
           :card-height="cardSize.height"

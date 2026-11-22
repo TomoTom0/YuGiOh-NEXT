@@ -3,7 +3,7 @@ import { DeckInfo } from '@/types/deck';
 import { detectCardType } from '../card/detector';
 import { getTempCacheDB } from '@/utils/temp-cache-db';
 import { detectLanguage } from '@/utils/language-detector';
-import { safeQueryAs, isHTMLInputElement, isHTMLSelectElement, isHTMLTextAreaElement } from '@/utils/type-guards';
+import { safeQueryAs, isHTMLInputElement, isHTMLSelectElement, isHTMLTextAreaElement, isDeckTypeValue } from '@/utils/type-guards';
 
 /**
  * カードタイプ別のフィールド名マッピング
@@ -204,7 +204,8 @@ export function parseDeckPage(doc: Document): DeckInfo {
 
   // デッキタイプを取得（value値として保存）
   const deckTypeSelect = safeQueryAs('select[name="deck_type"]', isHTMLSelectElement, doc);
-  const deckType = deckTypeSelect?.value ?? undefined;
+  const deckTypeRaw = deckTypeSelect?.value ?? undefined;
+  const deckType = deckTypeRaw !== undefined && isDeckTypeValue(deckTypeRaw) ? deckTypeRaw : undefined;
 
   // コメントを取得
   const commentTextarea = safeQueryAs('textarea[name="comment"]', isHTMLTextAreaElement, doc);
