@@ -45,7 +45,7 @@ export function escapeHtml(text: string): string {
  * const cardName = 'Blue-Eyes White Dragon';
  * const html = `<div class="card-name">${eSafe(cardName)}</div>`;
  */
-export function eSafe(value: any): string {
+export function eSafe(value: unknown): string {
   return escapeHtml(String(value));
 }
 
