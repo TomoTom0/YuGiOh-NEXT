@@ -161,13 +161,13 @@ export function createDeckCardComparator(
         }
         return 999;
       };
-      const monsterTypeA = getMainType((cardA as any).types);
-      const monsterTypeB = getMainType((cardB as any).types);
+      const monsterTypeA = getMainType(cardA.types);
+      const monsterTypeB = getMainType(cardB.types);
       if (monsterTypeA !== monsterTypeB) return monsterTypeA - monsterTypeB;
 
       // 3. Level/Rank/Link（設定に応じて昇順/降順）
-      const levelA = (cardA as any).levelValue ?? 0;
-      const levelB = (cardB as any).levelValue ?? 0;
+      const levelA = cardA.levelValue ?? 0;
+      const levelB = cardB.levelValue ?? 0;
       if (levelA !== levelB) return levelSortOrder === 'asc' ? levelA - levelB : levelB - levelA;
     }
 
@@ -200,9 +200,9 @@ export function createDeckCardComparator(
     const typeB = CARD_TYPE_SORT_ORDER[cardB.cardType] ?? 999;
 
     // モンスター同士の場合、種族でソート
-    if (typeA === 0 && typeB === 0) {
-      const raceA = (cardA as any).race ?? '';
-      const raceB = (cardB as any).race ?? '';
+    if (cardA.cardType === 'monster' && cardB.cardType === 'monster') {
+      const raceA = cardA.race ?? '';
+      const raceB = cardB.race ?? '';
       if (raceA !== raceB) {
         return raceA.localeCompare(raceB, 'ja');
       }
@@ -232,9 +232,9 @@ export function createDeckCardComparator(
     const typeB = CARD_TYPE_SORT_ORDER[cardB.cardType] ?? 999;
 
     // モンスター同士の場合、属性でソート
-    if (typeA === 0 && typeB === 0) {
-      const attrA = (cardA as any).attribute ?? '';
-      const attrB = (cardB as any).attribute ?? '';
+    if (cardA.cardType === 'monster' && cardB.cardType === 'monster') {
+      const attrA = cardA.attribute ?? '';
+      const attrB = cardB.attribute ?? '';
       if (attrA !== attrB) {
         return attrA.localeCompare(attrB, 'ja');
       }
