@@ -9,9 +9,7 @@
  */
 
 import { getCardDetail } from '../api/card-search';
-import type { CardDetail, MonsterCard, SpellCard, TrapCard } from '../types/card';
-
-export type CardInfo = MonsterCard | SpellCard | TrapCard;
+import type { CardDetail } from '../types/card';
 
 /** キューの優先度 */
 export type QueuePriority = 'high' | 'normal' | 'low';
