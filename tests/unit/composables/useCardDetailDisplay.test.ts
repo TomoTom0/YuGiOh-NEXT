@@ -74,22 +74,19 @@ describe('useCardDetailDisplay', () => {
   });
 
   describe('showCardDetail', () => {
-    // [covers:showcarddetail.show_loading_starts_loading]
-    it('showLoading=true の場合 startLoadingCard が呼ばれる', async () => {
+    it('[covers:showcarddetail.show-loading-starts-loading] showLoading=true の場合 startLoadingCard が呼ばれる', async () => {
       const { showCardDetail } = useCardDetailDisplay();
       await showCardDetail('1234', { showLoading: true });
       expect(mocks.startLoadingCard).toHaveBeenCalledTimes(1);
     });
 
-    // [covers:showcarddetail.show_loading_false_skips_start_loading]
-    it('showLoading 省略時は startLoadingCard は呼ばれない', async () => {
+    it('[covers:showcarddetail.show-loading-false-skips-start-loading] showLoading 省略時は startLoadingCard は呼ばれない', async () => {
       const { showCardDetail } = useCardDetailDisplay();
       await showCardDetail('1234');
       expect(mocks.startLoadingCard).not.toHaveBeenCalled();
     });
 
-    // [covers:showcarddetail.fromFAQ_propagated_to_api]
-    it('fromFAQ=true が getCardDetailWithCache の第5引数に渡される', async () => {
+    it('[covers:showcarddetail.from-faq-propagated-to-api] fromFAQ=true が getCardDetailWithCache の第5引数に渡される', async () => {
       const { showCardDetail } = useCardDetailDisplay();
       await showCardDetail('1234', { fromFAQ: true });
       expect(mocks.getCardDetailWithCache).toHaveBeenCalledWith(
@@ -101,8 +98,7 @@ describe('useCardDetailDisplay', () => {
       );
     });
 
-    // [covers:showcarddetail.fromFAQ_default_false_propagated]
-    it('fromFAQ 省略時は getCardDetailWithCache の第5引数が false になる', async () => {
+    it('[covers:showcarddetail.from-faq-default-false-propagated] fromFAQ 省略時は getCardDetailWithCache の第5引数が false になる', async () => {
       const { showCardDetail } = useCardDetailDisplay();
       await showCardDetail('1234');
       expect(mocks.getCardDetailWithCache).toHaveBeenCalledWith(
@@ -114,8 +110,7 @@ describe('useCardDetailDisplay', () => {
       );
     });
 
-    // [covers:showcarddetail.success_fullcard_preserve_ciid_with_fallback]
-    it('fullCard取得成功 + preserveCiid + fallbackCard の場合、ciid を fallbackCard.ciid で上書き', async () => {
+    it('[covers:showcarddetail.success-fullcard-preserve-ciid-with-fallback] fullCard取得成功 + preserveCiid + fallbackCard の場合、ciid を fallbackCard.ciid で上書き', async () => {
       const { showCardDetail } = useCardDetailDisplay();
       await showCardDetail('1234', { fallbackCard, preserveCiid: true });
       expect(mocks.setSelectedCard).toHaveBeenCalledTimes(1);
@@ -125,8 +120,7 @@ describe('useCardDetailDisplay', () => {
       expect(cardData.imgs).toEqual(fullCard.imgs); // 同じ要素
     });
 
-    // [covers:showcarddetail.success_fullcard_no_overwrite_when_preserve_false]
-    it('fullCard取得成功 + preserveCiid 省略時は fullCard がそのまま渡る', async () => {
+    it('[covers:showcarddetail.success-fullcard-no-overwrite-when-preserve-false] fullCard取得成功 + preserveCiid 省略時は fullCard がそのまま渡る', async () => {
       const { showCardDetail } = useCardDetailDisplay();
       await showCardDetail('1234', { fallbackCard }); // preserveCiid 省略
       expect(mocks.setSelectedCard).toHaveBeenCalledTimes(1);
@@ -135,8 +129,7 @@ describe('useCardDetailDisplay', () => {
       expect(cardData.ciid).toBe(fullCard.ciid); // '1'
     });
 
-    // [covers:showcarddetail.success_fullcard_no_overwrite_when_fallback_absent]
-    it('fullCard取得成功 + preserveCiid=true でも fallbackCard 無しなら fullCard がそのまま渡る', async () => {
+    it('[covers:showcarddetail.success-fullcard-no-overwrite-when-fallback-absent] fullCard取得成功 + preserveCiid=true でも fallbackCard 無しなら fullCard がそのまま渡る', async () => {
       const { showCardDetail } = useCardDetailDisplay();
       await showCardDetail('1234', { preserveCiid: true }); // fallbackCard 省略
       expect(mocks.setSelectedCard).toHaveBeenCalledTimes(1);
@@ -145,8 +138,7 @@ describe('useCardDetailDisplay', () => {
       expect(cardData.ciid).toBe(fullCard.ciid); // '1'
     });
 
-    // [covers:showcarddetail.no_fullcard_fallback_preserve_ciid]
-    it('fullCard 無し + fallbackCard 有り + preserveCiid=true なら別インスタンスで ciid 維持', async () => {
+    it('[covers:showcarddetail.no-fullcard-fallback-preserve-ciid] fullCard 無し + fallbackCard 有り + preserveCiid=true なら別インスタンスで ciid 維持', async () => {
       mocks.getCardDetailWithCache.mockResolvedValue({ detail: null });
       const { showCardDetail } = useCardDetailDisplay();
       await showCardDetail('1234', { fallbackCard, preserveCiid: true });
@@ -157,8 +149,7 @@ describe('useCardDetailDisplay', () => {
       expect(cardData.imgs).not.toBe(fallbackCard.imgs); // 別配列
     });
 
-    // [covers:showcarddetail.no_fullcard_fallback_no_preserve]
-    it('fullCard 無し + fallbackCard 有り + preserveCiid 省略時は fallbackCard 参照がそのまま渡る', async () => {
+    it('[covers:showcarddetail.no-fullcard-fallback-no-preserve] fullCard 無し + fallbackCard 有り + preserveCiid 省略時は fallbackCard 参照がそのまま渡る', async () => {
       mocks.getCardDetailWithCache.mockResolvedValue({ detail: null });
       const { showCardDetail } = useCardDetailDisplay();
       await showCardDetail('1234', { fallbackCard }); // preserveCiid 省略
@@ -167,8 +158,7 @@ describe('useCardDetailDisplay', () => {
       expect(cardData).toBe(fallbackCard); // 同じ参照
     });
 
-    // [covers:showcarddetail.no_fullcard_no_fallback_early_return]
-    it('fullCard 無し + fallbackCard 無し なら console.error して早期return', async () => {
+    it('[covers:showcarddetail.no-fullcard-no-fallback-early-return] fullCard 無し + fallbackCard 無し なら console.error して早期return', async () => {
       mocks.getCardDetailWithCache.mockResolvedValue({ detail: null });
       const { showCardDetail } = useCardDetailDisplay();
       await showCardDetail('1234'); // fallbackCard 省略
@@ -178,30 +168,26 @@ describe('useCardDetailDisplay', () => {
       expect(mocks.setCardTab).not.toHaveBeenCalled();
     });
 
-    // [covers:showcarddetail.active_tab_set_to_card_on_success]
-    it('正常系ルートでは deckStore.activeTab が "card" に設定される', async () => {
+    it('[covers:showcarddetail.active-tab-set-to-card-on-success] 正常系ルートでは deckStore.activeTab が "card" に設定される', async () => {
       const { showCardDetail } = useCardDetailDisplay();
       await showCardDetail('1234');
       expect(mocks.deckStore.activeTab).toBe('card');
     });
 
-    // [covers:showcarddetail.reset_card_tab_default_true]
-    it('resetCardTab 省略時は setCardTab("info") が呼ばれる', async () => {
+    it('[covers:showcarddetail.reset-card-tab-default-true] resetCardTab 省略時は setCardTab("info") が呼ばれる', async () => {
       const { showCardDetail } = useCardDetailDisplay();
       await showCardDetail('1234');
       expect(mocks.setCardTab).toHaveBeenCalledWith('info');
     });
 
-    // [covers:showcarddetail.reset_card_tab_false_skips]
-    it('resetCardTab=false 時は setCardTab は呼ばれない（activeTab="card" は設定される）', async () => {
+    it('[covers:showcarddetail.reset-card-tab-false-skips] resetCardTab=false 時は setCardTab は呼ばれない（activeTab="card" は設定される）', async () => {
       const { showCardDetail } = useCardDetailDisplay();
       await showCardDetail('1234', { resetCardTab: false });
       expect(mocks.setCardTab).not.toHaveBeenCalled();
       expect(mocks.deckStore.activeTab).toBe('card');
     });
 
-    // [covers:showcarddetail.catch_with_fallback_falls_back]
-    it('例外発生 + fallbackCard 有りなら fallbackCard で setSelectedCard, activeTab, setCardTab を実行', async () => {
+    it('[covers:showcarddetail.catch-with-fallback-falls-back] 例外発生 + fallbackCard 有りなら fallbackCard で setSelectedCard, activeTab, setCardTab を実行', async () => {
       mocks.getCardDetailWithCache.mockRejectedValue(new Error('API Error'));
       const { showCardDetail } = useCardDetailDisplay();
       await showCardDetail('1234', { fallbackCard });
@@ -211,8 +197,7 @@ describe('useCardDetailDisplay', () => {
       expect(mocks.setCardTab).toHaveBeenCalledWith('info'); // デフォルト
     });
 
-    // [covers:showcarddetail.catch_preserve_ciid_in_fallback]
-    it('例外発生 + fallbackCard + preserveCiid=true なら別インスタンスで ciid 維持', async () => {
+    it('[covers:showcarddetail.catch-preserve-ciid-in-fallback] 例外発生 + fallbackCard + preserveCiid=true なら別インスタンスで ciid 維持', async () => {
       mocks.getCardDetailWithCache.mockRejectedValue(new Error('API Error'));
       const { showCardDetail } = useCardDetailDisplay();
       await showCardDetail('1234', { fallbackCard, preserveCiid: true });
@@ -222,8 +207,7 @@ describe('useCardDetailDisplay', () => {
       expect(cardData.ciid).toBe(fallbackCard.ciid); // '2'
     });
 
-    // [covers:showcarddetail.catch_without_fallback_no_state_change]
-    it('例外発生 + fallbackCard 無しなら console.error のみで状態変更なし', async () => {
+    it('[covers:showcarddetail.catch-without-fallback-no-state-change] 例外発生 + fallbackCard 無しなら console.error のみで状態変更なし', async () => {
       mocks.getCardDetailWithCache.mockRejectedValue(new Error('API Error'));
       const { showCardDetail } = useCardDetailDisplay();
       await showCardDetail('1234'); // fallbackCard 省略
@@ -233,23 +217,20 @@ describe('useCardDetailDisplay', () => {
       expect(mocks.setCardTab).not.toHaveBeenCalled();
     });
 
-    // [covers:showcarddetail.finally_end_loading_when_showLoading]
-    it('showLoading=true なら成功時に endLoadingCard が呼ばれる', async () => {
+    it('[covers:showcarddetail.finally-end-loading-when-show-loading] showLoading=true なら成功時に endLoadingCard が呼ばれる', async () => {
       const { showCardDetail } = useCardDetailDisplay();
       await showCardDetail('1234', { showLoading: true });
       expect(mocks.endLoadingCard).toHaveBeenCalledTimes(1);
     });
 
-    // [covers:showcarddetail.finally_end_loading_when_showLoading]
-    it('showLoading=true なら例外時にも endLoadingCard が呼ばれる（try-finally保証）', async () => {
+    it('[covers:showcarddetail.finally-end-loading-when-show-loading] showLoading=true なら例外時にも endLoadingCard が呼ばれる（try-finally保証）', async () => {
       mocks.getCardDetailWithCache.mockRejectedValue(new Error('API Error'));
       const { showCardDetail } = useCardDetailDisplay();
       await showCardDetail('1234', { showLoading: true });
       expect(mocks.endLoadingCard).toHaveBeenCalledTimes(1);
     });
 
-    // [covers:showcarddetail.finally_no_end_loading_when_showLoading_false]
-    it('showLoading 省略時は endLoadingCard は呼ばれない', async () => {
+    it('[covers:showcarddetail.finally-no-end-loading-when-show-loading-false] showLoading 省略時は endLoadingCard は呼ばれない', async () => {
       const { showCardDetail } = useCardDetailDisplay();
       await showCardDetail('1234');
       expect(mocks.endLoadingCard).not.toHaveBeenCalled();
