@@ -30,13 +30,13 @@
 #   ドラッグ開始経路が成立していない疑いがある。[[excluded]]に記録しTASK-562へ分離起票
 
 [meta]
-verified_at = "2026-11-21"
+verified_at = "2026-11-22"
 verified_by = "claude"
 feature = "practice-card-stack"
 source_file = "src/components/practice/PracticeCardStack.vue"
 verified = true
-test_command = "mise run test:vitest -- tests/unit/components/PracticeCardStack.test.ts"
-source_hash = "021522fbd6293baa0232e12bd6d70b5899f4f637"
+test_command = "pnpm exec vitest run"
+source_hash = "f0ee38dbe369bc962a265771d2750d446c59a771"
 note = "TASK-563（TASK-331第16号）でPractice系コンポーネント5ファイル目の条件化。10条件=ルートclass・サイズ1+可視カード選択2（通常キャップ／deck・extra裏向きモード）+DeckCard props1+オフセットstyle1+バッジ1+イベント転送4（card-click／card-action／practice-dragstart／card-dragend）。DeckCardはカスタムstub。未emitのemit宣言（card-dragstart等）はTASK-562へ分離。src不変"
 
 # --- ルートのclass・サイズ ---

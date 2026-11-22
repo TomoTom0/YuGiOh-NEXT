@@ -13,8 +13,8 @@
         :style="offsetStyle(i)"
         class="stack-card"
         @click="$emit('card-click', card)"
-        @practice-action="(action, uuid) => $emit('card-action', action, uuid)"
-        @practice-dragstart="(event, uuid, offset) => $emit('practice-dragstart', event, uuid, offset)"
+        @practice-action="(action: string, uuid: string) => $emit('card-action', action, uuid)"
+        @practice-dragstart="(event: DragEvent, uuid: string, offset: { x: number; y: number }) => $emit('practice-dragstart', event, uuid, offset)"
         @practice-dragend="$emit('card-dragend')"
       />
     </TransitionGroup>
