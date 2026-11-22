@@ -264,7 +264,7 @@ export function safeRemoveClass(
 export function safeAddEventListener<K extends keyof HTMLElementEventMap>(
   selector: string,
   event: K,
-  handler: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any,
+  handler: (this: HTMLElement, ev: HTMLElementEventMap[K]) => void,
   parent?: Document | Element
 ): boolean {
   const element = safeQuery<HTMLElement>(selector, parent);

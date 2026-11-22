@@ -18,10 +18,10 @@
 feature = "extension-context-checker"
 source_file = "src/utils/extension-context-checker.ts"
 verified = true
-verified_at = "2026-08-28"
+verified_at = "2026-11-22"
 verified_by = "claude"
-test_command = "mise run test:vitest -- tests/unit/utils/extension-context-checker.test.ts"
-source_hash = "0cc5499067e131cf4531cdbb5195b442ec1ff0f7"
+test_command = "pnpm exec vitest run"
+source_hash = "57f71ad4a3da4db8880c5c13eb8ac66a39f2589f"
 note = "verified=falseは0件"
 
 # --- isExtensionContextInvalidated(error: any): boolean ---
