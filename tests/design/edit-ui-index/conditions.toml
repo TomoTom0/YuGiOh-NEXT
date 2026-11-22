@@ -39,7 +39,7 @@ verified = true
 verified_at = "2026-09-16"
 verified_by = "claude"
 test_command = "mise run test:vitest -- tests/unit/content/edit-ui-index.test.ts"
-source_hash = "a288137b8cfc06c8676793b71b530805c7268705"
+source_hash = "3cb2cf008be1a480fc2ebe830d4d559f3f50f998"
 note = "TASK-513実装完了に伴い全テストPASSを確認し検証記録を書いた（実装後レビュー対応後は全21テスト）。全29条件のうちverified=false（unverifiable_reason付き）は4件（hashchange_listener_registered_only_once / updates_header_height_css_variable_on_resize / mounts_app_and_waits_next_tick / header_resize_observer_leak_prevention_across_many_visits）。設計rev2では世代トークン条件2件目（init-vue-app.skips-mount-when-left-during-module-await）をunverifiable扱いとしたが、initVueApp内のsettings store dynamic importをdeferred制御すればマウント直前離脱が決定的に再現できるため単体テストで検証した。実装後レビュー対応: 必須1=中止判定3追加（マウント中断時のreplaceLanguageChangeLinks実行防止）、必須2=テストのasキャストをObject.assignヘルパー化、改善3=急速離脱->再入の同時進行テスト追加、改善4=新規2条件のsource_linesを実装行参照に変更（legacy形式warn 2件はファイル既存慣行に合流）"
 
 # --- applyThemeFromSettings() [非export] ---

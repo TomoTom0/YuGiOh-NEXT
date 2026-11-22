@@ -14,6 +14,7 @@ import { callbackToPromise } from '../../utils/promise-timeout';
 import { EXTENSION_IDS } from '../../utils/dom-selectors';
 import { findLoaderEarlyHide } from '../../utils/loader-elements';
 import { CHROME_STORAGE_KEY_APP_SETTINGS } from '../../constants/storage-keys';
+import type { AppSettings } from '../../types/settings';
 
 // 編集UIが既に読み込まれているかどうかのフラグ
 let isEditUILoaded = false;
@@ -62,12 +63,12 @@ async function applyThemeFromSettings(): Promise<void> {
 
     // メモリにない場合は Storage から読み込み
     if (!appSettings) {
-      const result = await callbackToPromise<any>(
+      const result = await callbackToPromise<Record<string, unknown>>(
         (callback) => chrome.storage.local.get([CHROME_STORAGE_KEY_APP_SETTINGS], callback),
         3000 // 3秒のタイムアウト
       );
 
-      appSettings = result[CHROME_STORAGE_KEY_APP_SETTINGS] || {};
+      appSettings = (result[CHROME_STORAGE_KEY_APP_SETTINGS] || {}) as AppSettings;
 
       // 読み込み後、メモリキャッシュに保存
       if (appSettings) {
@@ -85,7 +86,7 @@ async function applyThemeFromSettings(): Promise<void> {
         effectiveTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
       }
     } else {
-      effectiveTheme = (theme as any) ?? 'light';
+      effectiveTheme = theme;
     }
 
     document.documentElement.setAttribute('data-ygo-next-theme', effectiveTheme);
