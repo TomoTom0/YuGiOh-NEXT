@@ -63,7 +63,7 @@ export function showReloadPrompt(): void {
 /**
  * chrome.storage API呼び出しをラップしてエラーハンドリング
  */
-export async function safeStorageGet<T = any>(keys: string | string[]): Promise<Record<string, T>> {
+export async function safeStorageGet<T = unknown>(keys: string | string[]): Promise<Record<string, T>> {
   try {
     // コンテキストが既に無効化されているかチェック
     if (!chrome.runtime?.id) {
