@@ -29,7 +29,7 @@ describe('usePracticeDropHandler conditions', () => {
   // usePracticeDropHandler#handleCardDrop
   // ============================================================
 
-  it('[covers:handle_card_drop.orientation_from_dragging_rotated] draggingRotatedに応じてorientationが切り替わる', () => {
+  it('[covers:handle-card-drop.orientation-from-dragging-rotated] draggingRotatedに応じてorientationが切り替わる', () => {
     const moveSpy = vi.spyOn(store, 'moveCard').mockImplementation(() => {})
     vi.spyOn(store, 'getCards').mockReturnValue([])
     const ctx: DropContext = { targetZone: 'gy', fieldIndex: 0 }
@@ -44,7 +44,7 @@ describe('usePracticeDropHandler conditions', () => {
     expect(moveSpy).toHaveBeenLastCalledWith('card1', 'gy', undefined, expect.objectContaining({ orientation: 'vertical' }), 0)
   })
 
-  it('[covers:handle_card_drop.deck_not_top_shuffles] deck + isTop=false は moveCardToDeckAndShuffle を呼ぶ', () => {
+  it('[covers:handle-card-drop.deck-not-top-shuffles] deck + isTop=false は moveCardToDeckAndShuffle を呼ぶ', () => {
     const shuffleSpy = vi.spyOn(store, 'moveCardToDeckAndShuffle').mockImplementation(() => {})
     const moveSpy = vi.spyOn(store, 'moveCard').mockImplementation(() => {})
     const ctx: DropContext = { targetZone: 'deck', fieldIndex: 1 }
@@ -56,7 +56,7 @@ describe('usePracticeDropHandler conditions', () => {
     expect(moveSpy).not.toHaveBeenCalled()
   })
 
-  it('[covers:handle_card_drop.deck_top_right_inserts_face_down_at_top] deck + isTop=true + isRight=true は position:top face:down', () => {
+  it('[covers:handle-card-drop.deck-top-right-inserts-face-down-at-top] deck + isTop=true + isRight=true は position:top face:down', () => {
     const moveSpy = vi.spyOn(store, 'moveCard').mockImplementation(() => {})
     const ctx: DropContext = { targetZone: 'deck', fieldIndex: 0 }
     const dropPos: DropPosition = { isTop: true, isRight: true }
@@ -66,7 +66,7 @@ describe('usePracticeDropHandler conditions', () => {
     expect(moveSpy).toHaveBeenCalledWith('card1', 'deck', undefined, { position: 'top', face: 'down', orientation: 'vertical' }, 0)
   })
 
-  it('[covers:handle_card_drop.deck_top_left_inserts_face_down_at_bottom] deck + isTop=true + isRight=false は position:bottom face:down', () => {
+  it('[covers:handle-card-drop.deck-top-left-inserts-face-down-at-bottom] deck + isTop=true + isRight=false は position:bottom face:down', () => {
     const moveSpy = vi.spyOn(store, 'moveCard').mockImplementation(() => {})
     const ctx: DropContext = { targetZone: 'deck', fieldIndex: 0 }
     const dropPos: DropPosition = { isTop: true, isRight: false }
@@ -76,7 +76,7 @@ describe('usePracticeDropHandler conditions', () => {
     expect(moveSpy).toHaveBeenCalledWith('card1', 'deck', undefined, { position: 'bottom', face: 'down', orientation: 'vertical' }, 0)
   })
 
-  it('[covers:handle_card_drop.gy_ignores_drop_position] gy は dropPos に関わらず position:top face:up 固定', () => {
+  it('[covers:handle-card-drop.gy-ignores-drop-position] gy は dropPos に関わらず position:top face:up 固定', () => {
     const moveSpy = vi.spyOn(store, 'moveCard').mockImplementation(() => {})
     const ctx: DropContext = { targetZone: 'gy', fieldIndex: 0 }
 
@@ -92,7 +92,7 @@ describe('usePracticeDropHandler conditions', () => {
     }
   })
 
-  it('[covers:handle_card_drop.extra_face_from_is_top_position_always_top] extra は position 常に top、face は isTop で切替', () => {
+  it('[covers:handle-card-drop.extra-face-from-is-top-position-always-top] extra は position 常に top、face は isTop で切替', () => {
     const moveSpy = vi.spyOn(store, 'moveCard').mockImplementation(() => {})
     const ctx: DropContext = { targetZone: 'extra', fieldIndex: 0 }
 
@@ -104,7 +104,7 @@ describe('usePracticeDropHandler conditions', () => {
     expect(moveSpy).toHaveBeenLastCalledWith('card1', 'extra', undefined, { position: 'top', face: 'down', orientation: 'vertical' }, 0)
   })
 
-  it('[covers:handle_card_drop.banish_face_from_is_top] banish の face は isTop で切替', () => {
+  it('[covers:handle-card-drop.banish-face-from-is-top] banish の face は isTop で切替', () => {
     const moveSpy = vi.spyOn(store, 'moveCard').mockImplementation(() => {})
     vi.spyOn(store, 'getCards').mockReturnValue([])
     const ctx: DropContext = { targetZone: 'banish', fieldIndex: 0 }
@@ -116,7 +116,7 @@ describe('usePracticeDropHandler conditions', () => {
     expect(moveSpy).toHaveBeenLastCalledWith('card1', 'banish', undefined, expect.objectContaining({ face: 'down' }), 0)
   })
 
-  it('[covers:handle_card_drop.banish_empty_zone_forces_top] banish 空ゾーンは isRight 関係なく position:top', () => {
+  it('[covers:handle-card-drop.banish-empty-zone-forces-top] banish 空ゾーンは isRight 関係なく position:top', () => {
     const moveSpy = vi.spyOn(store, 'moveCard').mockImplementation(() => {})
     vi.spyOn(store, 'getCards').mockReturnValue([]) // 空ゾーン
     const ctx: DropContext = { targetZone: 'banish', fieldIndex: 0 }
@@ -129,7 +129,7 @@ describe('usePracticeDropHandler conditions', () => {
     expect(moveSpy).toHaveBeenNthCalledWith(2, 'card1', 'banish', undefined, expect.objectContaining({ position: 'top' }), 0)
   })
 
-  it('[covers:handle_card_drop.banish_non_empty_position_from_is_right] banish 既存あり時は isRight で top/bottom 切替', () => {
+  it('[covers:handle-card-drop.banish-non-empty-position-from-is-right] banish 既存あり時は isRight で top/bottom 切替', () => {
     const moveSpy = vi.spyOn(store, 'moveCard').mockImplementation(() => {})
     vi.spyOn(store, 'getCards').mockReturnValue([{ instanceId: 'existing' }] as unknown as ReturnType<typeof store.getCards>)
     const ctx: DropContext = { targetZone: 'banish', fieldIndex: 0 }
@@ -141,7 +141,7 @@ describe('usePracticeDropHandler conditions', () => {
     expect(moveSpy).toHaveBeenLastCalledWith('card1', 'banish', undefined, expect.objectContaining({ position: 'top' }), 0)
   })
 
-  it('[covers:handle_card_drop.hand_insert_index_decremented_when_source_before_target] 同一hand内で移動元が前の場合 idx を1減らす', () => {
+  it('[covers:handle-card-drop.hand-insert-index-decremented-when-source-before-target] 同一hand内で移動元が前の場合 idx を1減らす', () => {
     const moveSpy = vi.spyOn(store, 'moveCard').mockImplementation(() => {})
     vi.spyOn(store, 'findCard').mockReturnValue({ zone: 'hand', cardIndex: 1, fieldIndex: 0 })
     vi.spyOn(store, 'getCards').mockReturnValue([]) // handLength 計算用（0だが idx-1=2 が残る）
@@ -155,7 +155,7 @@ describe('usePracticeDropHandler conditions', () => {
     expect(moveSpy).toHaveBeenCalledWith('card1', 'hand', undefined, expect.objectContaining({ position: 0 }), 0)
   })
 
-  it('[covers:handle_card_drop.hand_insert_index_not_decremented_when_source_after_target] 移動元がhand外なら idx を減らさない', () => {
+  it('[covers:handle-card-drop.hand-insert-index-not-decremented-when-source-after-target] 移動元がhand外なら idx を減らさない', () => {
     const moveSpy = vi.spyOn(store, 'moveCard').mockImplementation(() => {})
     vi.spyOn(store, 'findCard').mockReturnValue({ zone: 'deck', cardIndex: 5, fieldIndex: 0 })
     vi.spyOn(store, 'getCards').mockReturnValue([]) // handLength=0 → min(1,0)=0
@@ -168,7 +168,7 @@ describe('usePracticeDropHandler conditions', () => {
     expect(moveSpy).toHaveBeenCalledWith('card1', 'hand', undefined, expect.objectContaining({ position: 0 }), 0)
   })
 
-  it('[covers:handle_card_drop.hand_insert_index_clamped] hand の insertIndex は handLength でクランプ', () => {
+  it('[covers:handle-card-drop.hand-insert-index-clamped] hand の insertIndex は handLength でクランプ', () => {
     const moveSpy = vi.spyOn(store, 'moveCard').mockImplementation(() => {})
     vi.spyOn(store, 'findCard').mockReturnValue(null) // hand 以外からの移動扱い
     // hand length = 3 を返す（3枚の配列）
@@ -186,7 +186,7 @@ describe('usePracticeDropHandler conditions', () => {
     expect(moveSpy).toHaveBeenCalledWith('card1', 'hand', undefined, expect.objectContaining({ position: 3 }), 0)
   })
 
-  it('[covers:handle_card_drop.hand_face_up_fixed] hand ドロップは face 常に up 固定', () => {
+  it('[covers:handle-card-drop.hand-face-up-fixed] hand ドロップは face 常に up 固定', () => {
     const moveSpy = vi.spyOn(store, 'moveCard').mockImplementation(() => {})
     vi.spyOn(store, 'findCard').mockReturnValue(null)
     vi.spyOn(store, 'getCards').mockReturnValue([])
@@ -199,7 +199,7 @@ describe('usePracticeDropHandler conditions', () => {
     expect(moveSpy).toHaveBeenCalledWith('card1', 'hand', undefined, expect.objectContaining({ face: 'up' }), 0)
   })
 
-  it('[covers:handle_card_drop.default_face_from_is_top] default zone の face は isTop で切替', () => {
+  it('[covers:handle-card-drop.default-face-from-is-top] default zone の face は isTop で切替', () => {
     const moveSpy = vi.spyOn(store, 'moveCard').mockImplementation(() => {})
     vi.spyOn(store, 'getCards').mockReturnValue([])
     const ctx: DropContext = { targetZone: 'monster', targetSlotIndex: 2, fieldIndex: 0 }
@@ -211,7 +211,7 @@ describe('usePracticeDropHandler conditions', () => {
     expect(moveSpy).toHaveBeenLastCalledWith('card1', 'monster', 2, expect.objectContaining({ face: 'down' }), 0)
   })
 
-  it('[covers:handle_card_drop.default_empty_zone_forces_top] default zone 空ゾーンは isRight 関係なく top', () => {
+  it('[covers:handle-card-drop.default-empty-zone-forces-top] default zone 空ゾーンは isRight 関係なく top', () => {
     const moveSpy = vi.spyOn(store, 'moveCard').mockImplementation(() => {})
     vi.spyOn(store, 'getCards').mockReturnValue([])
     const ctx: DropContext = { targetZone: 'monster', targetSlotIndex: 2, fieldIndex: 0 }
@@ -223,7 +223,7 @@ describe('usePracticeDropHandler conditions', () => {
     expect(moveSpy).toHaveBeenNthCalledWith(2, 'card1', 'monster', 2, expect.objectContaining({ position: 'top' }), 0)
   })
 
-  it('[covers:handle_card_drop.default_non_empty_position_from_is_right] default zone 既存あり時は isRight で top/bottom', () => {
+  it('[covers:handle-card-drop.default-non-empty-position-from-is-right] default zone 既存あり時は isRight で top/bottom', () => {
     const moveSpy = vi.spyOn(store, 'moveCard').mockImplementation(() => {})
     vi.spyOn(store, 'getCards').mockReturnValue([{ instanceId: 'e' }] as unknown as ReturnType<typeof store.getCards>)
     const ctx: DropContext = { targetZone: 'monster', targetSlotIndex: 2, fieldIndex: 0 }
@@ -235,7 +235,7 @@ describe('usePracticeDropHandler conditions', () => {
     expect(moveSpy).toHaveBeenLastCalledWith('card1', 'monster', 2, expect.objectContaining({ position: 'top' }), 0)
   })
 
-  it('[covers:handle_card_drop.default_passes_target_slot_index] default zone は targetSlotIndex を第3引数に渡す', () => {
+  it('[covers:handle-card-drop.default-passes-target-slot-index] default zone は targetSlotIndex を第3引数に渡す', () => {
     const moveSpy = vi.spyOn(store, 'moveCard').mockImplementation(() => {})
     vi.spyOn(store, 'getCards').mockReturnValue([])
     const ctx: DropContext = { targetZone: 'monster', targetSlotIndex: 3, fieldIndex: 0 }
@@ -250,7 +250,7 @@ describe('usePracticeDropHandler conditions', () => {
   // usePracticeDropHandler#handleExternalCardDrop
   // ============================================================
 
-  it('[covers:handle_external_card_drop.face_deck_always_down] external drop deck は face 常に down', () => {
+  it('[covers:handle-external-card-drop.face-deck-always-down] external drop deck は face 常に down', () => {
     const addSpy = vi.spyOn(store, 'addExternalCard').mockImplementation(() => {})
     const ctx: DropContext = { targetZone: 'deck', fieldIndex: 0 }
 
@@ -270,7 +270,7 @@ describe('usePracticeDropHandler conditions', () => {
     }
   })
 
-  it('[covers:handle_external_card_drop.face_extra_undefined_drop_pos_is_down] external drop extra + dropPos undefined は down', () => {
+  it('[covers:handle-external-card-drop.face-extra-undefined-drop-pos-is-down] external drop extra + dropPos undefined は down', () => {
     const addSpy = vi.spyOn(store, 'addExternalCard').mockImplementation(() => {})
     const ctx: DropContext = { targetZone: 'extra', fieldIndex: 0 }
 
@@ -283,7 +283,7 @@ describe('usePracticeDropHandler conditions', () => {
     expect(addSpy.mock.calls[1]![5]).toBe('up')
   })
 
-  it('[covers:handle_external_card_drop.face_banish_undefined_drop_pos_is_down] external drop banish + isTop=true は up', () => {
+  it('[covers:handle-external-card-drop.face-banish-undefined-drop-pos-is-down] external drop banish + isTop=true は up', () => {
     const addSpy = vi.spyOn(store, 'addExternalCard').mockImplementation(() => {})
     const ctx: DropContext = { targetZone: 'banish', fieldIndex: 0 }
 
@@ -295,7 +295,7 @@ describe('usePracticeDropHandler conditions', () => {
     expect(addSpy.mock.calls[1]![5]).toBe('down')
   })
 
-  it('[covers:handle_external_card_drop.face_gy_always_up] external drop gy は face 常に up', () => {
+  it('[covers:handle-external-card-drop.face-gy-always-up] external drop gy は face 常に up', () => {
     const addSpy = vi.spyOn(store, 'addExternalCard').mockImplementation(() => {})
     const ctx: DropContext = { targetZone: 'gy', fieldIndex: 0 }
 
@@ -313,7 +313,7 @@ describe('usePracticeDropHandler conditions', () => {
     }
   })
 
-  it('[covers:handle_external_card_drop.face_default_undefined_drop_pos_is_up] external drop default + dropPos undefined は up', () => {
+  it('[covers:handle-external-card-drop.face-default-undefined-drop-pos-is-up] external drop default + dropPos undefined は up', () => {
     const addSpy = vi.spyOn(store, 'addExternalCard').mockImplementation(() => {})
     // hand は insertIndex undefined 時 default 分岐へ。targetZone='hand' で検証
     const ctx: DropContext = { targetZone: 'hand', fieldIndex: 0 }
@@ -324,7 +324,7 @@ describe('usePracticeDropHandler conditions', () => {
     expect(addSpy).toHaveBeenCalledWith('cid', 'ciid', 'hand', undefined, 0, 'up')
   })
 
-  it('[covers:handle_external_card_drop.face_default_explicit_false_is_down] external drop default + isTop=false は down', () => {
+  it('[covers:handle-external-card-drop.face-default-explicit-false-is-down] external drop default + isTop=false は down', () => {
     const addSpy = vi.spyOn(store, 'addExternalCard').mockImplementation(() => {})
     const ctx: DropContext = { targetZone: 'field', fieldIndex: 0 }
 
@@ -333,7 +333,7 @@ describe('usePracticeDropHandler conditions', () => {
     expect(addSpy.mock.calls[0]![5]).toBe('down')
   })
 
-  it('[covers:handle_external_card_drop.hand_insert_index_clamped] external drop hand + insertIndex は handLength でクランプ', () => {
+  it('[covers:handle-external-card-drop.hand-insert-index-clamped] external drop hand + insertIndex は handLength でクランプ', () => {
     const addSpy = vi.spyOn(store, 'addExternalCard').mockImplementation(() => {})
     vi.spyOn(store, 'getCards').mockReturnValue([
       { instanceId: 'h1' },
@@ -348,7 +348,7 @@ describe('usePracticeDropHandler conditions', () => {
     expect(addSpy).toHaveBeenCalledWith('cid', 'ciid', 'hand', undefined, 0, 'up', 3)
   })
 
-  it('[covers:handle_external_card_drop.hand_insert_uses_undefined_slot] external drop hand insert は slotIndex に undefined', () => {
+  it('[covers:handle-external-card-drop.hand-insert-uses-undefined-slot] external drop hand insert は slotIndex に undefined', () => {
     const addSpy = vi.spyOn(store, 'addExternalCard').mockImplementation(() => {})
     vi.spyOn(store, 'getCards').mockReturnValue([])
     // context.targetSlotIndex=99 を渡しても slotIndex 引数は undefined になる
@@ -361,7 +361,7 @@ describe('usePracticeDropHandler conditions', () => {
     expect(addSpy.mock.calls[0]![4]).toBe(0) // fieldIndex
   })
 
-  it('[covers:handle_external_card_drop.default_adds_without_position] external drop default は position 引数なし', () => {
+  it('[covers:handle-external-card-drop.default-adds-without-position] external drop default は position 引数なし', () => {
     const addSpy = vi.spyOn(store, 'addExternalCard').mockImplementation(() => {})
     const ctx: DropContext = { targetZone: 'monster', targetSlotIndex: 2, fieldIndex: 0 }
 
@@ -372,7 +372,7 @@ describe('usePracticeDropHandler conditions', () => {
     expect(addSpy).toHaveBeenCalledWith('cid', 'ciid', 'monster', 2, 0, 'up')
   })
 
-  it('[covers:handle_external_card_drop.drop_pos_undefined_falls_to_default] external drop dropPos undefined は default 分岐へ', () => {
+  it('[covers:handle-external-card-drop.drop-pos-undefined-falls-to-default] external drop dropPos undefined は default 分岐へ', () => {
     const addSpy = vi.spyOn(store, 'addExternalCard').mockImplementation(() => {})
     const ctx: DropContext = { targetZone: 'hand', fieldIndex: 0 }
 
