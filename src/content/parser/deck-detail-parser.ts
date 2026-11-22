@@ -10,7 +10,8 @@ import {
   DECK_STYLE_LABEL_TO_VALUE,
 } from '@/types/deck-metadata';
 import { parseSearchResultRow, extractImageInfo, parseCardBase } from '@/api/card-search';
-import { getDeckMetadata, type DeckMetadata } from '@/utils/deck-metadata-loader';
+import { getDeckMetadata } from '@/utils/deck-metadata-loader';
+import type { CategoryEntry } from '@/types/dialog';
 import { mappingManager } from '@/utils/mapping-manager';
 import { OFFICIAL_SITE_SELECTORS } from '@/utils/dom-selectors';
 
@@ -30,7 +31,7 @@ interface ParseCardSectionResult {
  */
 export function convertCategoryLabelsToIds(
   labels: string[],
-  metadata: Pick<DeckMetadata, 'categories'> | null | undefined
+  metadata: { categories?: Array<Pick<CategoryEntry, 'label' | 'value'>> } | null | undefined
 ): string[] {
   if (!metadata || !metadata.categories) {
     return [];
@@ -49,7 +50,7 @@ export function convertCategoryLabelsToIds(
  */
 export function convertTagLabelsToIds(
   labels: string[],
-  metadata: Pick<DeckMetadata, 'tags'> | null | undefined
+  metadata: { tags?: Record<string, string> } | null | undefined
 ): string[] {
   if (!metadata || !metadata.tags) {
     return [];
