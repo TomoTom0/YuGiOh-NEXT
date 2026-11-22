@@ -19,66 +19,66 @@
 feature = "deck-hash"
 source_file = "src/utils/deck-hash.ts"
 verified = true
-verified_at = "2026-08-28"
+verified_at = "2026-11-22"
 verified_by = "claude"
-test_command = "mise run test:vitest -- tests/unit/utils/deck-hash.test.ts"
+test_command = "pnpm exec vitest run tests/unit/utils/deck-hash.test.ts"
 source_hash = "a9cda3e5c7cf0607acd16475062e70e4a4f738b1"
 note = "verified=falseは0件。分岐が無いため全条件が公開APIのみで検証可能。"
 
 # --- calculateDeckHash(deckInfo: DeckInfo): string ---
 
 [[condition]]
-id = "calculate_deck_hash.deterministic_same_content"
+id = "calculate-deck-hash.deterministic-same-content"
 target_function = "calculateDeckHash"
-source_lines = "16-28"
+source_lines = "tests/unit/utils/deck-hash.test.ts:24"
 description = "cid/quantity/配置が同一内容であれば、別インスタンスのDeckInfoでも同じハッシュ値を返す"
 given = "cid/quantityが同一構成の2つの別インスタンスDeckInfo"
 expect_return_shape = "2つのハッシュ値は完全一致する"
 
 [[condition]]
-id = "calculate_deck_hash.differs_by_cid"
+id = "calculate-deck-hash.differs-by-cid"
 target_function = "calculateDeckHash"
-source_lines = "18-24"
+source_lines = "tests/unit/utils/deck-hash.test.ts:47"
 description = "cardSequenceは各カードを`${cid}:${quantity}`で文字列化して結合するため、cidが異なれば異なるハッシュになる"
 given = "quantity同一・cidのみ異なる2つのDeckInfo"
 expect_return_shape = "2つのハッシュ値は異なる"
 
 [[condition]]
-id = "calculate_deck_hash.differs_by_quantity"
+id = "calculate-deck-hash.differs-by-quantity"
 target_function = "calculateDeckHash"
-source_lines = "18-24"
+source_lines = "tests/unit/utils/deck-hash.test.ts:106"
 description = "cidが同一でもquantityが異なればcardSequenceの文字列が変わり、異なるハッシュになる"
 given = "cid同一・quantityのみ異なる2つのDeckInfo"
 expect_return_shape = "2つのハッシュ値は異なる"
 
 [[condition]]
-id = "calculate_deck_hash.order_and_section_sensitive"
+id = "calculate-deck-hash.order-and-section-sensitive"
 target_function = "calculateDeckHash"
-source_lines = "18-24"
+source_lines = "tests/unit/utils/deck-hash.test.ts:90,tests/unit/utils/deck-hash.test.ts:116"
 description = "mainDeck/extraDeck/sideDeckはこの順でスプレッド結合されるため、同じカード集合でも並び順やどのセクションに属するかが変わればcardSequenceの文字列順が変わり、異なるハッシュになる"
 given = "同じカード群だが配置(セクション間の移動、または同一セクション内の並び順)が異なる2つのDeckInfo"
 expect_return_shape = "2つのハッシュ値は異なる"
 
 [[condition]]
-id = "calculate_deck_hash.ignores_ciid_and_lang"
+id = "calculate-deck-hash.ignores-ciid-and-lang"
 target_function = "calculateDeckHash"
-source_lines = "23"
+source_lines = "tests/unit/utils/deck-hash.test.ts:139"
 description = "cardSequenceのキーは`${card.cid}:${card.quantity}`のみで構成され、ciid/langはハッシュ計算に含まれない。そのためcid/quantityが同一でciidまたはlangのみ異なるカードは同一ハッシュになる"
 given = "cid/quantity同一・ciidのみ異なる2つのDeckInfo"
 expect_return_shape = "2つのハッシュ値は一致する（ciid違いは検知されない）"
 
 [[condition]]
-id = "calculate_deck_hash.empty_deck_fixed_zero_hash"
+id = "calculate-deck-hash.empty-deck-fixed-zero-hash"
 target_function = "calculateDeckHash"
-source_lines = "16-28,34-42"
+source_lines = "tests/unit/utils/deck-hash.test.ts:57"
 description = "mainDeck/extraDeck/sideDeckが全て空の場合cardSequenceは空文字列となり、simpleHash('')はループが1度も実行されずhash=0のまま返るため、ハッシュは固定値'0000000000000000'になる"
 given = "mainDeck=[], extraDeck=[], sideDeck=[]"
 expect_return = "0000000000000000"
 
 [[condition]]
-id = "calculate_deck_hash.return_length_always_16_hex"
+id = "calculate-deck-hash.return-length-always-16-hex"
 target_function = "calculateDeckHash"
-source_lines = "27,38-41"
+source_lines = "tests/unit/utils/deck-hash.test.ts:69"
 description = "simpleHashの内部hashは32bit整数(& hash による変換)に制限されるため、Math.abs(hash)は最大でも8桁の16進数にしかならず、padStart(16,'0')で常に16文字に達する。よってsubstring(0,16)による切り詰めは実質発生せず、返り値は常に16文字の小文字16進文字列になる"
 given = "任意の非空・空を問わないDeckInfo"
 expect_return_shape = "戻り値の長さは常に16、/^[0-9a-f]{16}$/にマッチする"
@@ -86,25 +86,25 @@ expect_return_shape = "戻り値の長さは常に16、/^[0-9a-f]{16}$/にマッ
 # --- isDeckModified(oldDeckInfo: DeckInfo, newDeckInfo: DeckInfo): boolean ---
 
 [[condition]]
-id = "is_deck_modified.true_when_hash_differs"
+id = "is-deck-modified.true-when-hash-differs"
 target_function = "isDeckModified"
-source_lines = "50-54"
+source_lines = "tests/unit/utils/deck-hash.test.ts:177,tests/unit/utils/deck-hash.test.ts:189,tests/unit/utils/deck-hash.test.ts:204,tests/unit/utils/deck-hash.test.ts:223"
 description = "oldDeckInfoとnewDeckInfoからそれぞれcalculateDeckHashした結果が異なればtrueを返す（カード追加・削除・quantity変更・順序変更のいずれでも成立）"
 given = "oldDeckInfoとnewDeckInfoの内容が異なる（cid/quantity/配置のいずれかが異なる）"
 expect_return = true
 
 [[condition]]
-id = "is_deck_modified.false_when_hash_equal"
+id = "is-deck-modified.false-when-hash-equal"
 target_function = "isDeckModified"
-source_lines = "50-54"
+source_lines = "tests/unit/utils/deck-hash.test.ts:156"
 description = "計算されたハッシュが一致すればfalseを返す。oldDeckInfoとnewDeckInfoが別インスタンスでも内容が同一なら成立する"
 given = "oldDeckInfoとnewDeckInfoが内容として同一（別インスタンス可）"
 expect_return = false
 
 [[condition]]
-id = "is_deck_modified.false_when_only_ciid_or_lang_differs"
+id = "is-deck-modified.false-when-only-ciid-or-lang-differs"
 target_function = "isDeckModified"
-source_lines = "50-54"
+source_lines = "tests/unit/utils/deck-hash.test.ts:213"
 description = "calculateDeckHashがciid/langを無視するため(ignores_ciid_and_lang条件の帰結)、cid/quantityが同一でciidまたはlangのみ異なるデッキ間ではfalse(変更なし)と誤判定される"
 given = "oldDeckInfoとnewDeckInfoがcid/quantity同一・ciidのみ異なる"
 expect_return = false

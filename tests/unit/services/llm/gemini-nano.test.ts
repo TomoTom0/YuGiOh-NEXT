@@ -39,11 +39,11 @@ describe('services/llm/gemini-nano', () => {
   });
 
   describe('isGeminiNanoAvailable', () => {
-    it('returns false without the browser built-in AI API [covers:get_api.absent_returns_undefined] [covers:is_available.no_api_false]', async () => {
+    it('returns false without the browser built-in AI API [covers:get-api.absent-returns-undefined] [covers:is-available.no-api-false]', async () => {
       await expect(isGeminiNanoAvailable()).resolves.toBe(false);
     });
 
-    it('uses window.LanguageModel before window.ai.languageModel [covers:get_api.prefers_window_language_model] [covers:is_available.status_not_unavailable_true]', async () => {
+    it('uses window.LanguageModel before window.ai.languageModel [covers:get-api.prefers-window-language-model] [covers:is-available.status-not-unavailable-true]', async () => {
       const preferredApi = makeApi({ availability: vi.fn().mockResolvedValue('readily') });
       const fallbackApi = makeApi({ availability: vi.fn().mockResolvedValue('unavailable') });
       setLanguageModel(preferredApi);
@@ -54,7 +54,7 @@ describe('services/llm/gemini-nano', () => {
       expect(fallbackApi.availability).not.toHaveBeenCalled();
     });
 
-    it('falls back to window.ai.languageModel [covers:get_api.falls_back_to_window_ai_language_model] [covers:is_available.status_not_unavailable_true]', async () => {
+    it('falls back to window.ai.languageModel [covers:get-api.falls-back-to-window-ai-language-model] [covers:is-available.status-not-unavailable-true]', async () => {
       const fallbackApi = makeApi({ availability: vi.fn().mockResolvedValue('after-download') });
       setAiLanguageModel(fallbackApi);
 
@@ -62,14 +62,14 @@ describe('services/llm/gemini-nano', () => {
       expect(fallbackApi.availability).toHaveBeenCalledTimes(1);
     });
 
-    it('returns false when availability is unavailable [covers:is_available.status_unavailable_false]', async () => {
+    it('returns false when availability is unavailable [covers:is-available.status-unavailable-false]', async () => {
       const api = makeApi({ availability: vi.fn().mockResolvedValue('unavailable') });
       setLanguageModel(api);
 
       await expect(isGeminiNanoAvailable()).resolves.toBe(false);
     });
 
-    it('returns false when availability rejects [covers:is_available.availability_rejects_false]', async () => {
+    it('returns false when availability rejects [covers:is-available.availability-rejects-false]', async () => {
       const api = makeApi({ availability: vi.fn().mockRejectedValue(new Error('availability failed')) });
       setLanguageModel(api);
 
@@ -78,11 +78,11 @@ describe('services/llm/gemini-nano', () => {
   });
 
   describe('createNanoSession', () => {
-    it('throws when the browser built-in AI API is absent [covers:create_session.no_api_throws]', async () => {
+    it('throws when the browser built-in AI API is absent [covers:create-session.no-api-throws]', async () => {
       await expect(createNanoSession('system')).rejects.toThrow('Gemini Nanoが利用できません');
     });
 
-    it('calls create with a system initial prompt and returns the session [covers:create_session.calls_create_with_system_prompt]', async () => {
+    it('calls create with a system initial prompt and returns the session [covers:create-session.calls-create-with-system-prompt]', async () => {
       const session = { prompt: vi.fn(), destroy: vi.fn() };
       const api = makeApi({ create: vi.fn().mockResolvedValue(session) });
       setLanguageModel(api);
@@ -93,7 +93,7 @@ describe('services/llm/gemini-nano', () => {
       });
     });
 
-    it('propagates create rejection [covers:create_session.create_rejects_propagates]', async () => {
+    it('propagates create rejection [covers:create-session.create-rejects-propagates]', async () => {
       const error = new Error('create failed');
       const api = makeApi({ create: vi.fn().mockRejectedValue(error) });
       setLanguageModel(api);
@@ -103,7 +103,7 @@ describe('services/llm/gemini-nano', () => {
   });
 
   describe('promptGeminiNano', () => {
-    it('prompts with the user message, returns the reply, and destroys the session [covers:prompt.create_then_prompts_user_message] [covers:prompt.destroy_after_success]', async () => {
+    it('prompts with the user message, returns the reply, and destroys the session [covers:prompt.create-then-prompts-user-message] [covers:prompt.destroy-after-success]', async () => {
       const session = {
         prompt: vi.fn().mockResolvedValue('reply'),
         destroy: vi.fn(),
@@ -119,7 +119,7 @@ describe('services/llm/gemini-nano', () => {
       expect(session.destroy).toHaveBeenCalledTimes(1);
     });
 
-    it('destroys the session and propagates prompt rejection [covers:prompt.destroy_after_prompt_reject]', async () => {
+    it('destroys the session and propagates prompt rejection [covers:prompt.destroy-after-prompt-reject]', async () => {
       const error = new Error('prompt failed');
       const session = {
         prompt: vi.fn().mockRejectedValue(error),
@@ -132,7 +132,7 @@ describe('services/llm/gemini-nano', () => {
       expect(session.destroy).toHaveBeenCalledTimes(1);
     });
 
-    it('propagates createNanoSession rejection before a session exists [covers:prompt.create_session_rejects_without_destroy]', async () => {
+    it('propagates createNanoSession rejection before a session exists [covers:prompt.create-session-rejects-without-destroy]', async () => {
       await expect(promptGeminiNano('system', 'user')).rejects.toThrow('Gemini Nanoが利用できません');
     });
   });

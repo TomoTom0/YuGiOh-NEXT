@@ -878,8 +878,8 @@ expect_side_effect = "displayOrder[section]は1枚目の追加時点の状態に
 id = "add_card.generates_new_uuid_per_call_via_deck_uuid_generator"
 target_function = "useDeckEditStore#addCard"
 source_lines = "402-407,135"
-description = "addToDisplayOrderInternalはgenerateDeckCardUUIDをuuid生成に使う。同(cid,ciid)への複数回呼び出しはgenerateDeckCardUUID自身の連番カウンタ（generate_deck_card_uuid.repeat_call_same_key_increments）により一意なuuidを返すため、addCardで同一カードを複数回追加してもdisplayOrder内のuuidは重複しない"
-source = "src/utils/deck-uuid-generator.ts（tests/design/deck-uuid-generator/conditions.toml: generate_deck_card_uuid.repeat_call_same_key_increments, generate_deck_card_uuid.different_keys_are_independent_counters）"
+description = "addToDisplayOrderInternalはgenerateDeckCardUUIDをuuid生成に使う。同(cid,ciid)への複数回呼び出しはgenerateDeckCardUUID自身の連番カウンタ（generate-deck-card-uuid.repeat-call-same-key-increments）により一意なuuidを返すため、addCardで同一カードを複数回追加してもdisplayOrder内のuuidは重複しない"
+source = "src/utils/deck-uuid-generator.ts（tests/design/deck-uuid-generator/conditions.toml: generate-deck-card-uuid.repeat-call-same-key-increments, generate-deck-card-uuid.different-keys-are-independent-counters）"
 given = "同じcard（同(cid,ciid)）をaddCard(card, 'main')で2回呼ぶ、またはciidだけ異なるcardを2回呼ぶ"
 expect_side_effect = "displayOrder.main[].uuidが2件とも異なる（generateDeckCardUUIDの連番カウンタに委譲）"
 

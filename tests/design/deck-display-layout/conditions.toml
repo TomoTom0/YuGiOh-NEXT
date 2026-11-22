@@ -16,44 +16,44 @@
 feature = "deck-display-layout"
 source_file = "src/content/deck-display/deckDisplayLayout.ts"
 verified = true
-verified_at = "2026-08-29"
+verified_at = "2026-11-22"
 verified_by = "claude"
-test_command = "mise run test:vitest -- tests/unit/content/deck-display-layout.test.ts"
+test_command = "pnpm exec vitest run tests/unit/content/deck-display-layout.test.ts"
 source_hash = "1fa59b688ad0e2480de5c3fa0456b2181ad0bc25"
 note = "verified=falseは0件。applyDeckDisplayLayout()は分岐0件のため実質的な条件記載は無い"
 
 # --- setCardImageSize(size) ---
 
 [[condition]]
-id = "set_card_image_size.normal_removes_css_variable"
+id = "set-card-image-size.normal-removes-css-variable"
 target_function = "setCardImageSize"
-source_lines = "12-15"
+source_lines = "tests/unit/content/deck-display-layout.test.ts:17"
 description = "size==='normal'の場合、--deck-display-card-width CSS変数を削除して公式サイトのデフォルトサイズに戻す（sizeMapは参照しない）"
 given = "setCardImageSize('normal')"
-expect_side_effect = "document.documentElement.styleに--deck-display-card-widthが存在しなくなる"
+expect_return_shape = "document.documentElement.styleに--deck-display-card-widthが存在しなくなる"
 
 [[condition]]
-id = "set_card_image_size.known_size_sets_mapped_width"
+id = "set-card-image-size.known-size-sets-mapped-width"
 target_function = "setCardImageSize"
-source_lines = "17-27"
+source_lines = "tests/unit/content/deck-display-layout.test.ts:30"
 description = "size='small'|'medium'|'large'|'xlarge'の場合、対応するpx値を--deck-display-card-width CSS変数に設定する"
 given = "setCardImageSize('large')"
-expect_side_effect = "--deck-display-card-widthが'90px'になる"
+expect_return_shape = "--deck-display-card-widthが'90px'になる"
 
 [[condition]]
-id = "set_card_image_size.unknown_size_falls_back_to_60px"
+id = "set-card-image-size.unknown-size-falls-back-to-60px"
 target_function = "setCardImageSize"
-source_lines = "26"
+source_lines = "tests/unit/content/deck-display-layout.test.ts:36"
 description = "sizeMapに無い値が渡された場合、フォールバック値'60px'を設定する（型上は発生しないが実行時防御）"
 given = "setCardImageSize('unknown' as never)"
-expect_side_effect = "--deck-display-card-widthが'60px'になる"
+expect_return_shape = "--deck-display-card-widthが'60px'になる"
 
 # --- applyDeckDisplayLayout() ---
 
 [[condition]]
-id = "apply_deck_display_layout.injects_style_element"
+id = "apply-deck-display-layout.injects-style-element"
 target_function = "applyDeckDisplayLayout"
-source_lines = "33-98"
+source_lines = "tests/unit/content/deck-display-layout.test.ts:44"
 description = "分岐を持たない。呼び出すとdocument.headにstyle要素を1つ追加するのみ"
 given = "applyDeckDisplayLayout()を呼ぶ"
-expect_side_effect = "document.head内のstyle要素数が1増える"
+expect_return_shape = "document.head内のstyle要素数が1増える"

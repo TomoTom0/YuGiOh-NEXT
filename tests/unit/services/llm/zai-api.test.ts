@@ -35,7 +35,7 @@ describe('zai-api', () => {
     setRuntimeLastError();
   });
 
-  it('promptZai は単一user messageに包んでpromptZaiMulti相当の結果を返す [covers:prompt_zai.delegates_single_user_message]', async () => {
+  it('promptZai は単一user messageに包んでpromptZaiMulti相当の結果を返す [covers:prompt-zai.delegates-single-user-message]', async () => {
     mockAiChatResponse({ success: true, content: 'ok' });
 
     await expect(promptZai('sys', 'hello')).resolves.toBe('ok');
@@ -51,7 +51,7 @@ describe('zai-api', () => {
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
-  it('promptZaiMulti はAI_CHAT payloadをsendMessageへ渡す [covers:prompt_zai_multi.send_message_payload] [covers:prompt_zai_multi.success_content_returns]', async () => {
+  it('promptZaiMulti はAI_CHAT payloadをsendMessageへ渡す [covers:prompt-zai-multi.send-message-payload] [covers:prompt-zai-multi.success-content-returns]', async () => {
     const conversation = [
       { role: 'system' as const, content: 'context' },
       { role: 'user' as const, content: 'hello' },
@@ -72,7 +72,7 @@ describe('zai-api', () => {
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
-  it('lastErrorがある場合はresを見ずにZ.ai APIエラーでrejectする [covers:prompt_zai_multi.last_error_rejects]', async () => {
+  it('lastErrorがある場合はresを見ずにZ.ai APIエラーでrejectする [covers:prompt-zai-multi.last-error-rejects]', async () => {
     vi.mocked(chrome.runtime.sendMessage).mockImplementation(((
       _message: unknown,
       callback: (response: SendResponse) => void,
@@ -84,25 +84,25 @@ describe('zai-api', () => {
     await expect(promptZaiMulti('sys', [])).rejects.toThrow('Z.ai API エラー: port closed');
   });
 
-  it('success=falseかつerrorありならerror文字列でthrowする [covers:prompt_zai_multi.failure_with_error_throws_error]', async () => {
+  it('success=falseかつerrorありならerror文字列でthrowする [covers:prompt-zai-multi.failure-with-error-throws-error]', async () => {
     mockAiChatResponse({ success: false, error: 'upstream failed' });
 
     await expect(promptZaiMulti('sys', [])).rejects.toThrow('upstream failed');
   });
 
-  it('success=falseかつerrorなしなら既定メッセージでthrowする [covers:prompt_zai_multi.failure_without_error_throws_default]', async () => {
+  it('success=falseかつerrorなしなら既定メッセージでthrowする [covers:prompt-zai-multi.failure-without-error-throws-default]', async () => {
     mockAiChatResponse({ success: false });
 
     await expect(promptZaiMulti('sys', [])).rejects.toThrow('Z.ai APIから空の応答が返りました');
   });
 
-  it('success=trueでもcontentが空文字なら既定メッセージでthrowする [covers:prompt_zai_multi.success_empty_content_throws_default]', async () => {
+  it('success=trueでもcontentが空文字なら既定メッセージでthrowする [covers:prompt-zai-multi.success-empty-content-throws-default]', async () => {
     mockAiChatResponse({ success: true, content: '' });
 
     await expect(promptZaiMulti('sys', [])).rejects.toThrow('Z.ai APIから空の応答が返りました');
   });
 
-  it('responseがundefinedならTypeErrorをthrowする [covers:prompt_zai_multi.undefined_response_type_error]', async () => {
+  it('responseがundefinedならTypeErrorをthrowする [covers:prompt-zai-multi.undefined-response-type-error]', async () => {
     mockAiChatResponse(undefined);
 
     await expect(promptZaiMulti('sys', [])).rejects.toThrow(TypeError);

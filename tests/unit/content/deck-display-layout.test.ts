@@ -14,7 +14,7 @@ describe('deckDisplayLayout.ts', () => {
   });
 
   describe('setCardImageSize', () => {
-    it('[covers:set_card_image_size.normal_removes_css_variable] normalの場合CSS変数を削除する', () => {
+    it('[covers:set-card-image-size.normal-removes-css-variable] normalの場合CSS変数を削除する', () => {
       document.documentElement.style.setProperty('--deck-display-card-width', '90px');
 
       setCardImageSize('normal');
@@ -27,13 +27,13 @@ describe('deckDisplayLayout.ts', () => {
       ['medium', '60px'],
       ['large', '90px'],
       ['xlarge', '120px']
-    ] as const)('[covers:set_card_image_size.known_size_sets_mapped_width] %sの場合%sを設定する', (size, expected) => {
+    ] as const)('[covers:set-card-image-size.known-size-sets-mapped-width] %sの場合%sを設定する', (size, expected) => {
       setCardImageSize(size);
 
       expect(document.documentElement.style.getPropertyValue('--deck-display-card-width')).toBe(expected);
     });
 
-    it('[covers:set_card_image_size.unknown_size_falls_back_to_60px] 未知の値の場合60pxにフォールバックする', () => {
+    it('[covers:set-card-image-size.unknown-size-falls-back-to-60px] 未知の値の場合60pxにフォールバックする', () => {
       setCardImageSize('unknown' as never);
 
       expect(document.documentElement.style.getPropertyValue('--deck-display-card-width')).toBe('60px');
@@ -41,7 +41,7 @@ describe('deckDisplayLayout.ts', () => {
   });
 
   describe('applyDeckDisplayLayout', () => {
-    it('[covers:apply_deck_display_layout.injects_style_element] style要素を1つ追加する', () => {
+    it('[covers:apply-deck-display-layout.injects-style-element] style要素を1つ追加する', () => {
       const before = document.head.querySelectorAll('style').length;
 
       applyDeckDisplayLayout();
