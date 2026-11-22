@@ -59,20 +59,21 @@ function isEditUrl(): boolean {
 async function applyThemeFromSettings(): Promise<void> {
   try {
     // メモリキャッシュから即座に取得（0ms、待機なし）
-    let appSettings = window.ygoNextCurrentSettings;
+    let appSettings: Partial<AppSettings> = window.ygoNextCurrentSettings || {};
 
     // メモリにない場合は Storage から読み込み
-    if (!appSettings) {
+    if (!window.ygoNextCurrentSettings) {
       const result = await callbackToPromise<Record<string, unknown>>(
         (callback) => chrome.storage.local.get([CHROME_STORAGE_KEY_APP_SETTINGS], callback),
         3000 // 3秒のタイムアウト
       );
 
-      appSettings = (result[CHROME_STORAGE_KEY_APP_SETTINGS] || {}) as AppSettings;
+      appSettings = (result[CHROME_STORAGE_KEY_APP_SETTINGS] || {}) as Partial<AppSettings>;
 
       // 読み込み後、メモリキャッシュに保存
+      // （storage の appSettings は AppSettings として保存されている前提でキャッシュする）
       if (appSettings) {
-        window.ygoNextCurrentSettings = appSettings;
+        window.ygoNextCurrentSettings = appSettings as AppSettings;
       }
     }
 
