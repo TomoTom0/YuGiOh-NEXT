@@ -70,10 +70,10 @@
 feature = "import-export-dialog"
 source_file = "src/components/ImportExportDialog.vue"
 verified = true
-verified_at = "2026-09-14"
+verified_at = "2026-11-22"
 verified_by = "claude"
-test_command = "mise run test:vitest -- tests/unit/components/ImportExportDialog.test.ts"
-source_hash = "c314314f887d1930a52398e6f3634641fd4f834e"
+test_command = "pnpm exec vitest run"
+source_hash = "608b473c6c8c811efde1fbaa636a532690474b99"
 note = "TASK-500（Tier C第3号）で新規作成。verified=falseで作成開始し、テスト全pass（43it・vitest全体4614 passed / 0 failed）・verify-conditions.pyで本topic由来のfail/warn 0件（既存の無関係dangling・warnはTASK-489のcorpus移行対象）・出典との内容照合後に検証記録を記載した。依存モジュール内部は deck-import / deck-export / create-deck-recipe-image 各条件書の対象（冒頭コメントの線引き参照）。TASK-501でresetDialogのExport状態の扱いが「filenameBaseのみprops基準で再生成（format・Side Deck・CSV列は前回値を保持）」へ確定。旧 reopen-keeps-export-ui-state / reopen-keeps-filename-base（当初挙動の条件化）、および拡大解釈時に発行した reopen-resets-export-state（全リセット仕様）は廃止し、現行仕様の reopen-keeps-export-settings / reopen-regenerates-filename-base を新idで発行（covers張替え済み・再検証記録済み）"
 
 # --- 初期化・タブ ---

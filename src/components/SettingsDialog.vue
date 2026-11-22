@@ -221,7 +221,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, toRefs } from 'vue';
+import { ref, computed } from 'vue';
 import { useSettingsStore } from '../stores/settings';
 import { useDeckEditStore } from '../stores/deck-edit';
 import BaseDialog from './BaseDialog.vue';

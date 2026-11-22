@@ -20,13 +20,13 @@
 #   FileReader/Imageはスタブで制御する（既存テストのハーネスを継承）
 
 [meta]
-verified_at = "2026-11-21"
+verified_at = "2026-11-22"
 verified_by = "claude"
 feature = "image-dialog-component"
 source_file = "src/components/ImageDialog.vue"
 verified = true
-test_command = "mise run test:vitest -- tests/unit/components/ImageDialog.test.ts"
-source_hash = "f6677b4f36110aa48372c8f291f71b82f7884238"
+test_command = "pnpm exec vitest run"
+source_hash = "9be97944a105d2c229006f505f5e655f49bce248"
 note = "TASK-572（TASK-331第23号）でImageDialog.vue本体の条件化。17条件=設定の検証付き復元1+保存と復元1+初期化生成1+プレビュー反映1+古い生成の破棄1+同色no-op1+QRトグル1+Sideトグル1+フッターdebounce1+ダウンロード引数1+ダウンロード後閉じる1+失敗時継続1+ダウンロード中無効化1+閉じる流れ1+レイアウト結合1+背景スタイル1+リスナ除去1。既存テストへcovers付与+不足分を追加。src不変"
 
 # --- 初期化・設定永続化 ---

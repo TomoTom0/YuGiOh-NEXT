@@ -405,7 +405,7 @@ function onColumnDrop(index: number) {
   }
   const cols = [...csvColumns.value];
   const [moved] = cols.splice(dragColumnIndex.value, 1);
-  cols.splice(index, 0, moved);
+  if (moved) cols.splice(index, 0, moved);
   csvColumns.value = cols;
   dragColumnIndex.value = null;
 }

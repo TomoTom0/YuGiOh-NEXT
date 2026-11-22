@@ -300,7 +300,7 @@ const props = withDefaults(defineProps<{
 const practiceStore = usePracticeStore()
 const settingsStore = useSettingsStore()
 const deckStore = useDeckEditStore()
-const { draggingRotated, draggingFaceDown } = usePracticeDragState()
+usePracticeDragState()
 const { executeAction } = usePracticeActions()
 const dropHandler = usePracticeDropHandler()
 const fi = computed(() => props.fieldIndex)
