@@ -80,8 +80,9 @@ export class TimeoutError extends Error {
   /**
    * このエラーがタイムアウトエラーか判定
    */
-  static isTimeoutError(error: any): error is TimeoutError {
-    return error instanceof TimeoutError || error.name === 'TimeoutError';
+  static isTimeoutError(error: unknown): error is TimeoutError {
+    // 注: null/undefined では name 参照により TypeError を投げる（条件書 timeout_error.nullish_throws の仕様）
+    return error instanceof TimeoutError || (error as { name?: unknown }).name === 'TimeoutError';
   }
 }
 
