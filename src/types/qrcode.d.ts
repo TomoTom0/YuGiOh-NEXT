@@ -3,7 +3,7 @@ declare module 'qrcode' {
   export interface QRCodeToDataURLOptions {
     errorCorrectionLevel?: 'L' | 'M' | 'Q' | 'H' | 'low' | 'medium' | 'quartile' | 'high';
     type?: 'image/png' | 'image/jpeg' | 'image/webp';
-    quality?: number;
+    rendererOpts?: { quality?: number };
     margin?: number;
     scale?: number;
     width?: number;
