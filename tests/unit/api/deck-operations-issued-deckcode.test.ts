@@ -32,7 +32,7 @@ describe('issueDeckCodeInternal', () => {
     vi.mocked(errorHandler.handleSuccess).mockImplementation(() => {});
   });
 
-  it('デッキコードが正常に発行される [covers:issue_code.extract_non_blank_returns_code]', async () => {
+  it('デッキコードが正常に発行される [covers:issue-code.extract-non-blank-returns-code]', async () => {
     const mockDeckCode = ' ABC123DEF456 ';
 
     // ope=13（発行リクエスト）が正常に完了
@@ -51,7 +51,7 @@ describe('issueDeckCodeInternal', () => {
     expect(axios.get).toHaveBeenCalledTimes(2);
   });
 
-  it('extractIssuedDeckCodeが空文字列を返す場合はエラーハンドリング [covers:issue_code.extract_blank_returns_empty]', async () => {
+  it('extractIssuedDeckCodeが空文字列を返す場合はエラーハンドリング [covers:issue-code.extract-blank-returns-empty]', async () => {
     vi.mocked(axios.get).mockResolvedValueOnce({ status: 200, data: '' });
     vi.mocked(axios.get).mockResolvedValueOnce({ status: 200, data: '<html></html>' });
 
@@ -77,7 +77,7 @@ describe('issueDeckCodeInternal', () => {
     expect(errorHandler.handleError).toHaveBeenCalled();
   });
 
-  it('ope=13リクエストが失敗する場合はエラーをキャッチ [covers:issue_code.catch_returns_empty]', async () => {
+  it('ope=13リクエストが失敗する場合はエラーをキャッチ [covers:issue-code.catch-returns-empty]', async () => {
     const error = new Error('Network error');
     vi.mocked(axios.get).mockRejectedValueOnce(error);
 
@@ -109,7 +109,7 @@ describe('issueDeckCodeInternal', () => {
     );
   });
 
-  it('正しいパラメータでAPIが呼び出される [covers:issue_code.issue_url_no_locale] [covers:issue_code.display_url_with_locale]', async () => {
+  it('正しいパラメータでAPIが呼び出される [covers:issue-code.issue-url-no-locale] [covers:issue-code.display-url-with-locale]', async () => {
     const mockDeckCode = 'XYZ789';
     const cgid = 'user456';
     const dno = 200;

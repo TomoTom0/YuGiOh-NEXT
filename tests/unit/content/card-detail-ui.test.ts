@@ -108,7 +108,7 @@ describe('card-detail-ui.ts', () => {
   });
 
   describe('initCardDetailUI', () => {
-    it('[covers:init_card_detail_ui.parse_success_no_skipped_no_warn] スキップカードが無い場合は警告しない', async () => {
+    it('[covers:init-card-detail-ui.parse-success-no-skipped-no-warn] スキップカードが無い場合は警告しない', async () => {
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       mockParseDeckDetail.mockResolvedValue(makeDeckInfo());
 
@@ -117,7 +117,7 @@ describe('card-detail-ui.ts', () => {
       expect(warnSpy).not.toHaveBeenCalled();
     });
 
-    it('[covers:init_card_detail_ui.parse_success_with_skipped_cards_warns] スキップカードがある場合は件数と詳細を警告する', async () => {
+    it('[covers:init-card-detail-ui.parse-success-with-skipped-cards-warns] スキップカードがある場合は件数と詳細を警告する', async () => {
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       mockParseDeckDetail.mockResolvedValue({
         ...makeDeckInfo(),
@@ -133,7 +133,7 @@ describe('card-detail-ui.ts', () => {
       expect(warnSpy).toHaveBeenCalledTimes(2);
     });
 
-    it('[covers:init_card_detail_ui.parse_failure_sets_null_and_logs_error] パース失敗時はエラーをログしparsedDeckInfoをnullにする', async () => {
+    it('[covers:init-card-detail-ui.parse-failure-sets-null-and-logs-error] パース失敗時はエラーをログしparsedDeckInfoをnullにする', async () => {
       const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       mockParseDeckDetail.mockRejectedValue(new Error('parse failed'));
 
@@ -143,7 +143,7 @@ describe('card-detail-ui.ts', () => {
       expect(mod.getParsedDeckInfo()).toBeNull();
     });
 
-    it('[covers:init_card_detail_ui.tab_click_with_data_tab_calls_switch_tab][covers:switch_tab.updates_current_tab_and_active_class] data-tab付きボタンのクリックでタブが切り替わる', async () => {
+    it('[covers:init-card-detail-ui.tab-click-with-data-tab-calls-switch-tab][covers:switch-tab.updates-current-tab-and-active-class] data-tab付きボタンのクリックでタブが切り替わる', async () => {
       const container = createTabButtonsDom(['info', 'qa']);
       createCardInfoContent();
 
@@ -160,7 +160,7 @@ describe('card-detail-ui.ts', () => {
       expect(infoBtn.classList.contains('ygo-next-active')).toBe(false);
     });
 
-    it('[covers:init_card_detail_ui.tab_click_without_data_tab_noop] data-tab属性が無いボタンをクリックしてもタブは変わらない', async () => {
+    it('[covers:init-card-detail-ui.tab-click-without-data-tab-noop] data-tab属性が無いボタンをクリックしてもタブは変わらない', async () => {
       const container = createTabButtonsDom(['info']);
       const btn = container.querySelector<HTMLElement>('.tab-btn')!;
       btn.removeAttribute('data-tab');
@@ -173,7 +173,7 @@ describe('card-detail-ui.ts', () => {
       expect(mod.getCurrentTab()).toBe('info');
     });
 
-    it('[covers:init_card_detail_ui.tab_click_handler_error_caught] クリックハンドラ内の例外はcatchされthrowしない', async () => {
+    it('[covers:init-card-detail-ui.tab-click-handler-error-caught] クリックハンドラ内の例外はcatchされthrowしない', async () => {
       const container = createTabButtonsDom(['info']);
       const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       // cardInfoContentを用意せず、内部処理でエラーになりうる状況でも例外が外に漏れないことを確認
@@ -188,16 +188,16 @@ describe('card-detail-ui.ts', () => {
   });
 
   describe('getSelectedCard / getCurrentTab / getParsedDeckInfo', () => {
-    it('[covers:get_selected_card.returns_module_state] selectedCardは再代入されないため常にnullを返す', async () => {
+    it('[covers:get-selected-card.returns-module-state] selectedCardは再代入されないため常にnullを返す', async () => {
       await mod.initCardDetailUI();
       expect(mod.getSelectedCard()).toBeNull();
     });
 
-    it('[covers:get_current_tab.returns_module_state] 初期状態のcurrentTabは"info"', () => {
+    it('[covers:get-current-tab.returns-module-state] 初期状態のcurrentTabは"info"', () => {
       expect(mod.getCurrentTab()).toBe('info');
     });
 
-    it('[covers:get_parsed_deck_info.returns_module_state] initCardDetailUI実行後、parseDeckDetailの結果を反映する', async () => {
+    it('[covers:get-parsed-deck-info.returns-module-state] initCardDetailUI実行後、parseDeckDetailの結果を反映する', async () => {
       const deckInfo = makeDeckInfo([makeDeckCardRef('123', '1')]);
       mockParseDeckDetail.mockResolvedValue(deckInfo);
 
@@ -208,7 +208,7 @@ describe('card-detail-ui.ts', () => {
   });
 
   describe('ensureParsedDeckInfo', () => {
-    it('[covers:ensure_parsed_deck_info.cache_hit_skips_reparse] 既にパース済みなら再パースしない', async () => {
+    it('[covers:ensure-parsed-deck-info.cache-hit-skips-reparse] 既にパース済みなら再パースしない', async () => {
       const deckInfo = makeDeckInfo();
       mockParseDeckDetail.mockResolvedValue(deckInfo);
       await mod.initCardDetailUI();
@@ -220,7 +220,7 @@ describe('card-detail-ui.ts', () => {
       expect(mockParseDeckDetail).not.toHaveBeenCalled();
     });
 
-    it('[covers:ensure_parsed_deck_info.null_triggers_parse] 未パースならparseDeckDetailを呼び結果を返す', async () => {
+    it('[covers:ensure-parsed-deck-info.null-triggers-parse] 未パースならparseDeckDetailを呼び結果を返す', async () => {
       const deckInfo = makeDeckInfo([makeDeckCardRef('999', '1')]);
       mockParseDeckDetail.mockResolvedValue(deckInfo);
 
@@ -230,7 +230,7 @@ describe('card-detail-ui.ts', () => {
       expect(mockParseDeckDetail).toHaveBeenCalledTimes(1);
     });
 
-    it('[covers:ensure_parsed_deck_info.parse_error_returns_null] パース失敗時はnullを返す', async () => {
+    it('[covers:ensure-parsed-deck-info.parse-error-returns-null] パース失敗時はnullを返す', async () => {
       vi.spyOn(console, 'error').mockImplementation(() => {});
       mockParseDeckDetail.mockRejectedValue(new Error('parse failed'));
 
@@ -241,11 +241,11 @@ describe('card-detail-ui.ts', () => {
   });
 
   describe('findCardInParsedDeck / attachCardClickHandlers (initCardDetailUI経由)', () => {
-    it('[covers:attach_card_click_handlers.no_deck_image_returns_early] #deck_imageが無い場合エラーにならない', async () => {
+    it('[covers:attach-card-click-handlers.no-deck-image-returns-early] #deck_imageが無い場合エラーにならない', async () => {
       await expect(mod.initCardDetailUI()).resolves.toBeUndefined();
     });
 
-    it('[covers:find_card_in_parsed_deck.cid_not_in_any_section_returns_null][covers:attach_card_click_handlers.click_card_not_found_logs_error] デッキに無いcidをクリックするとエラーログのみでselectCardは呼ばれない', async () => {
+    it('[covers:find-card-in-parsed-deck.cid-not-in-any-section-returns-null][covers:attach-card-click-handlers.click-card-not-found-logs-error] デッキに無いcidをクリックするとエラーログのみでselectCardは呼ばれない', async () => {
       createDeckImage([{ src: '/yugiohdb/get_image.action?cid=9999&ciid=1' }]);
       mockParseDeckDetail.mockResolvedValue(makeDeckInfo([makeDeckCardRef('123', '1')]));
       const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -260,7 +260,7 @@ describe('card-detail-ui.ts', () => {
       expect(store.selectedCard).toBeNull();
     });
 
-    it('[covers:find_card_in_parsed_deck.not_in_tempcache_logs_error_returns_null] デッキにはあるがTempCacheDBに無いcidはエラーログのみでselectCardは呼ばれない', async () => {
+    it('[covers:find-card-in-parsed-deck.not-in-tempcache-logs-error-returns-null] デッキにはあるがTempCacheDBに無いcidはエラーログのみでselectCardは呼ばれない', async () => {
       createDeckImage([{ src: '/yugiohdb/get_image.action?cid=123&ciid=1' }]);
       mockParseDeckDetail.mockResolvedValue(makeDeckInfo([makeDeckCardRef('123', '1')]));
       // mockTempCacheに123を登録しない
@@ -274,7 +274,40 @@ describe('card-detail-ui.ts', () => {
       expect(errorSpy).toHaveBeenCalledWith('[CardDetailUI] Card not found in TempCacheDB:', '123');
     });
 
-    it('[covers:find_card_in_parsed_deck.found_returns_merged_card_with_ciid][covers:attach_card_click_handlers.click_card_found_calls_select_card][covers:select_card.success_fetches_and_sets_store] 有効なcidをクリックするとselectCardが呼ばれstoreに反映される', async () => {
+    it('[covers:find-card-in-parsed-deck.no-parsed-deck-returns-null] parsedDeckInfoが未設定(null)の場合は検索せずnullを返しエラーログのみ', async () => {
+      createDeckImage([{ src: '/yugiohdb/get_image.action?cid=123&ciid=1' }]);
+      mockParseDeckDetail.mockResolvedValue(null);
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      await mod.initCardDetailUI();
+      expect(mod.getParsedDeckInfo()).toBeNull();
+      const img = document.querySelector('img')!;
+      img.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
+
+      expect(errorSpy).toHaveBeenCalledWith('[CardDetailUI] Card not found in parsed deck:', '123');
+      const store = useCardDetailStore();
+      expect(store.selectedCard).toBeNull();
+    });
+
+    it('[covers:attach-card-click-handlers.click-handler-error-caught] クリックハンドラ内で例外が発生した場合はconsole.errorでログし伝播させない', async () => {
+      createDeckImage([{ src: '/yugiohdb/get_image.action?cid=123&ciid=1' }]);
+      mockParseDeckDetail.mockResolvedValue(makeDeckInfo([makeDeckCardRef('123', '1')]));
+      const getSpy = vi.spyOn(mockTempCache, 'get').mockImplementation(() => {
+        throw new Error('TempCacheDB error');
+      });
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      await mod.initCardDetailUI();
+      const img = document.querySelector('img')!;
+      img.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
+
+      expect(errorSpy).toHaveBeenCalledWith('[CardDetailUI] Card click error:', expect.any(Error));
+      getSpy.mockRestore();
+    });
+
+    it('[covers:find-card-in-parsed-deck.found-returns-merged-card-with-ciid][covers:attach-card-click-handlers.click-card-found-calls-select-card][covers:select-card.success-fetches-and-sets-store] 有効なcidをクリックするとselectCardが呼ばれstoreに反映される', async () => {
       createDeckImage([{ src: '/yugiohdb/get_image.action?cid=123&ciid=1' }]);
       mockParseDeckDetail.mockResolvedValue(makeDeckInfo([makeDeckCardRef('123', '1')]));
       mockTempCache.set('123', { cardId: '123', name: 'テストカード', ciid: '1' });
@@ -292,7 +325,7 @@ describe('card-detail-ui.ts', () => {
       expect(store.cardTab).toBe('info');
     });
 
-    it('[covers:attach_card_click_handlers.click_extracts_ciid_from_id_pattern] img idからciidが抽出されデッキのciidを上書きする', async () => {
+    it('[covers:attach-card-click-handlers.click-extracts-ciid-from-id-pattern] img idからciidが抽出されデッキのciidを上書きする', async () => {
       createDeckImage([{ src: '/yugiohdb/get_image.action?cid=123&ciid=1', id: 'card_image_0_3' }]);
       mockParseDeckDetail.mockResolvedValue(makeDeckInfo([makeDeckCardRef('123', '1')]));
       mockTempCache.set('123', { cardId: '123', name: 'テストカード', ciid: '1' });
@@ -307,7 +340,7 @@ describe('card-detail-ui.ts', () => {
       expect(store.selectedCard?.ciid).toBe('3');
     });
 
-    it('[covers:attach_card_click_handlers.click_no_cid_match_skips_lookup] srcにcidが含まれない場合はselectCardを呼ばない', async () => {
+    it('[covers:attach-card-click-handlers.click-no-cid-match-skips-lookup] srcにcidが含まれない場合はselectCardを呼ばない', async () => {
       createDeckImage([{ src: '/images/no_cid_here.png' }]);
       mockParseDeckDetail.mockResolvedValue(makeDeckInfo());
 
@@ -321,7 +354,7 @@ describe('card-detail-ui.ts', () => {
       expect(store.selectedCard).toBeNull();
     });
 
-    it('[covers:attach_card_click_handlers.filters_to_card_images_when_found] "/card/"を含むimgのみにハンドラが追加される', async () => {
+    it('[covers:attach-card-click-handlers.filters-to-card-images-when-found] "/card/"を含むimgのみにハンドラが追加される', async () => {
       createDeckImage([
         { src: '/other/image.png' },
         { src: '/yugiohdb/images/card/card_image.png?cid=123' }
@@ -335,7 +368,7 @@ describe('card-detail-ui.ts', () => {
       expect(imgs[1].hasAttribute('data-click-handler-added')).toBe(true);
     });
 
-    it('[covers:attach_card_click_handlers.falls_back_to_all_images_when_none_match] "/card/"を含むimgが無い場合は全imgにハンドラが追加される', async () => {
+    it('[covers:attach-card-click-handlers.falls-back-to-all-images-when-none-match] "/card/"を含むimgが無い場合は全imgにハンドラが追加される', async () => {
       createDeckImage([{ src: '/other/image.png' }, { src: '/other/image2.png' }]);
       mockParseDeckDetail.mockResolvedValue(makeDeckInfo());
 
@@ -347,7 +380,7 @@ describe('card-detail-ui.ts', () => {
       });
     });
 
-    it('[covers:attach_card_click_handlers.skips_already_handled_images] 既にハンドラが付いたimgには重複してハンドラを追加しない', async () => {
+    it('[covers:attach-card-click-handlers.skips-already-handled-images] 既にハンドラが付いたimgには重複してハンドラを追加しない', async () => {
       createDeckImage([{ src: '/yugiohdb/get_image.action?cid=123&ciid=1' }]);
       mockParseDeckDetail.mockResolvedValue(makeDeckInfo([makeDeckCardRef('123', '1')]));
       mockTempCache.set('123', { cardId: '123', ciid: '1' });
@@ -365,7 +398,24 @@ describe('card-detail-ui.ts', () => {
   });
 
   describe('selectCard (attachCardClickHandlers経由)', () => {
-    it('[covers:select_card.partial_from_error_still_proceeds_with_warn] isPartialFromErrorの場合も警告しつつstoreに設定する', async () => {
+    it('[covers:select-card.missing-cardinfo-or-cardid-warns-and-returns] cardIdが無いカード情報ではconsole.warnしてstore操作を行わずreturnする', async () => {
+      createDeckImage([{ src: '/yugiohdb/get_image.action?cid=123&ciid=1' }]);
+      mockParseDeckDetail.mockResolvedValue(makeDeckInfo([makeDeckCardRef('123', '1')]));
+      mockTempCache.set('123', { name: 'カードIDなし', ciid: '1' });
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      await mod.initCardDetailUI();
+      const img = document.querySelector('img')!;
+      img.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
+
+      expect(warnSpy).toHaveBeenCalledWith('[CardDetailUI] selectCard: no cardInfo or cardId');
+      expect(mockGetCardDetailWithCache).not.toHaveBeenCalled();
+      const store = useCardDetailStore();
+      expect(store.selectedCard).toBeNull();
+    });
+
+    it('[covers:select-card.partial-from-error-still-proceeds-with-warn] isPartialFromErrorの場合も警告しつつstoreに設定する', async () => {
       createDeckImage([{ src: '/yugiohdb/get_image.action?cid=123&ciid=1' }]);
       mockParseDeckDetail.mockResolvedValue(makeDeckInfo([makeDeckCardRef('123', '1')]));
       mockTempCache.set('123', { cardId: '123', ciid: '1' });
@@ -388,7 +438,7 @@ describe('card-detail-ui.ts', () => {
       expect(store.selectedCard).toMatchObject({ cardId: '123' });
     });
 
-    it('[covers:select_card.imgs_and_ciid_fallback_preference] fullCard.imgsが無い場合cardInfo.imgsを使い、ciidはcardInfo優先', async () => {
+    it('[covers:select-card.imgs-and-ciid-fallback-preference] fullCard.imgsが無い場合cardInfo.imgsを使い、ciidはcardInfo優先', async () => {
       createDeckImage([{ src: '/yugiohdb/get_image.action?cid=123&ciid=9' }]);
       mockParseDeckDetail.mockResolvedValue(makeDeckInfo([makeDeckCardRef('123', '9')]));
       mockTempCache.set('123', { cardId: '123', ciid: '9', imgs: [{ ciid: '9', imgHash: 'h' }] });
@@ -406,7 +456,7 @@ describe('card-detail-ui.ts', () => {
       expect(store.selectedCard?.imgs).toEqual([{ ciid: '9', imgHash: 'h' }]);
     });
 
-    it('[covers:select_card.api_error_falls_back_to_cardinfo_only] API取得失敗時はcardInfoのみでstoreに設定しendLoadingCardも呼ばれる', async () => {
+    it('[covers:select-card.api-error-falls-back-to-cardinfo-only] API取得失敗時はcardInfoのみでstoreに設定しendLoadingCardも呼ばれる', async () => {
       createDeckImage([{ src: '/yugiohdb/get_image.action?cid=123&ciid=1' }]);
       mockParseDeckDetail.mockResolvedValue(makeDeckInfo([makeDeckCardRef('123', '1')]));
       mockTempCache.set('123', { cardId: '123', name: 'フォールバック名', ciid: '1' });
@@ -428,7 +478,7 @@ describe('card-detail-ui.ts', () => {
   });
 
   describe('updateTabContent', () => {
-    it('[covers:update_tab_content.no_container_returns] cardInfoContentが無い場合エラーにならない', async () => {
+    it('[covers:update-tab-content.no-container-returns] cardInfoContentが無い場合エラーにならない', async () => {
       const container = createTabButtonsDom(['info', 'qa']);
       // cardInfoContentは意図的に作らない
       await mod.initCardDetailUI();
@@ -438,7 +488,7 @@ describe('card-detail-ui.ts', () => {
       await flush();
     });
 
-    it('[covers:update_tab_content.no_selected_card_shows_placeholder] selectedCardが無い場合は案内文を表示する（現状常にこの状態）', async () => {
+    it('[covers:update-tab-content.no-selected-card-shows-placeholder] selectedCardが無い場合は案内文を表示する（現状常にこの状態）', async () => {
       const container = createTabButtonsDom(['info', 'qa']);
       const content = createCardInfoContent();
 
@@ -448,6 +498,66 @@ describe('card-detail-ui.ts', () => {
       await flush();
 
       expect(content.innerHTML).toContain('カードを選択してください');
+    });
+  });
+
+  describe('到達不能分岐の前提固定（selectedCardは常にnull）', () => {
+    // 前提: モジュールレベルの selectedCard はファイル内のどこからも再代入されず常にnull。
+    // この前提により updateTabContent の info/qa 描画分岐・fetchFAQData・renderFAQContent は
+    // 到達不能であり、各条件は verified=false とされている。以下はその前提を固定するテスト。
+    const setupWithValidCard = async () => {
+      const container = createTabButtonsDom(['info', 'qa']);
+      const content = createCardInfoContent();
+      createDeckImage([{ src: '/yugiohdb/get_image.action?cid=123&ciid=1' }]);
+      mockParseDeckDetail.mockResolvedValue(makeDeckInfo([makeDeckCardRef('123', '1')]));
+      mockTempCache.set('123', { cardId: '123', name: 'テストカード', ciid: '1' });
+      mockGetCardDetailWithCache.mockResolvedValue({
+        detail: { card: { cardId: '123', name: 'テストカード（詳細）' } }
+      });
+      await mod.initCardDetailUI();
+      const img = document.querySelector('img')!;
+      img.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
+      return { container, content };
+    };
+
+    it('[covers:update-tab-content.info-qa-tab-rendering-unreachable] 前提: カード選択後もselectedCardはnullのままでqaタブでも案内文が表示される', async () => {
+      const { container, content } = await setupWithValidCard();
+      // selectCard経由でstoreには反映されるが、モジュールのselectedCardは再代入されない
+      const store = useCardDetailStore();
+      expect(store.selectedCard).not.toBeNull();
+      expect(mod.getSelectedCard()).toBeNull();
+
+      const qaBtn = container.querySelector<HTMLElement>('[data-tab="qa"]')!;
+      qaBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
+
+      expect(mod.getCurrentTab()).toBe('qa');
+      expect(content.innerHTML).toContain('カードを選択してください');
+      expect(content.innerHTML).not.toContain('読み込み中');
+    });
+
+    it('[covers:fetch-faq-data.cache-and-fetch-behavior-unreachable] 前提: qaタブへ切り替えてもfetchFAQDataは呼ばれずFAQ取得APIは叩かれない', async () => {
+      const { container } = await setupWithValidCard();
+      mockGetCardFAQList.mockResolvedValue({ faqs: [] });
+
+      const qaBtn = container.querySelector<HTMLElement>('[data-tab="qa"]')!;
+      qaBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
+
+      expect(mockGetCardFAQList).not.toHaveBeenCalled();
+    });
+
+    it('[covers:render-faq-content.formats-supplement-and-faq-sections-unreachable] 前提: qaタブでもFAQ描画は行われず案内文のままになる', async () => {
+      const { container, content } = await setupWithValidCard();
+      mockGetCardFAQList.mockResolvedValue({ faqs: [{ question: 'Q', answer: 'A' }] });
+
+      const qaBtn = container.querySelector<HTMLElement>('[data-tab="qa"]')!;
+      qaBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
+
+      expect(content.innerHTML).toContain('カードを選択してください');
+      expect(content.innerHTML).not.toContain('card-qa-content');
     });
   });
 });
