@@ -515,7 +515,7 @@ export async function initializeMappingManager(): Promise<void> {
     // 設定言語のマッピングも確保する（Chrome Storage から直接読み込み）
     try {
       const stored = await chrome.storage.sync.get('appSettings');
-      const appSettings = stored.appSettings as any;
+      const appSettings = stored.appSettings as { language?: string } | undefined;
 
       if (appSettings?.language && appSettings.language !== 'auto') {
         const configLanguage = appSettings.language;
