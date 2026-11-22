@@ -144,14 +144,14 @@ describe('Background Service Worker', () => {
   });
 
   describe('起動時処理', () => {
-    it('起動時にmetadata更新を即時実行し、24時間intervalを登録する [covers:schedule_metadata_update.immediate_then_interval] [covers:update_metadata.success]', async () => {
+    it('起動時にmetadata更新を即時実行し、24時間intervalを登録する [covers:schedule-metadata-update.immediate-then-interval] [covers:update-metadata.success]', async () => {
       await loadBackground(chromeMock);
 
       expect(mocks.updateDeckMetadata).toHaveBeenCalledTimes(1);
       expect(global.setInterval).toHaveBeenCalledWith(expect.any(Function), 24 * 60 * 60 * 1000);
     });
 
-    it('metadata更新が失敗してもconsole.errorに記録して起動処理を継続する [covers:update_metadata.catch_error]', async () => {
+    it('metadata更新が失敗してもconsole.errorに記録して起動処理を継続する [covers:update-metadata.catch-error]', async () => {
       const err = new Error('metadata failed');
       mocks.updateDeckMetadata.mockRejectedValueOnce(err);
 
@@ -161,7 +161,7 @@ describe('Background Service Worker', () => {
       expect(global.setInterval).toHaveBeenCalledWith(expect.any(Function), 24 * 60 * 60 * 1000);
     });
 
-    it('GENESYS更新のためにalarms APIを登録・購読しない [covers:no_genesys_alarm_registration]', async () => {
+    it('GENESYS更新のためにalarms APIを登録・購読しない [covers:genesys-update.not-scheduled-in-background]', async () => {
       await loadBackground(chromeMock);
 
       expect(chromeMock.alarms.create).not.toHaveBeenCalled();
@@ -170,7 +170,7 @@ describe('Background Service Worker', () => {
   });
 
   describe('chrome.runtime.onInstalled', () => {
-    it('install時はmetadata更新後にcontext menuを作成する [covers:on_installed.install_updates_metadata_and_creates_menu]', async () => {
+    it('install時はmetadata更新後にcontext menuを作成する [covers:on-installed.install-updates-metadata-and-creates-menu]', async () => {
       await loadBackground(chromeMock);
       mocks.updateDeckMetadata.mockClear();
       chromeMock.contextMenus.create.mockClear();
@@ -185,7 +185,7 @@ describe('Background Service Worker', () => {
       });
     });
 
-    it('install以外ではmetadata更新せずcontext menuだけ作成する [covers:on_installed.non_install_creates_menu_only]', async () => {
+    it('install以外ではmetadata更新せずcontext menuだけ作成する [covers:on-installed.non-install-creates-menu-only]', async () => {
       await loadBackground(chromeMock);
       mocks.updateDeckMetadata.mockClear();
       chromeMock.contextMenus.create.mockClear();
@@ -202,7 +202,7 @@ describe('Background Service Worker', () => {
   });
 
   describe('chrome.contextMenus.onClicked', () => {
-    it('open-deck-editではocg編集URLのタブを開く [covers:context_menu.open_deck_edit_creates_ocg_tab]', async () => {
+    it('open-deck-editではocg編集URLのタブを開く [covers:context-menu.open-deck-edit-creates-ocg-tab]', async () => {
       await loadBackground(chromeMock);
 
       chromeMock._listeners.contextMenu[0]!({ menuItemId: 'open-deck-edit' } as chrome.contextMenus.OnClickData);
@@ -213,7 +213,7 @@ describe('Background Service Worker', () => {
       });
     });
 
-    it('open-deck-edit以外のmenuItemIdは無視する [covers:context_menu.other_id_ignored]', async () => {
+    it('open-deck-edit以外のmenuItemIdは無視する [covers:context-menu.other-id-ignored]', async () => {
       await loadBackground(chromeMock);
 
       chromeMock._listeners.contextMenu[0]!({ menuItemId: 'other' } as chrome.contextMenus.OnClickData);
@@ -223,7 +223,7 @@ describe('Background Service Worker', () => {
   });
 
   describe('chrome.runtime.onMessage preload', () => {
-    it('PRELOAD_DECK_DETAILはtrueを返し、deckInfoをstorage保存してsuccess応答する [covers:on_message.preload_deck_detail_returns_true_and_success] [covers:preload_deck_detail.truthy_stores_and_saves_cache]', async () => {
+    it('PRELOAD_DECK_DETAILはtrueを返し、deckInfoをstorage保存してsuccess応答する [covers:on-message.preload-deck-detail-returns-true-and-success] [covers:preload-deck-detail.truthy-stores-and-saves-cache]', async () => {
       await loadBackground(chromeMock);
       const sendResponse = vi.fn();
       const deckInfo = { name: 'deck' };
@@ -241,7 +241,7 @@ describe('Background Service Worker', () => {
       expect(sendResponse).toHaveBeenCalledWith({ success: true });
     });
 
-    it('saveUnifiedCacheDBのrejectはconsole.warnに記録される [covers:preload_deck_detail.save_unified_cache_rejection_warns]', async () => {
+    it('saveUnifiedCacheDBのrejectはconsole.warnに記録される [covers:preload-deck-detail.save-unified-cache-rejection-warns]', async () => {
       await loadBackground(chromeMock);
       const err = new Error('cache failed');
       mocks.getDeckDetail.mockResolvedValue({ name: 'deck' });
@@ -253,7 +253,7 @@ describe('Background Service Worker', () => {
       expect(consoleWarnSpy).toHaveBeenCalledWith('[Background] Failed to save UnifiedCacheDB:', err);
     });
 
-    it('deckInfoがfalsyならstorage保存せずwarnする [covers:preload_deck_detail.falsy_warns_without_storage]', async () => {
+    it('deckInfoがfalsyならstorage保存せずwarnする [covers:preload-deck-detail.falsy-warns-without-storage]', async () => {
       await loadBackground(chromeMock);
       mocks.getDeckDetail.mockResolvedValue(null);
 
@@ -264,7 +264,7 @@ describe('Background Service Worker', () => {
       expect(consoleWarnSpy).toHaveBeenCalledWith('[Background] Failed to get deck detail:', 123, 'cgid');
     });
 
-    it('preloadDeckDetail内の例外はconsole.errorに記録され、onMessageはsuccess応答する [covers:preload_deck_detail.catch_error]', async () => {
+    it('preloadDeckDetail内の例外はconsole.errorに記録され、onMessageはsuccess応答する [covers:preload-deck-detail.catch-error]', async () => {
       await loadBackground(chromeMock);
       const err = new Error('detail failed');
       const sendResponse = vi.fn();
@@ -278,7 +278,7 @@ describe('Background Service Worker', () => {
       expect(sendResponse).toHaveBeenCalledWith({ success: true });
     });
 
-    it('PRELOAD_DECK_LISTはtrueを返し、非空配列をstorage保存してsuccess応答する [covers:on_message.preload_deck_list_returns_true_and_success] [covers:preload_deck_list.nonempty_array_stores]', async () => {
+    it('PRELOAD_DECK_LISTはtrueを返し、非空配列をstorage保存してsuccess応答する [covers:on-message.preload-deck-list-returns-true-and-success] [covers:preload-deck-list.nonempty-array-stores]', async () => {
       await loadBackground(chromeMock);
       const sendResponse = vi.fn();
       const deckList = [{ dno: 1 }];
@@ -295,7 +295,7 @@ describe('Background Service Worker', () => {
       expect(sendResponse).toHaveBeenCalledWith({ success: true });
     });
 
-    it('deckListが空配列または非配列ならstorage保存せずwarnする [covers:preload_deck_list.empty_or_nonarray_warns_without_storage]', async () => {
+    it('deckListが空配列または非配列ならstorage保存せずwarnする [covers:preload-deck-list.empty-or-nonarray-warns-without-storage]', async () => {
       await loadBackground(chromeMock);
       mocks.getDeckListInternal.mockResolvedValue([]);
 
@@ -306,7 +306,7 @@ describe('Background Service Worker', () => {
       expect(consoleWarnSpy).toHaveBeenCalledWith('[Background] Failed to get deck list or empty list');
     });
 
-    it('preloadDeckList内の例外はconsole.errorに記録され、onMessageはsuccess応答する [covers:preload_deck_list.catch_error]', async () => {
+    it('preloadDeckList内の例外はconsole.errorに記録され、onMessageはsuccess応答する [covers:preload-deck-list.catch-error]', async () => {
       await loadBackground(chromeMock);
       const err = new Error('list failed');
       const sendResponse = vi.fn();
@@ -322,7 +322,7 @@ describe('Background Service Worker', () => {
   });
 
   describe('chrome.runtime.onMessage GENESYS_FETCH', () => {
-    it('許可されないURLはfetchせずstorageにURL not allowedを書き、sendResponseを使わない [covers:on_message.genesys_fetch_returns_true_no_send_response] [covers:perform_genesys_fetch.url_not_allowed]', async () => {
+    it('許可されないURLはfetchせずstorageにURL not allowedを書き、sendResponseを使わない [covers:on-message.genesys-fetch-returns-true-no-send-response] [covers:perform-genesys-fetch.url-not-allowed]', async () => {
       await loadBackground(chromeMock);
       const sendResponse = vi.fn();
 
@@ -341,7 +341,7 @@ describe('Background Service Worker', () => {
       });
     });
 
-    it('許可URLのfetchがnot okならFailedエラーをstorageに書く [covers:perform_genesys_fetch.fetch_not_ok]', async () => {
+    it('許可URLのfetchがnot okならFailedエラーをstorageに書く [covers:perform-genesys-fetch.fetch-not-ok]', async () => {
       await loadBackground(chromeMock);
       vi.mocked(global.fetch).mockResolvedValue({
         ok: false,
@@ -361,7 +361,7 @@ describe('Background Service Worker', () => {
       });
     });
 
-    it('許可URLのfetchがokならtextをstorageに書く [covers:perform_genesys_fetch.fetch_success]', async () => {
+    it('許可URLのfetchがokならtextをstorageに書く [covers:perform-genesys-fetch.fetch-success]', async () => {
       await loadBackground(chromeMock);
       vi.mocked(global.fetch).mockResolvedValue({
         ok: true,
@@ -381,7 +381,7 @@ describe('Background Service Worker', () => {
       });
     });
 
-    it('fetchがthrowした場合はerror messageをstorageに書く [covers:perform_genesys_fetch.fetch_throws]', async () => {
+    it('fetchがthrowした場合はerror messageをstorageに書く [covers:perform-genesys-fetch.fetch-throws]', async () => {
       await loadBackground(chromeMock);
       vi.mocked(global.fetch).mockRejectedValue(new Error('network down'));
 
@@ -399,7 +399,7 @@ describe('Background Service Worker', () => {
   });
 
   describe('chrome.runtime.onMessage AI_CHAT', () => {
-    it('APIキー未設定ならfetchせずエラー応答する [covers:on_message.ai_chat_no_api_key]', async () => {
+    it('APIキー未設定ならfetchせずエラー応答する [covers:on-message.ai-chat-no-api-key]', async () => {
       await loadBackground(chromeMock);
       const sendResponse = vi.fn();
       mocks.getFromStorageLocal.mockResolvedValue(null);
@@ -416,7 +416,7 @@ describe('Background Service Worker', () => {
       expect(sendResponse).toHaveBeenCalledWith({ success: false, error: 'Z.ai APIキーが設定されていません' });
     });
 
-    it('APIキーがあればZ.aiへ固定payloadでPOSTする [covers:on_message.ai_chat_fetch_payload] [covers:on_message.ai_chat_success]', async () => {
+    it('APIキーがあればZ.aiへ固定payloadでPOSTする [covers:on-message.ai-chat-fetch-payload] [covers:on-message.ai-chat-success]', async () => {
       await loadBackground(chromeMock);
       const sendResponse = vi.fn();
       mocks.getFromStorageLocal.mockResolvedValue({ aiApiKey: 'key' });
@@ -450,7 +450,7 @@ describe('Background Service Worker', () => {
       expect(sendResponse).toHaveBeenCalledWith({ success: true, content: 'answer' });
     });
 
-    it('Z.ai responseがnot okならtextを含むAPIエラーを返す [covers:on_message.ai_chat_response_not_ok]', async () => {
+    it('Z.ai responseがnot okならtextを含むAPIエラーを返す [covers:on-message.ai-chat-response-not-ok]', async () => {
       await loadBackground(chromeMock);
       const sendResponse = vi.fn();
       const json = vi.fn();
@@ -469,7 +469,7 @@ describe('Background Service Worker', () => {
       expect(json).not.toHaveBeenCalled();
     });
 
-    it('Z.ai responseがnot okでtext取得に失敗した場合は本文空でAPIエラーを返す [covers:on_message.ai_chat_response_not_ok_text_rejects]', async () => {
+    it('Z.ai responseがnot okでtext取得に失敗した場合は本文空でAPIエラーを返す [covers:on-message.ai-chat-response-not-ok-text-rejects]', async () => {
       await loadBackground(chromeMock);
       const sendResponse = vi.fn();
       mocks.getFromStorageLocal.mockResolvedValue({ aiApiKey: 'key' });
@@ -485,7 +485,7 @@ describe('Background Service Worker', () => {
       expect(sendResponse).toHaveBeenCalledWith({ success: false, error: 'Z.ai API エラー: 503 ' });
     });
 
-    it('contentがfalsyなら空応答エラーを返す [covers:on_message.ai_chat_empty_content]', async () => {
+    it('contentがfalsyなら空応答エラーを返す [covers:on-message.ai-chat-empty-content]', async () => {
       await loadBackground(chromeMock);
       const sendResponse = vi.fn();
       mocks.getFromStorageLocal.mockResolvedValue({ aiApiKey: 'key' });
@@ -500,7 +500,7 @@ describe('Background Service Worker', () => {
       expect(sendResponse).toHaveBeenCalledWith({ success: false, error: 'Z.ai APIから空の応答が返りました' });
     });
 
-    it('AI_CHAT処理中の例外はerror応答に変換する [covers:on_message.ai_chat_catch_error]', async () => {
+    it('AI_CHAT処理中の例外はerror応答に変換する [covers:on-message.ai-chat-catch-error]', async () => {
       await loadBackground(chromeMock);
       const sendResponse = vi.fn();
       mocks.getFromStorageLocal.mockRejectedValue(new Error('storage failed'));
@@ -513,7 +513,7 @@ describe('Background Service Worker', () => {
   });
 
   describe('chrome.runtime.onMessage unknown', () => {
-    it('未知のmessage typeはfalseを返す [covers:on_message.unknown_type_returns_false]', async () => {
+    it('未知のmessage typeはfalseを返す [covers:on-message.unknown-type-returns-false]', async () => {
       await loadBackground(chromeMock);
 
       const result = chromeMock._listeners.messages[0]!({ type: 'UNKNOWN_TYPE' }, undefined, vi.fn());
