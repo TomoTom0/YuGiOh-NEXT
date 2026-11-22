@@ -27,30 +27,30 @@ verified_at = "2026-08-28"
 verified_by = "claude"
 test_command = "mise run test:vitest -- tests/unit/utils/drag-data.test.ts"
 source_hash = "5dad5a73e36ca1a15413450e1e7507886218aed8"
-note = "is_drag_event.false_when_not_drag_event_instance の1件のみverified=false（happy-domではDragEventがEventのエイリアスのためテスト環境上検証不能。理由は当該conditionのunverifiable_reason参照）"
+note = "is-drag-event.false-when-not-drag-event-instance の1件のみverified=false（happy-domではDragEventがEventのエイリアスのためテスト環境上検証不能。理由は当該conditionのunverifiable_reason参照）"
 
 # --- isDragEvent(event: Event): event is DragEvent ---
 
 [[condition]]
-id = "is_drag_event.true_when_instance_and_data_transfer_present"
+id = "is-drag-event.true-when-instance-and-data-transfer-present"
 target_function = "isDragEvent"
-source_lines = "50-52"
+source_lines = "tests/unit/utils/drag-data.test.ts:32"
 description = "eventがDragEventインスタンスかつdataTransferがnullでない場合はtrueを返す"
 given = "event = new DragEvent(...) にdataTransfer(DataTransferインスタンス)をセットしたもの"
 expect_return = true
 
 [[condition]]
-id = "is_drag_event.false_when_data_transfer_null"
+id = "is-drag-event.false-when-data-transfer-null"
 target_function = "isDragEvent"
-source_lines = "50-52"
+source_lines = "tests/unit/utils/drag-data.test.ts:38"
 description = "eventがDragEventインスタンスでもdataTransferがnullの場合はfalseを返す（&&の後段で弾かれる）。判定は`!== null`のみでundefinedとの比較はしないため、dataTransferがundefinedのまま（実ブラウザでは発生しない状態）だとtrue側に倒れる点に注意"
 given = "event = new DragEvent(...) にObject.definePropertyでdataTransfer=nullを明示的にセット（readonlyプロパティのため直接代入不可）"
 expect_return = false
 
 [[condition]]
-id = "is_drag_event.false_when_not_drag_event_instance"
+id = "is-drag-event.false-when-not-drag-event-instance"
 target_function = "isDragEvent"
-source_lines = "50-52"
+source_lines = "tests/unit/utils/drag-data.test.ts:44"
 description = "eventがDragEventインスタンスでない場合はfalseを返す（&&の前段で弾かれる）"
 given = "event = new Event(...) （DragEventではない素のEvent）"
 expect_return = false
@@ -60,52 +60,51 @@ unverifiable_reason = "happy-domではwindow.DragEventがEventクラスへのエ
 # --- setDragData(event: DragEvent, data: unknown): void ---
 
 [[condition]]
-id = "set_drag_data.no_data_transfer_no_op"
+id = "set-drag-data.no-data-transfer-no-op"
 target_function = "setDragData"
-source_lines = "58"
+source_lines = "tests/unit/utils/drag-data.test.ts:52"
 description = "event.dataTransferがfalsy(null/undefined)の場合、setDataを呼ばず即returnする"
 given = "event = new DragEvent(...) にObject.definePropertyでdataTransfer=nullを明示的にセット"
-expect_return_shape = "void（戻り値なし）"
-expect_side_effect = "dataTransfer.setDataは呼ばれない"
+expect_return_shape = "void（戻り値なし）。dataTransfer.setDataは呼ばれない"
 
 [[condition]]
-id = "set_drag_data.sets_json_stringified_data"
+id = "set-drag-data.sets-json-stringified-data"
 target_function = "setDragData"
-source_lines = "59"
+source_lines = "tests/unit/utils/drag-data.test.ts:58"
 description = "event.dataTransferが存在する場合、'text/plain'キーでJSON.stringify(data)した文字列をsetDataする"
 given = "event.dataTransfer = new DataTransfer()、data = { sectionType: 'main', index: 0, card: {}, uuid: 'u1' }"
-expect_side_effect = "event.dataTransfer.getData('text/plain') === JSON.stringify(data)"
+expect_return_shape = "event.dataTransfer.getData('text/plain') === JSON.stringify(data)"
 
 # --- parseDragData<T>(event: DragEvent): T | null ---
 
 [[condition]]
-id = "parse_drag_data.no_data_transfer_returns_null"
+id = "parse-drag-data.no-data-transfer-returns-null"
 target_function = "parseDragData"
-source_lines = "69"
+source_lines = "tests/unit/utils/drag-data.test.ts:70"
 description = "event.dataTransferがfalsy(null/undefined)の場合はnullを返す"
 given = "event = new DragEvent(...) にObject.definePropertyでdataTransfer=nullを明示的にセット"
 expect_return = "null"
 
 [[condition]]
-id = "parse_drag_data.empty_raw_returns_null"
+id = "parse-drag-data.empty-raw-returns-null"
 target_function = "parseDragData"
-source_lines = "71-72"
+source_lines = "tests/unit/utils/drag-data.test.ts:76"
 description = "dataTransferは存在するがgetData('text/plain')が空文字列の場合はnullを返す（JSON.parseを呼ばない）"
 given = "event.dataTransfer = new DataTransfer()（setDataを一度も呼んでいない状態）"
 expect_return = "null"
 
 [[condition]]
-id = "parse_drag_data.valid_json_returns_parsed_value"
+id = "parse-drag-data.valid-json-returns-parsed-value"
 target_function = "parseDragData"
-source_lines = "73"
+source_lines = "tests/unit/utils/drag-data.test.ts:83"
 description = "getData('text/plain')が正当なJSON文字列の場合、JSON.parseした値を返す"
 given = "event.dataTransfer.setData('text/plain', JSON.stringify({ a: 1 })) 済み"
 expect_return = "{ a: 1 }"
 
 [[condition]]
-id = "parse_drag_data.invalid_json_caught_returns_null"
+id = "parse-drag-data.invalid-json-caught-returns-null"
 target_function = "parseDragData"
-source_lines = "68-77"
+source_lines = "tests/unit/utils/drag-data.test.ts:91"
 description = "JSON.parseが例外を投げた場合、catchブロックで捕捉しnullを返す（例外はthrowされず呼び出し元に伝播しない）"
 given = "event.dataTransfer.setData('text/plain', 'not-json{') 済み（不正なJSON文字列）"
 expect_return = "null"
@@ -114,41 +113,41 @@ expect_no_throw = true
 # --- isPracticeDragData(data: unknown): data is PracticeDragData ---
 
 [[condition]]
-id = "is_practice_drag_data.non_object_false"
+id = "is-practice-drag-data.non-object-false"
 target_function = "isPracticeDragData"
-source_lines = "83"
+source_lines = "tests/unit/utils/drag-data.test.ts:102"
 description = "dataがtypeof 'object'でない場合（string/number/undefined等）はfalseを返す"
 given = "data = 'not-an-object'"
 expect_return = false
 
 [[condition]]
-id = "is_practice_drag_data.null_false"
+id = "is-practice-drag-data.null-false"
 target_function = "isPracticeDragData"
-source_lines = "83"
+source_lines = "tests/unit/utils/drag-data.test.ts:106"
 description = "typeof null === 'object'のため前段の条件では弾かれないが、data === nullの明示チェックでfalseになる"
 given = "data = null"
 expect_return = false
 
 [[condition]]
-id = "is_practice_drag_data.missing_or_non_string_cardid_false"
+id = "is-practice-drag-data.missing-or-non-string-cardid-false"
 target_function = "isPracticeDragData"
-source_lines = "85"
+source_lines = "tests/unit/utils/drag-data.test.ts:110"
 description = "cardIdが欠落または文字列以外の場合はfalseを返す（&&の前段で弾かれる）"
 given = "data = { zone: 'hand' }（cardId欠落） または data = { cardId: 1, zone: 'hand' }（cardIdが数値）"
 expect_return = false
 
 [[condition]]
-id = "is_practice_drag_data.missing_or_non_string_zone_false"
+id = "is-practice-drag-data.missing-or-non-string-zone-false"
 target_function = "isPracticeDragData"
-source_lines = "85"
+source_lines = "tests/unit/utils/drag-data.test.ts:115"
 description = "cardIdは文字列だがzoneが欠落または文字列以外の場合はfalseを返す（&&の後段で弾かれる）"
 given = "data = { cardId: 'c1' }（zone欠落）"
 expect_return = false
 
 [[condition]]
-id = "is_practice_drag_data.valid_true"
+id = "is-practice-drag-data.valid-true"
 target_function = "isPracticeDragData"
-source_lines = "82-86"
+source_lines = "tests/unit/utils/drag-data.test.ts:120"
 description = "オブジェクトかつnullでなく、cardId/zoneが両方とも文字列の場合はtrueを返す"
 given = "data = { cardId: 'c1', zone: 'hand' }"
 expect_return = true
@@ -156,81 +155,81 @@ expect_return = true
 # --- isDeckDragData(data: unknown): data is DeckDragDataRef ---
 
 [[condition]]
-id = "is_deck_drag_data.non_object_false"
+id = "is-deck-drag-data.non-object-false"
 target_function = "isDeckDragData"
-source_lines = "147"
+source_lines = "tests/unit/utils/drag-data.test.ts:126"
 description = "dataがtypeof 'object'でない場合（string/number/undefined等）はfalseを返す"
 given = "data = 123"
 expect_return = false
 
 [[condition]]
-id = "is_deck_drag_data.null_false"
+id = "is-deck-drag-data.null-false"
 target_function = "isDeckDragData"
-source_lines = "147"
+source_lines = "tests/unit/utils/drag-data.test.ts:130"
 description = "typeof null === 'object'のため前段の条件では弾かれないが、data === nullの明示チェックでfalseになる"
 given = "data = null"
 expect_return = false
 
 [[condition]]
-id = "is_deck_drag_data.missing_or_non_string_sectiontype_false"
+id = "is-deck-drag-data.missing-or-non-string-sectiontype-false"
 target_function = "isDeckDragData"
-source_lines = "148"
+source_lines = "tests/unit/utils/drag-data.test.ts:134"
 description = "sectionTypeが欠落または文字列以外の場合はfalseを返す"
 given = "data = { card: { cardId: '100', ciid: '1' } }（sectionType欠落） または data = { sectionType: 1, card: { cardId: '100', ciid: '1' } }（sectionTypeが数値）"
 expect_return = false
 
 [[condition]]
-id = "is_deck_drag_data.card_nullish_false"
+id = "is-deck-drag-data.card-nullish-false"
 target_function = "isDeckDragData"
-source_lines = "150"
+source_lines = "tests/unit/utils/drag-data.test.ts:139"
 description = "sectionTypeは文字列だがcardがnull/undefinedの場合はfalseを返す（isRecordがnull・非オブジェクトを弾く）"
 given = "data = { sectionType: 'main', card: null } または data = { sectionType: 'main' }（card省略=undefined）"
 expect_return = false
 
 [[condition]]
-id = "is_deck_drag_data.card_non_object_false"
+id = "is-deck-drag-data.card-non-object-false"
 target_function = "isDeckDragData"
-source_lines = "150"
+source_lines = "tests/unit/utils/drag-data.test.ts:144"
 description = "sectionTypeは文字列でcardが存在しても、cardがレコードでない（文字列・数値・配列等）場合はfalseを返す（isRecordで判定）"
 given = "data = { sectionType: 'main', card: 'card' } または data = { sectionType: 'main', card: 42 }（配列もisRecordで弾かれる）"
 expect_return = false
 
 [[condition]]
-id = "is_deck_drag_data.card_missing_identifier_false"
+id = "is-deck-drag-data.card-missing-identifier-false"
 target_function = "isDeckDragData"
-source_lines = "151-153"
+source_lines = "tests/unit/utils/drag-data.test.ts:150"
 description = "cardの識別子が消費側の選択（cardId ?? cid）で使えない場合はfalseを返す。識別子なしを通過させると消費側（PracticeSlot/PracticeHandArea）でString(undefined)が識別子として送出される。cardIdが存在するが使えない値（空文字列・真偽値）の場合、?? はcidへ進まないため、cidが有効でもfalseになる"
 given = "data = { sectionType: 'main', card: { ciid: '1' } }（識別子欠落） / { cardId: null, ciid: '1' } / { cardId: '', ciid: '1' } / { cardId: true, ciid: '1' } / { cardId: '', cid: '100', ciid: '1' }（cardIdが使えない値でcidへのフォールバックが効かない） / { cardId: true, cid: '100', ciid: '1' }"
 expect_return = false
 
 [[condition]]
-id = "is_deck_drag_data.card_missing_or_invalid_ciid_false"
+id = "is-deck-drag-data.card-missing-or-invalid-ciid-false"
 target_function = "isDeckDragData"
-source_lines = "154"
+source_lines = "tests/unit/utils/drag-data.test.ts:164"
 description = "cardの識別子はあるがciidが欠落・null・空文字列の場合はfalseを返す"
 given = "data = { sectionType: 'main', card: { cardId: '100' } }（ciid欠落） / { cid: '100', ciid: null } / { cardId: '100', ciid: '' }"
 expect_return = false
 
 [[condition]]
-id = "is_deck_drag_data.valid_true"
+id = "is-deck-drag-data.valid-true"
 target_function = "isDeckDragData"
-source_lines = "146-155"
+source_lines = "tests/unit/utils/drag-data.test.ts:170"
 description = "オブジェクトかつnullでなく、sectionTypeが文字列で、cardに識別子（cardId）とciidがある場合はtrueを返す"
 given = "data = { sectionType: 'main', index: 0, card: { cardId: '100', ciid: '1' }, uuid: 'u1' }"
 expect_return = true
 
 [[condition]]
-id = "is_deck_drag_data.valid_true_with_cid_only"
+id = "is-deck-drag-data.valid-true-with-cid-only"
 target_function = "isDeckDragData"
-source_lines = "146-155"
+source_lines = "tests/unit/utils/drag-data.test.ts:181"
 description = "cardの識別子がcidのみ（DeckCardRef形式）の場合もtrueを返す（cidのみのペイロード受容は既存の振る舞い）"
 given = "data = { sectionType: 'main', index: 0, card: { cid: '100', ciid: '1' }, uuid: 'u1' } または data = { sectionType: 'main', card: { cardId: null, cid: '100', ciid: '1' } }（cardIdがnullなら ?? がcidへ進む）"
 expect_return = true
 
 [[condition]]
-id = "is_deck_drag_data.valid_true_with_numeric_ids"
+id = "is-deck-drag-data.valid-true-with-numeric-ids"
 target_function = "isDeckDragData"
-source_lines = "146-155"
+source_lines = "tests/unit/utils/drag-data.test.ts:196"
 description = "識別子とciidが数値の場合もtrueを返す（文字列化は消費側のString(...)の責務）"
 given = "data = { sectionType: 'main', card: { cardId: 100, ciid: 1 } }"
 expect_return = true

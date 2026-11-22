@@ -300,7 +300,7 @@ describe('utils/unified-cache-db', () => {
       lang: 'ja'
     });
 
-    it('getCardInfo: 存在しないカードはundefinedを返す [covers:get_card_info.full_cache_or_reconstruct]', async () => {
+    it('getCardInfo: 存在しないカードはundefinedを返す [covers:get-card-info.full-cache-or-reconstruct]', async () => {
       const db = getUnifiedCacheDB();
       await db.initialize();
 
@@ -320,7 +320,7 @@ describe('utils/unified-cache-db', () => {
       expect(retrieved!.name).toBe('Card full-1');
     });
 
-    it('setCardInfoFull: TTL内の再設定はスキップされる [covers:set_card_info_full.ttl_skip_or_update]', async () => {
+    it('setCardInfoFull: TTL内の再設定はスキップされる [covers:set-card-info-full.ttl-skip-or-update]', async () => {
       const db = getUnifiedCacheDB();
       await db.initialize();
 
@@ -353,7 +353,7 @@ describe('utils/unified-cache-db', () => {
       vi.useRealTimers();
     });
 
-    it('hasCardInfo: 存在チェックが正しく動作する [covers:has_card_info.full_cache_has]', async () => {
+    it('hasCardInfo: 存在チェックが正しく動作する [covers:has-card-info.full-cache-has]', async () => {
       const db = getUnifiedCacheDB();
       await db.initialize();
 
@@ -363,7 +363,7 @@ describe('utils/unified-cache-db', () => {
       expect(db.hasCardInfo('full-5')).toBe(true);
     });
 
-    it('clearCardInfoCache: キャッシュがクリアされる [covers:clear_card_info_cache.clears_full_cache]', async () => {
+    it('clearCardInfoCache: キャッシュがクリアされる [covers:clear-card-info-cache.clears-full-cache]', async () => {
       const db = getUnifiedCacheDB();
       await db.initialize();
 
