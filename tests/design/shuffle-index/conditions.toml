@@ -20,7 +20,7 @@ verified_at = "2026-11-22"
 verified_by = "claude"
 test_command = "pnpm exec vitest run tests/unit/content/shuffle-index.test.ts"
 source_hash = "6ecb562e0d320992d12b9382c3e920e2b19f1be7"
-note = "verified=falseは0件"
+note = "verified=falseは1件（attach-button-listener.already-registered-returns-false）"
 
 # --- initShuffle() ---
 
