@@ -14,7 +14,7 @@ verified = true
 verified_at = "2026-08-07"
 verified_by = "codex"
 test_command = "mise run test:vitest -- tests/unit/utils/promise-timeout.test.ts"
-source_hash = "3befeb8d8d89e9148cb4f01283ab0d64210a6457"
+source_hash = "95452a251d2d3462fe1a223726d095bf4e64265a"
 note = "verified=falseは0件。TASK-478で、重複していたsrc/utils/__tests__/promise-timeout.test.tsを一本化。src側32itのうち31itはtests/unit/utils/promise-timeout.test.tsのfake timersによる既存検証と同趣旨だったため移植不要と判断し、未カバーだったTimeoutErrorのError継承検証1件（toBeInstanceOf(Error)）を移植してtimeout_error.extends_error条件を新規追加、旧ファイルを削除した。なおsrc側「should store cancel reason」は実検証がisCancelled()のみでreasonの保存を検証しておらず、実装もcancelのreason引数(_msg)を無視するため、保存機能自体が存在しない（cancel_token_cancel_sets_trueと同趣旨）"
 
 # --- withTimeout<T>(promise: Promise<T>, options: TimeoutOptions = {}): Promise<T> ---
