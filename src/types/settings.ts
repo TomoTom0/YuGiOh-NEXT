@@ -104,7 +104,11 @@ export type SortOrder =
   | 'atk_asc'       // 攻撃力昇順
   | 'atk_desc'      // 攻撃力降順
   | 'def_asc'       // 守備力昇順
-  | 'def_desc';     // 守備力降順
+  | 'def_desc'      // 守備力降順
+  | 'attribute_asc' // 属性昇順（APIに属性ソートなし: 50音順で取得しクライアント側でソート）
+  | 'attribute_desc'// 属性降順（同上）
+  | 'race_asc'      // 種族昇順（APIに種族ソートなし: 50音順で取得しクライアント側でソート）
+  | 'race_desc';    // 種族降順（同上）
 
 /** SortOrder の全値（実行時検証用） */
 export const SORT_ORDERS: readonly SortOrder[] = [
@@ -119,6 +123,10 @@ export const SORT_ORDERS: readonly SortOrder[] = [
   'atk_desc',
   'def_asc',
   'def_desc',
+  'attribute_asc',
+  'attribute_desc',
+  'race_asc',
+  'race_desc',
 ];
 
 const SORT_ORDER_SET: ReadonlySet<string> = new Set(SORT_ORDERS);

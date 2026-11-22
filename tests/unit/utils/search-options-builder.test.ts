@@ -34,6 +34,11 @@ describe('search-options-builder / buildSearchOptions', () => {
   it('[covers:sort.known_order_maps_to_api_value] SORT_ORDER_TO_API_VALUEに存在するsortOrderはAPI値にマップされる', () => {
     const result = buildSearchOptions('カード', '1', 'atk_desc', baseFilters());
     expect(result.sort).toBe(4);
+    // 属性・種族ソートはAPIに対応が無いため50音順（1）で取得し、実ソートはクライアント側で行う
+    expect(buildSearchOptions('カード', '1', 'attribute_asc', baseFilters()).sort).toBe(1);
+    expect(buildSearchOptions('カード', '1', 'attribute_desc', baseFilters()).sort).toBe(1);
+    expect(buildSearchOptions('カード', '1', 'race_asc', baseFilters()).sort).toBe(1);
+    expect(buildSearchOptions('カード', '1', 'race_desc', baseFilters()).sort).toBe(1);
   });
 
   it('[covers:sort.unknown_order_falls_back_to_1] マップに存在しないsortOrderはsort=1にフォールバックする', () => {

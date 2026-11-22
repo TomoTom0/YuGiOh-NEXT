@@ -324,6 +324,15 @@ describe('isSortOrder（types/settings）', () => {
     }
   });
 
+  it('CardListが発行しAPIマッパーが対応する属性・種族ソートをtrueと判定する', () => {
+    // RightArea経由でdeckStore.sortOrderへ入る正規値（SORT_ORDER_TO_API_VALUE対応）。
+    // ガードで弾くとrelease_descへ倒れ、上限超過時の取得集合が変わる（PR#211 Codex P2）
+    expect(isSortOrder('attribute_asc')).toBe(true);
+    expect(isSortOrder('attribute_desc')).toBe(true);
+    expect(isSortOrder('race_asc')).toBe(true);
+    expect(isSortOrder('race_desc')).toBe(true);
+  });
+
   it('SortOrder外の文字列・非文字列をfalseと判定する', () => {
     expect(isSortOrder('code_asc')).toBe(false);
     expect(isSortOrder('actual_asc')).toBe(false);
