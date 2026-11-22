@@ -16,8 +16,23 @@ import type {
   FAQTableB,
   CardInfo
 } from '../types/card';
+import {
+  ATTRIBUTE_ID_TO_INT,
+  MONSTER_TYPE_ID_TO_INT,
+  RACE_ID_TO_INT,
+  SPELL_EFFECT_TYPE_ID_TO_INT,
+  TRAP_EFFECT_TYPE_ID_TO_INT
+} from '../types/card-maps';
+import type {
+  Attribute,
+  MonsterType,
+  Race,
+  SpellEffectType,
+  TrapEffectType
+} from '../types/card-maps';
 import { safeStorageGet, safeStorageSet } from './extension-context-checker';
 import { detectLanguage } from './language-detector';
+import { isRecord } from './type-guards';
 
 /**
  * カード移動履歴エントリ
@@ -30,6 +45,32 @@ interface MoveHistoryEntry {
   uuid?: string;
   info?: unknown;
   ts: number;
+}
+
+/** CardTableBの文字列フィールドが各enum型の内部IDかどうかを判定する型ガード群。
+ *  reconstructCardInfoでCardInfo（判別共用体）へ再構築する際の検証に使う */
+function isAttribute(value: string): value is Attribute {
+  return value in ATTRIBUTE_ID_TO_INT;
+}
+
+function isRace(value: string): value is Race {
+  return value in RACE_ID_TO_INT;
+}
+
+function isMonsterType(value: string): value is MonsterType {
+  return value in MONSTER_TYPE_ID_TO_INT;
+}
+
+function isSpellEffectType(value: string): value is SpellEffectType {
+  return value in SPELL_EFFECT_TYPE_ID_TO_INT;
+}
+
+function isTrapEffectType(value: string): value is TrapEffectType {
+  return value in TRAP_EFFECT_TYPE_ID_TO_INT;
+}
+
+function isDeckOpenHistory(value: unknown): value is DeckOpenHistory {
+  return isRecord(value) && Array.isArray(value.recentDecks);
 }
 
 // 定数
@@ -151,7 +192,8 @@ export class UnifiedCacheDB {
   private async checkAndRunCleanup(): Promise<void> {
     try {
       const result = await chrome.storage.local.get(STORAGE_KEYS.lastCleanupAt);
-      const lastCleanupAt = result[STORAGE_KEYS.lastCleanupAt] as number | undefined;
+      const rawLastCleanupAt = result[STORAGE_KEYS.lastCleanupAt];
+      const lastCleanupAt = typeof rawLastCleanupAt === 'number' ? rawLastCleanupAt : undefined;
       const now = Date.now();
 
       // 前回クリーンアップから24時間以上経過していれば実行
@@ -174,8 +216,8 @@ export class UnifiedCacheDB {
 
   private async loadDeckOpenHistory(): Promise<void> {
     const result = await chrome.storage.local.get(STORAGE_KEYS.deckOpenHistory);
-    const data = result[STORAGE_KEYS.deckOpenHistory] as DeckOpenHistory | undefined;
-    if (data) {
+    const data = result[STORAGE_KEYS.deckOpenHistory];
+    if (isDeckOpenHistory(data)) {
       this.deckOpenHistory = data;
     }
   }
@@ -671,8 +713,8 @@ export class UnifiedCacheDB {
     if (!cached) {
       // メモリにない場合はストレージから読み込み
       const key = STORAGE_KEYS.cardTableCPrefix + cardId;
-      const result = await chrome.storage.local.get(key);
-      const data = result[key] as CardTableC | undefined;
+      const result = await safeStorageGet<CardTableC>(key);
+      const data = result[key];
       if (data) {
         // 既存の langsFetchedAt を取得
         const langsFetchedAt = data.langsFetchedAt || {};
@@ -795,8 +837,8 @@ export class UnifiedCacheDB {
 
     // ストレージから読み込み
     const key = STORAGE_KEYS.productTableBPrefix + packId;
-    const result = await chrome.storage.local.get(key);
-    const data = result[key] as ProductTableB | undefined;
+    const result = await safeStorageGet<ProductTableB>(key);
+    const data = result[key];
     if (data) {
       this.productTableB.set(packId, data);
       return data;
@@ -855,8 +897,8 @@ export class UnifiedCacheDB {
 
     // ストレージから読み込み
     const key = STORAGE_KEYS.faqTableBPrefix + faqId;
-    const result = await chrome.storage.local.get(key);
-    const data = result[key] as FAQTableB | undefined;
+    const result = await safeStorageGet<FAQTableB>(key);
+    const data = result[key];
     if (data) {
       data.lastAccessedAt = Date.now();
       this.faqTableB.set(faqId, data);
@@ -1035,34 +1077,48 @@ export class UnifiedCacheDB {
     };
 
     // カードタイプに応じて構築
+    // CardTableBの文字列フィールドは対応するenum型の内部IDである場合のみ採用し、
+    // それ以外は従来のデフォルト値へフォールバックする（型ガードで検証）
     let resultCard: CardInfo
     if (tableB.cardType === 'monster') {
+      const attribute: Attribute =
+        tableB.attribute !== undefined && isAttribute(tableB.attribute) ? tableB.attribute : 'dark';
+      const race: Race =
+        tableB.race !== undefined && isRace(tableB.race) ? tableB.race : 'warrior';
       resultCard = {
         ...baseInfo,
         cardType: 'monster',
-        attribute: tableB.attribute || 'dark',
-        race: tableB.race || 'warrior',
+        attribute,
+        race,
         levelType: tableB.levelType || 'level',
         levelValue: tableB.levelValue || 1,
-        types: tableB.types || [],
+        types: (tableB.types || []).filter(isMonsterType),
         atk: tableB.atk ?? undefined,
         def: tableB.def ?? undefined,
         linkMarkers: tableB.linkMarkers,
         pendulumScale: tableB.scale,
         isExtraDeck: tableB.isExtraDeck || false
-      } as CardInfo;
+      };
     } else if (tableB.cardType === 'spell') {
+      const effectType: SpellEffectType | undefined =
+        tableB.effectType !== undefined && isSpellEffectType(tableB.effectType)
+          ? tableB.effectType
+          : undefined;
       resultCard = {
         ...baseInfo,
         cardType: 'spell',
-        effectType: tableB.effectType
-      } as CardInfo;
+        effectType
+      };
     } else {
+      const effectType: TrapEffectType | undefined =
+        tableB.effectType !== undefined && isTrapEffectType(tableB.effectType)
+          ? tableB.effectType
+          : undefined;
       resultCard = {
         ...baseInfo,
         cardType: 'trap',
-        effectType: tableB.effectType
-      } as CardInfo;
+        effectType
+      };
     }
 
     // TableB2からlangsText/langsPendTextをマージ
