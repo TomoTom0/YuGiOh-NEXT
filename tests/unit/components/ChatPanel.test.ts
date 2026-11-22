@@ -350,7 +350,7 @@ describe('components/ChatPanel', () => {
     ));
     onTool(toolInfo(
       'addCardToDeck',
-      { success: false, data: { cards: [{ name: '失敗カード', cardId: 'xxx' }] }, error: '枚数制限超過' },
+      { success: false, data: { cards: [{ name: '失敗カード', cardId: '12345678' }] }, error: '枚数制限超過' },
       { section: 'main', cardId: 'c1' }
     ));
     await flushPromises();
