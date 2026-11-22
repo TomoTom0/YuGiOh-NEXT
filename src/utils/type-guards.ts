@@ -13,14 +13,19 @@
  * @param propertyChecks プロパティベースのチェック関数
  * @returns 型ガード関数
  */
+function isConstructor(value: unknown): value is abstract new (...args: never[]) => unknown {
+  return typeof value === 'function';
+}
+
 function createHtmlElementTypeGuard<T extends Element>(
   interfaceName: string,
-  propertyChecks: (el: any) => boolean
+  propertyChecks: (el: object) => boolean
 ) {
-  return (element: any): element is T => {
+  return (element: unknown): element is T => {
     // ブラウザ環境では instanceof を優先
-    if (typeof window !== 'undefined' && (window as any)[interfaceName]) {
-      if (element instanceof (window as any)[interfaceName]) {
+    if (typeof window !== 'undefined') {
+      const ctor: unknown = Reflect.get(window, interfaceName);
+      if (isConstructor(ctor) && element instanceof ctor) {
         return true;
       }
     }
@@ -64,7 +69,7 @@ export const isHTMLElement = createHtmlElementTypeGuard<HTMLElement>(
  */
 export const isHTMLInputElement = createHtmlElementTypeGuard<HTMLInputElement>(
   'HTMLInputElement',
-  (el) => el.tagName === 'INPUT' && 'value' in el
+  (el) => 'tagName' in el && el.tagName === 'INPUT' && 'value' in el
 );
 
 /**
@@ -81,7 +86,7 @@ export const isHTMLInputElement = createHtmlElementTypeGuard<HTMLInputElement>(
  */
 export const isHTMLImageElement = createHtmlElementTypeGuard<HTMLImageElement>(
   'HTMLImageElement',
-  (el) => el.tagName === 'IMG' && 'src' in el
+  (el) => 'tagName' in el && el.tagName === 'IMG' && 'src' in el
 );
 
 /**
@@ -92,7 +97,7 @@ export const isHTMLImageElement = createHtmlElementTypeGuard<HTMLImageElement>(
  */
 export const isHTMLSelectElement = createHtmlElementTypeGuard<HTMLSelectElement>(
   'HTMLSelectElement',
-  (el) => el.tagName === 'SELECT' && 'options' in el
+  (el) => 'tagName' in el && el.tagName === 'SELECT' && 'options' in el
 );
 
 /**
@@ -103,7 +108,7 @@ export const isHTMLSelectElement = createHtmlElementTypeGuard<HTMLSelectElement>
  */
 export const isHTMLButtonElement = createHtmlElementTypeGuard<HTMLButtonElement>(
   'HTMLButtonElement',
-  (el) => el.tagName === 'BUTTON'
+  (el) => 'tagName' in el && el.tagName === 'BUTTON'
 );
 
 /**
@@ -114,7 +119,7 @@ export const isHTMLButtonElement = createHtmlElementTypeGuard<HTMLButtonElement>
  */
 export const isHTMLAnchorElement = createHtmlElementTypeGuard<HTMLAnchorElement>(
   'HTMLAnchorElement',
-  (el) => el.tagName === 'A' && 'href' in el
+  (el) => 'tagName' in el && el.tagName === 'A' && 'href' in el
 );
 
 /**
@@ -125,7 +130,7 @@ export const isHTMLAnchorElement = createHtmlElementTypeGuard<HTMLAnchorElement>
  */
 export const isHTMLOptionElement = createHtmlElementTypeGuard<HTMLOptionElement>(
   'HTMLOptionElement',
-  (el) => el.tagName === 'OPTION' && 'value' in el
+  (el) => 'tagName' in el && el.tagName === 'OPTION' && 'value' in el
 );
 
 /**
@@ -136,14 +141,14 @@ export const isHTMLOptionElement = createHtmlElementTypeGuard<HTMLOptionElement>
  */
 export const isHTMLTextAreaElement = createHtmlElementTypeGuard<HTMLTextAreaElement>(
   'HTMLTextAreaElement',
-  (el) => el.tagName === 'TEXTAREA' && 'value' in el
+  (el) => 'tagName' in el && el.tagName === 'TEXTAREA' && 'value' in el
 );
 
 /**
  * オブジェクトが Record<string, T> かどうかをチェック
  *
  * @param obj 対象オブジェクト
- * @returns Record<string, any> である場合は true
+ * @returns Record<string, unknown> である場合は true
  *
  * @example
  * const obj = someValue;
@@ -151,7 +156,7 @@ export const isHTMLTextAreaElement = createHtmlElementTypeGuard<HTMLTextAreaElem
  *   const value = obj['key'];
  * }
  */
-export function isRecord(obj: any): obj is Record<string, any> {
+export function isRecord(obj: unknown): obj is Record<string, unknown> {
   return obj !== null && typeof obj === 'object' && !Array.isArray(obj);
 }
 
@@ -169,9 +174,9 @@ export function isRecord(obj: any): obj is Record<string, any> {
  * }
  */
 export function hasProperty<K extends PropertyKey>(
-  obj: any,
+  obj: unknown,
   key: K
-): obj is Record<K, any> {
+): obj is Record<K, unknown> {
   return isRecord(obj) && key in obj;
 }
 
@@ -197,7 +202,7 @@ export function isDefined<T>(value: T | null | undefined): value is T {
  * @param value 対象値
  * @returns string である場合は true
  */
-export function isString(value: any): value is string {
+export function isString(value: unknown): value is string {
   return typeof value === 'string';
 }
 
@@ -207,7 +212,7 @@ export function isString(value: any): value is string {
  * @param value 対象値
  * @returns number である場合は true
  */
-export function isNumber(value: any): value is number {
+export function isNumber(value: unknown): value is number {
   return typeof value === 'number' && !isNaN(value);
 }
 
@@ -217,7 +222,7 @@ export function isNumber(value: any): value is number {
  * @param value 対象値
  * @returns boolean である場合は true
  */
-export function isBoolean(value: any): value is boolean {
+export function isBoolean(value: unknown): value is boolean {
   return typeof value === 'boolean';
 }
 
@@ -227,7 +232,7 @@ export function isBoolean(value: any): value is boolean {
  * @param value 対象値
  * @returns 配列である場合は true
  */
-export function isArray<T = any>(value: any): value is T[] {
+export function isArray<T = unknown>(value: unknown): value is T[] {
   return Array.isArray(value);
 }
 
@@ -246,10 +251,10 @@ export function isArray<T = any>(value: any): value is T[] {
  * }
  */
 export function isEnumMember<T extends Record<string, string | number>>(
-  value: any,
+  value: unknown,
   enumObject: T
 ): value is T[keyof T] {
-  return Object.values(enumObject).includes(value);
+  return Object.values(enumObject).some((member) => member === value);
 }
 
 /**
@@ -272,7 +277,7 @@ export function isEnumMember<T extends Record<string, string | number>>(
  */
 export function safeQueryAs<T extends Element>(
   selector: string,
-  typeGuard: (element: any) => element is T,
+  typeGuard: (element: unknown) => element is T,
   parent?: Document | Element
 ): T | null {
   const searchTarget = parent || document;
@@ -300,8 +305,8 @@ export function safeQueryAs<T extends Element>(
  * }
  */
 export function safeCastAs<T>(
-  obj: any,
-  typeGuard: (value: any) => value is T
+  obj: unknown,
+  typeGuard: (value: unknown) => value is T
 ): T | null {
   return typeGuard(obj) ? obj : null;
 }
@@ -319,8 +324,8 @@ export function safeCastAs<T>(
  * }
  */
 export function allGuards<T>(
-  value: any,
-  ...guards: Array<(value: any) => boolean>
+  value: unknown,
+  ...guards: Array<(value: unknown) => boolean>
 ): value is T {
   return guards.every(guard => guard(value));
 }
@@ -338,8 +343,8 @@ export function allGuards<T>(
  * }
  */
 export function anyGuard<T>(
-  value: any,
-  ...guards: Array<(value: any) => boolean>
+  value: unknown,
+  ...guards: Array<(value: unknown) => boolean>
 ): value is T {
   return guards.some(guard => guard(value));
 }
@@ -356,7 +361,7 @@ export function anyGuard<T>(
  *   deckType = value;  // 安全に代入可能
  * }
  */
-export function isDeckTypeValue(value: any): value is '-1' | '0' | '1' | '2' | '3' {
+export function isDeckTypeValue(value: unknown): value is '-1' | '0' | '1' | '2' | '3' {
   return typeof value === 'string' && ['-1', '0', '1', '2', '3'].includes(value);
 }
 
@@ -371,7 +376,7 @@ export function isDeckTypeValue(value: any): value is '-1' | '0' | '1' | '2' | '
  *   deckStyle = value;  // 安全に代入可能
  * }
  */
-export function isDeckStyleValue(value: any): value is '-1' | '0' | '1' | '2' {
+export function isDeckStyleValue(value: unknown): value is '-1' | '0' | '1' | '2' {
   return typeof value === 'string' && ['-1', '0', '1', '2'].includes(value);
 }
 
