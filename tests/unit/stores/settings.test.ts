@@ -97,7 +97,7 @@ describe('stores/settings', () => {
   });
 
   describe('load', () => {
-    it('[covers:load_settings.loads_common_then_deck_edit] [covers:load_common.no_saved_settings_uses_defaults_and_default_tail] [covers:load_deck_edit.applies_deck_edit_card_size] loads defaults and applies common/deck CSS', async () => {
+    it('[covers:load-settings.loads-common-then-deck-edit] [covers:load-common.no-saved-settings-uses-defaults-and-default-tail] [covers:load-deck-edit.applies-deck-edit-card-size] loads defaults and applies common/deck CSS', async () => {
       const store = useSettingsStore();
 
       await store.loadSettings();
@@ -121,7 +121,7 @@ describe('stores/settings', () => {
       );
     });
 
-    it('[covers:load_common.saved_nonempty_tail_ids_are_kept] keeps stored non-empty tail placement ids', async () => {
+    it('[covers:load-common.saved-nonempty-tail-ids-are-kept] keeps stored non-empty tail placement ids', async () => {
       mockStorage.tailPlacementCardIds = ['1', '2'];
       const store = useSettingsStore();
 
@@ -130,7 +130,7 @@ describe('stores/settings', () => {
       expect(store.tailPlacementCardIds).toEqual(['1', '2']);
     });
 
-    it('[covers:load_common.empty_or_invalid_tail_ids_use_default_tail] falls back to default tail placement ids for empty or invalid stored values', async () => {
+    it('[covers:load-common.empty-or-invalid-tail-ids-use-default-tail] falls back to default tail placement ids for empty or invalid stored values', async () => {
       mockStorage.tailPlacementCardIds = [];
       const firstStore = useSettingsStore();
       await firstStore.loadCommonSettings();
@@ -143,7 +143,7 @@ describe('stores/settings', () => {
       expect(secondStore.tailPlacementCardIds).toEqual(DEFAULT_TAIL_PLACEMENT_CARD_IDS);
     });
 
-    it('[covers:load_common.migrates_toggle_and_deletes_ai_text_links] migrates removed and renamed old settings keys', async () => {
+    it('[covers:load-common.migrates-toggle-and-deletes-ai-text-links] migrates removed and renamed old settings keys', async () => {
       mockStorage.appSettings = {
         theme: 'light',
         deckLevelSortOrder: 'toggle',
@@ -157,7 +157,7 @@ describe('stores/settings', () => {
       expect((store.appSettings as any).aiTextLinksEnabled).toBeUndefined();
     });
 
-    it('[covers:load_common.migrates_legacy_ux_when_ux_missing] migrates top-level legacy UX keys only when ux is missing', async () => {
+    it('[covers:load-common.migrates-legacy-ux-when-ux-missing] migrates top-level legacy UX keys only when ux is missing', async () => {
       mockStorage.appSettings = {
         theme: 'dark',
         searchInputPosition: 'right-bottom',
@@ -183,7 +183,7 @@ describe('stores/settings', () => {
       expect((store.appSettings as any).keyboardShortcuts).toBeUndefined();
     });
 
-    it('[covers:load_common.existing_ux_skips_legacy_ux_migration] does not move legacy UX keys when ux already exists', async () => {
+    it('[covers:load-common.existing-ux-skips-legacy-ux-migration] does not move legacy UX keys when ux already exists', async () => {
       mockStorage.appSettings = {
         theme: 'dark',
         searchInputPosition: 'right-bottom',
@@ -201,7 +201,7 @@ describe('stores/settings', () => {
       expect((store.appSettings as any).searchInputPosition).toBe('right-bottom');
     });
 
-    it('[covers:load_common.deep_merge_skips_null_undefined_and_empty_arrays] merges saved values using the store deepMerge rules', async () => {
+    it('[covers:load-common.deep-merge-skips-null-undefined-and-empty-arrays] merges saved values using the store deepMerge rules', async () => {
       mockStorage.appSettings = {
         theme: null,
         language: undefined,
@@ -233,7 +233,7 @@ describe('stores/settings', () => {
       expect(store.featureSettings.chat).toBe(DEFAULT_FEATURE_SETTINGS.chat);
     });
 
-    it('[covers:load_common.genesys_stored_artifact_overridden_by_default] 旧prodビルドが永続化したgenesys=false（category 3強制OFFのアーティファクト）はDEFAULT値で上書きされる', async () => {
+    it('[covers:load-common.genesys-stored-artifact-overridden-by-default] 旧prodビルドが永続化したgenesys=false（category 3強制OFFのアーティファクト）はDEFAULT値で上書きされる', async () => {
       mockStorage.featureSettings = {
         genesys: false,
       };
@@ -245,7 +245,7 @@ describe('stores/settings', () => {
       expect(store.featureSettings.genesys).toBe(true);
     });
 
-    it('[covers:load_common.storage_get_throw_rejects] rejects when chrome.storage.local.get throws synchronously', async () => {
+    it('[covers:load-common.storage-get-throw-rejects] rejects when chrome.storage.local.get throws synchronously', async () => {
       (chrome.storage.local.get as any).mockImplementation(() => {
         throw new Error('Storage quota exceeded');
       });
@@ -258,7 +258,7 @@ describe('stores/settings', () => {
   });
 
   describe('save', () => {
-    it('[covers:save_settings.persists_storage_and_cache] saves settings to chrome storage, localStorage, and window cache', async () => {
+    it('[covers:save-settings.persists-storage-and-cache] saves settings to chrome storage, localStorage, and window cache', async () => {
       const store = await createLoadedStore();
       store.appSettings.theme = 'dark';
       store.featureSettings.chat = true;
@@ -273,7 +273,7 @@ describe('stores/settings', () => {
       expect((window as any).ygoNextCurrentSettings.theme).toBe('dark');
     });
 
-    it('[covers:save_settings.local_storage_failure_still_resolves] resolves and warns when the localStorage cache update fails', async () => {
+    it('[covers:save-settings.local-storage-failure-still-resolves] resolves and warns when the localStorage cache update fails', async () => {
       const store = await createLoadedStore();
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
@@ -289,7 +289,7 @@ describe('stores/settings', () => {
       );
     });
 
-    it('[covers:save_settings.storage_set_throw_rejects] rejects when chrome.storage.local.set throws synchronously', async () => {
+    it('[covers:save-settings.storage-set-throw-rejects] rejects when chrome.storage.local.set throws synchronously', async () => {
       const store = await createLoadedStore();
       (chrome.storage.local.set as any).mockImplementation(() => {
         throw new Error('Failed to save settings');
@@ -300,7 +300,7 @@ describe('stores/settings', () => {
   });
 
   describe('card sizes', () => {
-    it('[covers:set_deck_edit_card_size.updates_applies_saves] [covers:set_info_card_size.updates_applies_saves] [covers:set_grid_card_size.updates_applies_saves] [covers:set_list_card_size.updates_applies_saves] updates individual card sizes, applies CSS, and saves', async () => {
+    it('[covers:set-deck-edit-card-size.updates-applies-saves] [covers:set-info-card-size.updates-applies-saves] [covers:set-grid-card-size.updates-applies-saves] [covers:set-list-card-size.updates-applies-saves] updates individual card sizes, applies CSS, and saves', async () => {
       const store = await createLoadedStore();
 
       store.setDeckEditCardSize('xlarge');
@@ -317,7 +317,7 @@ describe('stores/settings', () => {
       expect(mockStorage.appSettings.listCardSize).toBe('medium');
     });
 
-    it('[covers:set_practice_card_size.updates_saves_without_css_apply] [covers:set_practice_card_size_2p.updates_saves_without_css_apply] updates practice card sizes and saves', async () => {
+    it('[covers:set-practice-card-size.updates-saves-without-css-apply] [covers:set-practice-card-size-2p.updates-saves-without-css-apply] updates practice card sizes and saves', async () => {
       const store = await createLoadedStore();
 
       store.setPracticeCardSize('large');
@@ -330,7 +330,7 @@ describe('stores/settings', () => {
       expect(document.documentElement.style.setProperty).not.toHaveBeenCalled();
     });
 
-    it('[covers:set_card_size_preset.xl_mapping] [covers:set_card_size_preset.l_mapping] [covers:set_card_size_preset.m_mapping] [covers:set_card_size_preset.s_mapping] applies all preset mappings', async () => {
+    it('[covers:set-card-size-preset.xl-mapping] [covers:set-card-size-preset.l-mapping] [covers:set-card-size-preset.m-mapping] [covers:set-card-size-preset.s-mapping] applies all preset mappings', async () => {
       const store = await createLoadedStore();
 
       store.setCardSizePreset('xl');
@@ -347,7 +347,7 @@ describe('stores/settings', () => {
       expect(mockStorage.appSettings.listCardSize).toBe('small');
     });
 
-    it('[covers:get_current_preset.returns_xl_l_m_s_or_null] returns the matching preset or null', async () => {
+    it('[covers:get-current-preset.returns-xl-l-m-s-or-null] returns the matching preset or null', async () => {
       const store = await createLoadedStore();
 
       store.setCardSizePreset('xl');
@@ -362,7 +362,7 @@ describe('stores/settings', () => {
       expect(store.getCurrentPreset()).toBeNull();
     });
 
-    it('[covers:set_card_width.list_mode_updates_list_css] [covers:set_card_width.grid_mode_updates_grid_css] sets direct list/grid widths and calculated heights', async () => {
+    it('[covers:set-card-width.list-mode-updates-list-css] [covers:set-card-width.grid-mode-updates-grid-css] sets direct list/grid widths and calculated heights', async () => {
       const store = await createLoadedStore();
 
       store.setCardWidth('list', 100);
@@ -378,7 +378,7 @@ describe('stores/settings', () => {
   });
 
   describe('theme and language', () => {
-    it('[covers:set_theme.updates_applies_saves] [covers:apply_theme.uses_effective_theme_direct_or_system] applies direct, system dark, and system fallback themes', async () => {
+    it('[covers:set-theme.updates-applies-saves] [covers:apply-theme.uses-effective-theme-direct-or-system] applies direct, system dark, and system fallback themes', async () => {
       const store = await createLoadedStore();
 
       store.setTheme('dark');
@@ -394,7 +394,7 @@ describe('stores/settings', () => {
       expect(document.documentElement.setAttribute).toHaveBeenCalledWith('data-ygo-next-theme', 'light');
     });
 
-    it('[covers:set_language.auto_skips_mapping_ensure] [covers:set_language.non_auto_ensures_mapping_async] updates language and only ensures mappings for non-auto languages', async () => {
+    it('[covers:set-language.auto-skips-mapping-ensure] [covers:set-language.non-auto-ensures-mapping-async] updates language and only ensures mappings for non-auto languages', async () => {
       const store = await createLoadedStore();
 
       store.setLanguage('auto');
@@ -407,7 +407,7 @@ describe('stores/settings', () => {
       expect(ensureMappingForLanguageMock).toHaveBeenCalledWith('en');
     });
 
-    it('[covers:set_language.mapping_ensure_rejection_is_logged] logs mapping ensure rejections', async () => {
+    it('[covers:set-language.mapping-ensure-rejection-is-logged] logs mapping ensure rejections', async () => {
       const error = new Error('mapping failed');
       ensureMappingForLanguageMock.mockRejectedValueOnce(error);
       const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -422,7 +422,7 @@ describe('stores/settings', () => {
   });
 
   describe('simple settings', () => {
-    it('[covers:set_middle_decks_layout.updates_saves] [covers:set_card_list_view_mode.updates_section_saves] [covers:set_mouse_operations.updates_saves] [covers:set_change_favicon.updates_saves] [covers:set_search_input_position.updates_saves] [covers:set_default_search_mode.updates_saves] [covers:set_include_timestamp_in_export_filename.updates_saves] [covers:set_show_card_detail_in_deck_display.updates_saves] [covers:set_deck_display_card_image_size.updates_saves] [covers:set_background_deck_info_fetch.updates_saves] [covers:set_update_thumbnail_without_fetch.updates_saves] updates scalar and nested settings and saves them', async () => {
+    it('[covers:set-middle-decks-layout.updates-saves] [covers:set-card-list-view-mode.updates-section-saves] [covers:set-mouse-operations.updates-saves] [covers:set-change-favicon.updates-saves] [covers:set-search-input-position.updates-saves] [covers:set-default-search-mode.updates-saves] [covers:set-include-timestamp-in-export-filename.updates-saves] [covers:set-show-card-detail-in-deck-display.updates-saves] [covers:set-deck-display-card-image-size.updates-saves] [covers:set-background-deck-info-fetch.updates-saves] [covers:set-update-thumbnail-without-fetch.updates-saves] updates scalar and nested settings and saves them', async () => {
       const store = await createLoadedStore();
 
       store.setMiddleDecksLayout('horizontal');
@@ -452,7 +452,7 @@ describe('stores/settings', () => {
       expect(mockStorage.appSettings.updateThumbnailWithoutFetch).toBe(false);
     });
 
-    it('[covers:toggle_feature.updates_dynamic_key_saves] writes dynamic feature keys and saves', async () => {
+    it('[covers:toggle-feature.updates-dynamic-key-saves] writes dynamic feature keys and saves', async () => {
       const store = await createLoadedStore();
 
       store.toggleFeature('testFeature', true);
@@ -465,7 +465,7 @@ describe('stores/settings', () => {
   });
 
   describe('right area and font CSS', () => {
-    it('[covers:set_right_area_width.updates_applies_saves] [covers:apply_right_area_styles.max_fit_sets_flexible_vars] applies MAX-FIT right area CSS variables', async () => {
+    it('[covers:set-right-area-width.updates-applies-saves] [covers:apply-right-area-styles.max-fit-sets-flexible-vars] applies MAX-FIT right area CSS variables', async () => {
       const store = await createLoadedStore();
 
       store.setRightAreaWidth('MAX-FIT');
@@ -479,7 +479,7 @@ describe('stores/settings', () => {
       expect(mockStorage.appSettings.ux.rightAreaWidth).toBe('MAX-FIT');
     });
 
-    it('[covers:set_right_area_font_size.updates_applies_saves] [covers:apply_right_area_styles.fixed_width_sets_fixed_vars] applies fixed right area CSS variables and font size', async () => {
+    it('[covers:set-right-area-font-size.updates-applies-saves] [covers:apply-right-area-styles.fixed-width-sets-fixed-vars] applies fixed right area CSS variables and font size', async () => {
       const store = await createLoadedStore();
 
       store.setRightAreaWidth('S');
@@ -494,7 +494,7 @@ describe('stores/settings', () => {
       expect(mockStorage.appSettings.ux.rightAreaFontSize).toBe('xl');
     });
 
-    it('[covers:set_dialog_font_size.updates_applies_saves] [covers:set_search_ui_font_size.updates_applies_saves] [covers:apply_font_sizes.maps_dialog_and_search_ui] maps dialog and search UI font sizes to CSS variables', async () => {
+    it('[covers:set-dialog-font-size.updates-applies-saves] [covers:set-search-ui-font-size.updates-applies-saves] [covers:apply-font-sizes.maps-dialog-and-search-ui] maps dialog and search UI font sizes to CSS variables', async () => {
       const store = await createLoadedStore();
 
       store.setDialogFontSize('xl');
@@ -510,7 +510,7 @@ describe('stores/settings', () => {
   describe('keyboard shortcuts', () => {
     const shortcut = (key: string): KeyboardShortcut => ({ key, ctrl: false, shift: false, alt: false });
 
-    it('[covers:add_keyboard_shortcut.below_limit_pushes_and_saves] adds shortcuts while below the limit', async () => {
+    it('[covers:add-keyboard-shortcut.below-limit-pushes-and-saves] adds shortcuts while below the limit', async () => {
       const store = await createLoadedStore();
       store.appSettings.ux.keyboardShortcuts.globalSearch = [];
 
@@ -520,7 +520,7 @@ describe('stores/settings', () => {
       expect(mockStorage.appSettings.ux.keyboardShortcuts.globalSearch).toEqual([shortcut('1')]);
     });
 
-    it('[covers:add_keyboard_shortcut.limit_reached_warns_and_returns] warns and skips save at the shortcut limit', async () => {
+    it('[covers:add-keyboard-shortcut.limit-reached-warns-and-returns] warns and skips save at the shortcut limit', async () => {
       const store = await createLoadedStore();
       store.appSettings.ux.keyboardShortcuts.globalSearch = [shortcut('1'), shortcut('2'), shortcut('3')];
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -532,7 +532,7 @@ describe('stores/settings', () => {
       expect(warnSpy).toHaveBeenCalledWith('[Settings] Cannot add more than 3 shortcuts for globalSearch');
     });
 
-    it('[covers:remove_keyboard_shortcut.valid_index_splices_and_saves] removes a shortcut at a valid index', async () => {
+    it('[covers:remove-keyboard-shortcut.valid-index-splices-and-saves] removes a shortcut at a valid index', async () => {
       const store = await createLoadedStore();
       store.appSettings.ux.keyboardShortcuts.globalSearch = [shortcut('1'), shortcut('2'), shortcut('3')];
 
@@ -542,7 +542,7 @@ describe('stores/settings', () => {
       expect(mockStorage.appSettings.ux.keyboardShortcuts.globalSearch).toEqual([shortcut('1'), shortcut('3')]);
     });
 
-    it('[covers:remove_keyboard_shortcut.invalid_index_is_noop] ignores invalid shortcut indexes without saving', async () => {
+    it('[covers:remove-keyboard-shortcut.invalid-index-is-noop] ignores invalid shortcut indexes without saving', async () => {
       const store = await createLoadedStore();
       store.appSettings.ux.keyboardShortcuts.globalSearch = [shortcut('1')];
 
@@ -555,7 +555,7 @@ describe('stores/settings', () => {
   });
 
   describe('tail placement cards', () => {
-    it('[covers:add_tail_placement_card.absent_pushes_and_saves] [covers:add_tail_placement_card.duplicate_is_noop] adds missing tail placement cards and ignores duplicates', async () => {
+    it('[covers:add-tail-placement-card.absent-pushes-and-saves] [covers:add-tail-placement-card.duplicate-is-noop] adds missing tail placement cards and ignores duplicates', async () => {
       const store = await createLoadedStore();
       store.tailPlacementCardIds = ['100'];
       (chrome.storage.local.set as any).mockClear();
@@ -570,7 +570,7 @@ describe('stores/settings', () => {
       expect(chrome.storage.local.set).not.toHaveBeenCalled();
     });
 
-    it('[covers:remove_tail_placement_card.present_splices_and_saves] [covers:remove_tail_placement_card.missing_is_noop] removes present tail placement cards and ignores missing ids', async () => {
+    it('[covers:remove-tail-placement-card.present-splices-and-saves] [covers:remove-tail-placement-card.missing-is-noop] removes present tail placement cards and ignores missing ids', async () => {
       const store = await createLoadedStore();
       store.tailPlacementCardIds = ['100', '200'];
       (chrome.storage.local.set as any).mockClear();
@@ -585,7 +585,7 @@ describe('stores/settings', () => {
       expect(chrome.storage.local.set).not.toHaveBeenCalled();
     });
 
-    it('[covers:is_tail_placement_card.returns_includes_result] returns whether a card id is in the tail placement list', async () => {
+    it('[covers:is-tail-placement-card.returns-includes-result] returns whether a card id is in the tail placement list', async () => {
       const store = await createLoadedStore();
       store.tailPlacementCardIds = ['100'];
 
@@ -595,7 +595,7 @@ describe('stores/settings', () => {
   });
 
   describe('reset and public apply functions', () => {
-    it('[covers:reset_settings.resets_defaults_applies_and_saves] resets settings to defaults, applies CSS, and saves', async () => {
+    it('[covers:reset-settings.resets-defaults-applies-and-saves] resets settings to defaults, applies CSS, and saves', async () => {
       const store = await createLoadedStore();
       store.appSettings.theme = 'dark';
       store.featureSettings.chat = true;
@@ -609,7 +609,7 @@ describe('stores/settings', () => {
       expect(mockStorage.appSettings.theme).toBe(DEFAULT_APP_SETTINGS.theme);
     });
 
-    it('[covers:apply_card_size.applies_common_and_deck_sizes] applies common and deck card CSS variables', async () => {
+    it('[covers:apply-card-size.applies-common-and-deck-sizes] applies common and deck card CSS variables', async () => {
       const store = await createLoadedStore();
       store.appSettings.deckEditCardSize = 'small';
       store.appSettings.infoCardSize = 'medium';
