@@ -14,8 +14,8 @@ verified = true
 verified_at = "2026-08-07"
 verified_by = "codex"
 test_command = "mise run test:vitest -- tests/unit/utils/promise-timeout.test.ts"
-source_hash = "95452a251d2d3462fe1a223726d095bf4e64265a"
-note = "verified=falseは0件。TASK-478で、重複していたsrc/utils/__tests__/promise-timeout.test.tsを一本化。src側32itのうち31itはtests/unit/utils/promise-timeout.test.tsのfake timersによる既存検証と同趣旨だったため移植不要と判断し、未カバーだったTimeoutErrorのError継承検証1件（toBeInstanceOf(Error)）を移植してtimeout_error.extends_error条件を新規追加、旧ファイルを削除した。なおsrc側「should store cancel reason」は実検証がisCancelled()のみでreasonの保存を検証しておらず、実装もcancelのreason引数(_msg)を無視するため、保存機能自体が存在しない（cancel_token_cancel_sets_trueと同趣旨）"
+source_hash = "3befeb8d8d89e9148cb4f01283ab0d64210a6457"
+note = "verified=falseは0件。TASK-478で、重複していたsrc/utils/__tests__/promise-timeout.test.tsを一本化。src側32itのうち31itはtests/unit/utils/promise-timeout.test.tsのfake timersによる既存検証と同趣旨だったため移植不要と判断し、未カバーだったTimeoutErrorのError継承検証1件（toBeInstanceOf(Error)）を移植してtimeout_error.extends_error条件を新規追加、旧ファイルを削除した。なおsrc側「should store cancel reason」は実検証がisCancelled()のみでreasonの保存を検証しておらず、実装もcancelのreason引数(_msg)を無視するため、保存機能自体が存在しない（cancel_token_cancel_sets_trueと同趣旨）。2026-11-22のTASK-542第23単位（PR #233）で isTimeoutError の引数を unknown へ型付けしたが、条件集合の再検証は行っていないため source_hash は検証済み実装（旧blob）のまま据え置いた"
 
 # --- withTimeout<T>(promise: Promise<T>, options: TimeoutOptions = {}): Promise<T> ---
 
@@ -60,7 +60,7 @@ description = "onTimeout未指定でタイムアウトした場合、optional ch
 given = "promiseがsettleしない、options={ ms: 25 }"
 expect_throw = "TimeoutError: Promise timeout after 25ms"
 
-# --- TimeoutError#constructor / isTimeoutError(error: any): error is TimeoutError ---
+# --- TimeoutError#constructor / isTimeoutError(error: unknown): error is TimeoutError ---
 
 [[condition]]
 id = "timeout_error.extends_error"
@@ -74,7 +74,7 @@ expect_side_effect = "toBeInstanceOf(Error)がtrue"
 [[condition]]
 id = "timeout_error.instance_true"
 target_function = "TimeoutError.isTimeoutError"
-source_lines = "83-84"
+source_lines = "83-85"
 description = "errorがTimeoutErrorインスタンスの場合はtrueを返す"
 given = "error = new TimeoutError('x')"
 expect_return = true
@@ -82,7 +82,7 @@ expect_return = true
 [[condition]]
 id = "timeout_error.name_true"
 target_function = "TimeoutError.isTimeoutError"
-source_lines = "83-84"
+source_lines = "83-85"
 description = "errorがTimeoutErrorインスタンスでなくてもname === 'TimeoutError'ならtrueを返す"
 given = "error = { name: 'TimeoutError' }"
 expect_return = true
@@ -90,7 +90,7 @@ expect_return = true
 [[condition]]
 id = "timeout_error.other_false"
 target_function = "TimeoutError.isTimeoutError"
-source_lines = "83-84"
+source_lines = "83-85"
 description = "errorがTimeoutErrorインスタンスではなくnameも'TimeoutError'でない場合はfalseを返す"
 given = "error = new Error('x')"
 expect_return = false
@@ -98,7 +98,7 @@ expect_return = false
 [[condition]]
 id = "timeout_error.nullish_throws"
 target_function = "TimeoutError.isTimeoutError"
-source_lines = "83-84"
+source_lines = "83-85"
 description = "errorがnull/undefinedの場合、error.name参照によりTypeErrorをthrowする"
 given = "error = null"
 expect_throw = "TypeError"
