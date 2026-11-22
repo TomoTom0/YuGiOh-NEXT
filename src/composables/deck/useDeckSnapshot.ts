@@ -12,13 +12,13 @@ import type { DeckInfo } from '@/types/deck';
 export interface DeckSnapshotData {
   dno: number;
   name: string;
-  mainDeck: any[];
-  extraDeck: any[];
-  sideDeck: any[];
+  mainDeck: DeckInfo['mainDeck'];
+  extraDeck: DeckInfo['extraDeck'];
+  sideDeck: DeckInfo['sideDeck'];
   category?: string[];
   tags?: string[];
   comment?: string;
-  skippedCards?: any[];
+  skippedCards?: DeckInfo['skippedCards'];
 }
 
 /**
@@ -55,7 +55,7 @@ export function captureDeckSnapshot(
  */
 export function captureDeckSnapshotWithoutOrder(deckInfo: DeckInfo): string {
   // 各セクションのカードを (cid, ciid, quantity) のタプルで表現
-  const normalize = (deck: any[]) => {
+  const normalize = (deck: DeckInfo['mainDeck']) => {
     return deck
       .map(dc => ({
         cid: dc.cid,
