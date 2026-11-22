@@ -20,13 +20,13 @@
 #   usePracticeActions/usePracticeDropHandlerはmodule mockで置き換える
 
 [meta]
-verified_at = "2026-11-21"
+verified_at = "2026-11-22"
 verified_by = "claude"
 feature = "practice-field"
 source_file = "src/components/practice/PracticeField.vue"
 verified = true
-test_command = "mise run test:vitest -- tests/unit/components/PracticeField.test.ts"
-source_hash = "5c04281d3b9e6578f9feea47056b9b527ed4fe0f"
+test_command = "pnpm exec vitest run"
+source_hash = "635753d0c6652e8bfb24be0c7a95c64e8ba50024"
 note = "TASK-571（TASK-331第22号）でPractice系コンポーネント最終ファイルの条件化。12条件=DragOverlay表示1+初期化ゲート1+カードサイズ・CSS変数1+EMZ行1+スロット束縛1+コントロール表示1+コントロールprops1+HandArea束縛1+ゾーン選択1+アクション処理1+ドロップ処理1+P2専用ハンドラ1。テストは新規作成（子4種はカスタムstub、store実物、composableはmodule mock）。src不変"
 
 # --- 全体ゲート ---

@@ -222,7 +222,7 @@ const popupStyle = computed(() => ({
   width: `${layout.value.width}px`,
   // 画面の高さを超えて伸び続けないよう上限を設け、超える分はダイアログ内でスクロールする
   maxHeight: `${layout.value.maxHeight}px`,
-  overflowY: 'auto',
+  overflowY: 'auto' as const,
   padding: `${DIALOG_PADDING + LABEL_OVERFLOW}px ${DIALOG_PADDING}px ${DIALOG_PADDING}px`
 }))
 

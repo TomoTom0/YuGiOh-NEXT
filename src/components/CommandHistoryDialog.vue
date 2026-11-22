@@ -71,7 +71,7 @@ export default defineComponent({
     }
   },
   emits: ['close', 'jump-to', 'clear-history'],
-  setup(props, { emit }) {
+  setup(_props, { emit }) {
     function handleClose() {
       emit('close')
     }
