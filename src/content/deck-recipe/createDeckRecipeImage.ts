@@ -19,6 +19,7 @@ import { getDeckDisplayUrl, buildFullUrl } from '../../utils/url-builder';
 import { getTempCacheDB } from '../../utils/temp-cache-db';
 import { getUnifiedCacheDB } from '../../utils/unified-cache-db';
 import { detectLanguage } from '../../utils/language-detector';
+import type { Canvas as NodeCanvas } from 'canvas';
 
 /**
  * デッキレシピ画像を作成する
@@ -112,8 +113,8 @@ export async function createDeckRecipeImage(
   const drawSettings = initializeCanvasSettings(sections, scale, color, includeQR);
 
   // 4. Canvasの作成と初期化
-  let canvas: any;
-  let ctx: any;
+  let canvas: HTMLCanvasElement;
+  let ctx: CanvasRenderingContext2D | null;
 
   if (typeof document !== 'undefined') {
     // ブラウザ環境
@@ -124,7 +125,8 @@ export async function createDeckRecipeImage(
   } else {
     // Node.js環境
     const { createCanvas } = await import('canvas');
-    canvas = createCanvas(drawSettings.width, drawSettings.height);
+    // Node.js の canvas パッケージは HTMLCanvasElement と同じ描画 API を実装する
+    canvas = createCanvas(drawSettings.width, drawSettings.height) as unknown as HTMLCanvasElement;
     ctx = canvas.getContext('2d');
   }
 
@@ -178,7 +180,7 @@ export async function createDeckRecipeImage(
     });
   } else {
     // Node.js環境: Bufferで返す
-    const buffer = canvas.toBuffer('image/png');
+    const buffer = (canvas as unknown as NodeCanvas).toBuffer('image/png');
     return Promise.resolve(buffer);
   }
 }
@@ -346,7 +348,7 @@ async function drawCardSection(
 
   // 2. カードバック画像
   try {
-    let cardBackImg: any = null;
+    let cardBackImg: CanvasImageSource | null = null;
 
     if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL && chrome.runtime.id) {
       // Chrome拡張機能環境（コンテキストが有効な場合のみ）
@@ -498,7 +500,7 @@ function drawGenesysPointBadge(
  * @param gamePath - ゲームパス（yugiohdb/rushdb）
  * @returns ロードされた画像（ブラウザではHTMLImageElement、Node.jsではCanvasImage）
  */
-async function loadImage(url: string, gamePath: string): Promise<HTMLImageElement | any> {
+async function loadImage(url: string, gamePath: string): Promise<CanvasImageSource> {
   if (typeof document !== 'undefined') {
     // ブラウザ環境
     return new Promise((resolve, reject) => {
@@ -530,14 +532,14 @@ async function loadImage(url: string, gamePath: string): Promise<HTMLImageElemen
           res.on('end', () => {
             const buffer = Buffer.concat(chunks);
             canvasLoadImage(buffer)
-              .then(resolve)
+              .then((img) => resolve(img as unknown as CanvasImageSource))
               .catch(reject);
           });
         }).on('error', reject);
       });
     } else {
       // ローカルファイルパス
-      return canvasLoadImage(url);
+      return (await canvasLoadImage(url)) as unknown as CanvasImageSource;
     }
   }
 }
