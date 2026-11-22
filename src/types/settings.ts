@@ -90,44 +90,30 @@ export type Language =
 export type DisplayMode = 'list' | 'grid';
 
 /**
- * ソート順（拡張版）
+ * ソート順（拡張版）の全値
  * Note: アンダースコア区切り（実装と一致）
+ * SortOrder 型はこの一覧から導出する（型と検証用一覧の二重管理をしない）
  */
-export type SortOrder =
-  | 'official'      // 公式順（デフォルト）
-  | 'release_desc'  // リリース日降順（新しい順）
-  | 'release_asc'   // リリース日昇順（古い順）
-  | 'name_asc'      // 名前昇順
-  | 'name_desc'     // 名前降順
-  | 'level_asc'     // レベル昇順
-  | 'level_desc'    // レベル降順
-  | 'atk_asc'       // 攻撃力昇順
-  | 'atk_desc'      // 攻撃力降順
-  | 'def_asc'       // 守備力昇順
-  | 'def_desc'      // 守備力降順
-  | 'attribute_asc' // 属性昇順（APIに属性ソートなし: 50音順で取得しクライアント側でソート）
-  | 'attribute_desc'// 属性降順（同上）
-  | 'race_asc'      // 種族昇順（APIに種族ソートなし: 50音順で取得しクライアント側でソート）
-  | 'race_desc';    // 種族降順（同上）
+export const SORT_ORDERS = [
+  'official',       // 公式順（デフォルト）
+  'release_desc',   // リリース日降順（新しい順）
+  'release_asc',    // リリース日昇順（古い順）
+  'name_asc',       // 名前昇順
+  'name_desc',      // 名前降順
+  'level_asc',      // レベル昇順
+  'level_desc',     // レベル降順
+  'atk_asc',        // 攻撃力昇順
+  'atk_desc',       // 攻撃力降順
+  'def_asc',        // 守備力昇順
+  'def_desc',       // 守備力降順
+  'attribute_asc',  // 属性昇順（APIに属性ソートなし: 50音順で取得しクライアント側でソート）
+  'attribute_desc', // 属性降順（同上）
+  'race_asc',       // 種族昇順（APIに種族ソートなし: 50音順で取得しクライアント側でソート）
+  'race_desc',      // 種族降順（同上）
+] as const;
 
-/** SortOrder の全値（実行時検証用） */
-export const SORT_ORDERS: readonly SortOrder[] = [
-  'official',
-  'release_desc',
-  'release_asc',
-  'name_asc',
-  'name_desc',
-  'level_asc',
-  'level_desc',
-  'atk_asc',
-  'atk_desc',
-  'def_asc',
-  'def_desc',
-  'attribute_asc',
-  'attribute_desc',
-  'race_asc',
-  'race_desc',
-];
+/** ソート順（拡張版）。SORT_ORDERS の要素型 */
+export type SortOrder = (typeof SORT_ORDERS)[number];
 
 const SORT_ORDER_SET: ReadonlySet<string> = new Set(SORT_ORDERS);
 
