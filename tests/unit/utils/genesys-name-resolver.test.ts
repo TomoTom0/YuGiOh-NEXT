@@ -45,6 +45,8 @@ vi.mock('@/utils/unified-cache-db', () => {
     'U2': { tableA: { langsName: { ja: 'タイプ未定義グループ' } }, tableB: { cardType: 'monster', types: ['fusion'] } },
     // tableBが無い（欠損）カード: nameToCids/cidToKindどちらにも登録されないことの検証用
     'NB1': { tableA: { langsName: { ja: '欠損テーブルB検証' } } },
+    // 日本語名（langsName.ja）が無いカード: buildでスキップされる前提固定用（tableBは持つ）
+    'NM1': { tableA: { langsName: { en: 'Name Missing JA' } }, tableB: { cardType: 'monster', types: ['effect'] } },
   };
 
   const getUnifiedCacheDB = vi.fn(() => ({
@@ -66,37 +68,28 @@ describe('utils/genesys-name-resolver', () => {
     vi.mocked(getUnifiedCacheDB).mockClear();
   });
 
-  // [covers:resolve_cid.single_candidate]
-  it('同名カードが1件のみの場合はcidを返す', () => {
+  it('[covers:resolve-cid.single-candidate] 同名カードが1件のみの場合はcidを返す', () => {
     expect(resolver.resolveCid('BF－精鋭のゼピュロス', 'effect')).toBe('1001');
   });
 
-  // [covers:resolve_cid.multiple_candidates_match_found]
-  // [covers:matches_kind_class.extra_deck_true]
-  // [covers:build.groups_duplicate_names]
-  it('同名カードが複数の場合、種類classで儀式モンスターを絞り込む', () => {
+  it('[covers:resolve-cid.multiple-candidates-match-found,matches-kind-class.extra-deck-true,build.groups-duplicate-names] 同名カードが複数の場合、種類classで儀式モンスターを絞り込む', () => {
     expect(resolver.resolveCid('カオス・ソルジャー', 'ritual')).toBe('1003');
   });
 
-  // [covers:matches_kind_class.effect_true]
-  it('同名カードが複数の場合、effect classで通常モンスター（extra deck種でない）を絞り込む', () => {
+  it('[covers:matches-kind-class.effect-true] 同名カードが複数の場合、effect classで通常モンスター（extra deck種でない）を絞り込む', () => {
     // 通常モンスター(types=['normal'])はextra deck種でないため 'effect' classに該当
     expect(resolver.resolveCid('カオス・ソルジャー', 'effect')).toBe('1002');
   });
 
-  // [covers:resolve_cid.single_candidate]
-  it('魔法カードを magic class で解決する', () => {
+  it('[covers:resolve-cid.single-candidate] 魔法カードを magic class で解決する', () => {
     expect(resolver.resolveCid('サイクロン', 'magic')).toBe('1004');
   });
 
-  // [covers:resolve_cid.name_not_found]
-  it('存在しないカード名はnullを返す', () => {
+  it('[covers:resolve-cid.name-not-found] 存在しないカード名はnullを返す', () => {
     expect(resolver.resolveCid('存在しないカード', 'effect')).toBeNull();
   });
 
-  // [covers:resolve_entries.resolved_entry_recorded]
-  // [covers:resolve_entries.unresolved_entry_recorded]
-  it('resolveEntries でエントリ配列をcid->ポイントに解決する', () => {
+  it('[covers:resolve-entries.resolved-entry-recorded,resolve-entries.unresolved-entry-recorded] resolveEntries でエントリ配列をcid->ポイントに解決する', () => {
     const result = resolver.resolveEntries([
       { name: 'BF－精鋭のゼピュロス', point: 13, cardKindClass: 'effect' },
       { name: 'サイクロン', point: 5, cardKindClass: 'magic' },
@@ -106,8 +99,7 @@ describe('utils/genesys-name-resolver', () => {
     expect(result.unresolved).toEqual(['存在しない']);
   });
 
-  // [covers:resolve_entries.duplicate_cid_last_point_wins]
-  it('resolveEntries で同じcidに解決される複数エントリがある場合、最後のpointで上書きされる', () => {
+  it('[covers:resolve-entries.duplicate-cid-last-point-wins] resolveEntries で同じcidに解決される複数エントリがある場合、最後のpointで上書きされる', () => {
     const result = resolver.resolveEntries([
       { name: 'BF－精鋭のゼピュロス', point: 10, cardKindClass: 'effect' },
       { name: 'BF－精鋭のゼピュロス', point: 99, cardKindClass: 'effect' },
@@ -116,69 +108,66 @@ describe('utils/genesys-name-resolver', () => {
     expect(result.unresolved).toEqual([]);
   });
 
-  // [covers:matches_kind_class.non_monster_false]
-  it('種類classがeffectでも候補のcardTypeがmonsterでなければ不一致とみなし次候補に進む', () => {
+  it('[covers:matches-kind-class.non-monster-false] 種類classがeffectでも候補のcardTypeがmonsterでなければ不一致とみなし次候補に進む', () => {
     // 1件目(2001)はspellでmonsterでないため不一致、2件目(2002)のmonster/effectが一致
     expect(resolver.resolveCid('ノンモンスターチェック', 'effect')).toBe('2002');
   });
 
-  // [covers:matches_kind_class.trims_whitespace]
-  it('cardKindClassの前後空白はtrimしてから比較される', () => {
+  it('[covers:matches-kind-class.trims-whitespace] cardKindClassの前後空白はtrimしてから比較される', () => {
     expect(resolver.resolveCid('ノンモンスターチェック', ' effect ')).toBe('2002');
   });
 
-  // [covers:matches_kind_class.effect_false]
-  it('effect class指定時、typesがextra deck種を含む候補は不一致とみなし次候補に進む', () => {
+  it('[covers:matches-kind-class.effect-false] effect class指定時、typesがextra deck種を含む候補は不一致とみなし次候補に進む', () => {
     // 1件目(3001)はtypes=['fusion']でextra deck種のため不一致、2件目(3002)のtypes=['effect']が一致
     expect(resolver.resolveCid('エフェクト除外テスト', 'effect')).toBe('3002');
   });
 
-  // [covers:matches_kind_class.extra_deck_false]
-  it('fusion class指定時、typesにfusionを含まない候補は不一致とみなし次候補に進む', () => {
+  it('[covers:matches-kind-class.extra-deck-false] fusion class指定時、typesにfusionを含まない候補は不一致とみなし次候補に進む', () => {
     // 1件目(4001)はtypes=['synchro']で不一致、2件目(4002)のtypes=['fusion']が一致
     expect(resolver.resolveCid('エクストラ種別テスト', 'fusion')).toBe('4002');
   });
 
-  // [covers:matches_kind_class.magic_false]
-  // [covers:matches_kind_class.magic_true]
-  it('magic class指定時、cardTypeがspellでない候補は不一致とみなし次のspell候補が一致する', () => {
+  it('[covers:matches-kind-class.magic-false,matches-kind-class.magic-true] magic class指定時、cardTypeがspellでない候補は不一致とみなし次のspell候補が一致する', () => {
     // 1件目(M1)はtrapで不一致、2件目(M2)のspellが一致
     expect(resolver.resolveCid('マジック判定テスト', 'magic')).toBe('M2');
   });
 
-  // [covers:matches_kind_class.trap_false]
-  // [covers:matches_kind_class.trap_true]
-  it('trap class指定時、cardTypeがtrapでない候補は不一致とみなし次のtrap候補が一致する', () => {
+  it('[covers:matches-kind-class.trap-false,matches-kind-class.trap-true] trap class指定時、cardTypeがtrapでない候補は不一致とみなし次のtrap候補が一致する', () => {
     // 1件目(T1)はspellで不一致、2件目(T2)のtrapが一致
     expect(resolver.resolveCid('トラップ判定テスト', 'trap')).toBe('T2');
   });
 
-  // [covers:resolve_cid.multiple_candidates_no_match_fallback]
-  it('どの候補もcardKindClassと一致しない場合、先頭候補にフォールバックする', () => {
+  it('[covers:resolve-cid.multiple-candidates-no-match-fallback] どの候補もcardKindClassと一致しない場合、先頭候補にフォールバックする', () => {
     // F1(synchro)/F2(xyz)どちらもfusionとは一致しないため、先頭のF1にフォールバック
     expect(resolver.resolveCid('マッチなしフォールバック', 'fusion')).toBe('F1');
   });
 
-  // [covers:build.types_defaults_to_empty_array]
-  it('tableB.typesが未定義の候補は空配列として扱われる（extra deck種でないとみなされeffectに一致）', () => {
+  it('[covers:build.types-defaults-to-empty-array] tableB.typesが未定義の候補は空配列として扱われる（extra deck種でないとみなされeffectに一致）', () => {
     // U1はtypesキー自体が無いため []扱い -> extra deck種を含まない -> effectに一致
     expect(resolver.resolveCid('タイプ未定義グループ', 'effect')).toBe('U1');
   });
 
-  // [covers:build.skip_missing_table_b]
-  it('tableBが無いカードはnameToCidsにも登録されず、唯一の候補であっても解決できない', () => {
+  it('[covers:build.skip-missing-table-b] tableBが無いカードはnameToCidsにも登録されず、唯一の候補であっても解決できない', () => {
     expect(resolver.resolveCid('欠損テーブルB検証', 'effect')).toBeNull();
   });
 
-  // [covers:build.idempotent_no_rebuild]
-  it('build()は一度完了すると以後getUnifiedCacheDB()を再度呼ばない', () => {
+  // 日本語名が無いカードはbuildでスキップされる（前提固定テスト）。
+  // build.skip_missing_name は verified=false のまま: 公開APIだけでは「除外されている」ことと
+  // 「そもそも参照不能」であることを区別できないため、ここでは前提（公開挙動）だけを固定する。
+  it('[covers:build.skip-missing-name] 日本語名が無いカードはどの名前でも解決候補にならず、他のカードの解決にも影響しない', () => {
+    // NM1は日本語名が無いため、空文字列でも解決候補にならない
+    expect(resolver.resolveCid('', 'effect')).toBeNull();
+    // 名前のあるカードは通常どおり解決できる（buildがNM1で止まらない）
+    expect(resolver.resolveCid('BF－精鋭のゼピュロス', 'effect')).toBe('1001');
+  });
+
+  it('[covers:build.idempotent-no-rebuild] build()は一度完了すると以後getUnifiedCacheDB()を再度呼ばない', () => {
     resolver.resolveCid('BF－精鋭のゼピュロス', 'effect');
     resolver.resolveCid('サイクロン', 'magic');
     expect(vi.mocked(getUnifiedCacheDB)).toHaveBeenCalledTimes(1);
   });
 
-  // [covers:reset.clears_cache_and_rebuilds]
-  it('reset()後は次のresolveCid呼び出しでgetUnifiedCacheDB()が再度呼ばれる', () => {
+  it('[covers:reset.clears-cache-and-rebuilds] reset()後は次のresolveCid呼び出しでgetUnifiedCacheDB()が再度呼ばれる', () => {
     resolver.resolveCid('BF－精鋭のゼピュロス', 'effect');
     expect(vi.mocked(getUnifiedCacheDB)).toHaveBeenCalledTimes(1);
 
@@ -187,8 +176,7 @@ describe('utils/genesys-name-resolver', () => {
     expect(vi.mocked(getUnifiedCacheDB)).toHaveBeenCalledTimes(2);
   });
 
-  // [covers:resolve_genesys_entries.delegates_to_global_instance]
-  it('resolveGenesysEntriesはグローバルインスタンス(genesysNameResolver)のresolveEntriesに委譲する', () => {
+  it('[covers:resolve-genesys-entries.delegates-to-global-instance] resolveGenesysEntriesはグローバルインスタンス(genesysNameResolver)のresolveEntriesに委譲する', () => {
     genesysNameResolver.reset();
     const result = resolveGenesysEntries([
       { name: 'BF－精鋭のゼピュロス', point: 13, cardKindClass: 'effect' },
