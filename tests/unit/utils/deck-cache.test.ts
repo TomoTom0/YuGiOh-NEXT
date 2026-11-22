@@ -58,7 +58,7 @@ describe('deck-cache', () => {
   });
 
   describe('loadDeckListOrder / saveDeckListOrder', () => {
-    it('[covers:save_order.serializes_dnos] [covers:load_order.cached_returns_parsed] デッキリスト順序を保存・読み込みできる', () => {
+    it('[covers:save-order.serializes-dnos] [covers:load-order.cached-returns-parsed] デッキリスト順序を保存・読み込みできる', () => {
       const deckList: DeckListItem[] = [
         { dno: 1, name: 'Deck 1' },
         { dno: 2, name: 'Deck 2' },
@@ -78,18 +78,18 @@ describe('deck-cache', () => {
       expect(loaded).toEqual([]);
     });
 
-    it('[covers:load_order.missing_returns_empty] localStorageが空の場合は空配列を返す', () => {
+    it('[covers:load-order.missing-returns-empty] localStorageが空の場合は空配列を返す', () => {
       const loaded = loadDeckListOrder();
       expect(loaded).toEqual([]);
     });
 
-    it('[covers:load_order.catch_returns_empty] 不正なJSONの場合は空配列を返す', () => {
+    it('[covers:load-order.catch-returns-empty] 不正なJSONの場合は空配列を返す', () => {
       localStorage.setItem('ygoNext:deckListOrder', 'invalid json');
       const loaded = loadDeckListOrder();
       expect(loaded).toEqual([]);
     });
 
-    it('[covers:save_order.catch_swallows] 保存時にlocalStorageが例外を投げても再throwしない', () => {
+    it('[covers:save-order.catch-swallows] 保存時にlocalStorageが例外を投げても再throwしない', () => {
       vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
         throw new Error('quota exceeded');
       });
@@ -99,7 +99,7 @@ describe('deck-cache', () => {
   });
 
   describe('isDeckListOrderChanged', () => {
-    it('[covers:order_changed.same_false] 順序が変わっていない場合はfalse', () => {
+    it('[covers:order-changed.same-false] 順序が変わっていない場合はfalse', () => {
       const deckList: DeckListItem[] = [
         { dno: 1, name: 'Deck 1' },
         { dno: 2, name: 'Deck 2' }
@@ -111,7 +111,7 @@ describe('deck-cache', () => {
       expect(changed).toBe(false);
     });
 
-    it('[covers:order_changed.element_mismatch_true] 順序が変わった場合はtrue', () => {
+    it('[covers:order-changed.element-mismatch-true] 順序が変わった場合はtrue', () => {
       const deckList1: DeckListItem[] = [
         { dno: 1, name: 'Deck 1' },
         { dno: 2, name: 'Deck 2' }
@@ -127,7 +127,7 @@ describe('deck-cache', () => {
       expect(changed).toBe(true);
     });
 
-    it('[covers:order_changed.length_mismatch_true] デッキが追加された場合はtrue', () => {
+    it('[covers:order-changed.length-mismatch-true] デッキが追加された場合はtrue', () => {
       const deckList1: DeckListItem[] = [
         { dno: 1, name: 'Deck 1' }
       ];
@@ -142,7 +142,7 @@ describe('deck-cache', () => {
       expect(changed).toBe(true);
     });
 
-    it('[covers:order_changed.length_mismatch_true] デッキが削除された場合はtrue', () => {
+    it('[covers:order-changed.length-mismatch-true] デッキが削除された場合はtrue', () => {
       const deckList1: DeckListItem[] = [
         { dno: 1, name: 'Deck 1' },
         { dno: 2, name: 'Deck 2' }
@@ -168,7 +168,7 @@ describe('deck-cache', () => {
   });
 
   describe('loadThumbnailCache / saveThumbnailCache', () => {
-    it('[covers:save_thumbnail.map_to_object_json] [covers:load_thumbnail.cached_object_to_map] サムネイルキャッシュを保存・読み込みできる', () => {
+    it('[covers:save-thumbnail.map-to-object-json] [covers:load-thumbnail.cached-object-to-map] サムネイルキャッシュを保存・読み込みできる', () => {
       const thumbnails = new Map<number, string>();
       thumbnails.set(1, 'data:image/png;base64,abc');
       thumbnails.set(2, 'data:image/png;base64,def');
@@ -188,18 +188,18 @@ describe('deck-cache', () => {
       expect(loaded.size).toBe(0);
     });
 
-    it('[covers:load_thumbnail.missing_returns_empty_map] localStorageが空の場合は空Mapを返す', () => {
+    it('[covers:load-thumbnail.missing-returns-empty-map] localStorageが空の場合は空Mapを返す', () => {
       const loaded = loadThumbnailCache();
       expect(loaded.size).toBe(0);
     });
 
-    it('[covers:load_thumbnail.catch_returns_empty_map] 不正なJSONの場合は空Mapを返す', () => {
+    it('[covers:load-thumbnail.catch-returns-empty-map] 不正なJSONの場合は空Mapを返す', () => {
       localStorage.setItem('ygoNext:deckThumbnails', 'invalid json');
       const loaded = loadThumbnailCache();
       expect(loaded.size).toBe(0);
     });
 
-    it('[covers:save_thumbnail.catch_swallows] 保存時にlocalStorageが例外を投げても再throwしない', () => {
+    it('[covers:save-thumbnail.catch-swallows] 保存時にlocalStorageが例外を投げても再throwしない', () => {
       vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
         throw new Error('quota exceeded');
       });
@@ -209,7 +209,7 @@ describe('deck-cache', () => {
   });
 
   describe('loadDeckInfoCache / saveDeckInfoCache', () => {
-    it('[covers:save_info.map_to_object_json] [covers:load_info.cached_with_card_count_preserved] デッキ情報キャッシュを保存・読み込みできる', () => {
+    it('[covers:save-info.map-to-object-json] [covers:load-info.cached-with-card-count-preserved] デッキ情報キャッシュを保存・読み込みできる', () => {
       const cache = new Map<number, CachedDeckInfo>();
       const info: CachedDeckInfo = {
         dno: 1,
@@ -232,7 +232,7 @@ describe('deck-cache', () => {
       expect(loaded.get(1)?.hash).toBe('abc123');
     });
 
-    it('[covers:load_info.missing_card_count_computed] cardCountがない場合は自動計算される', () => {
+    it('[covers:load-info.missing-card-count-computed] cardCountがない場合は自動計算される', () => {
       // 手動でcardCountなしのデータを作成
       const data = {
         1: {
@@ -259,18 +259,18 @@ describe('deck-cache', () => {
       });
     });
 
-    it('[covers:load_info.missing_returns_empty_map] localStorageが空の場合は空Mapを返す', () => {
+    it('[covers:load-info.missing-returns-empty-map] localStorageが空の場合は空Mapを返す', () => {
       const loaded = loadDeckInfoCache();
       expect(loaded.size).toBe(0);
     });
 
-    it('[covers:load_info.catch_returns_empty_map] 不正なJSONの場合は空Mapを返す', () => {
+    it('[covers:load-info.catch-returns-empty-map] 不正なJSONの場合は空Mapを返す', () => {
       localStorage.setItem('ygoNext:deckInfoCache', 'invalid json');
       const loaded = loadDeckInfoCache();
       expect(loaded.size).toBe(0);
     });
 
-    it('[covers:save_info.catch_swallows] 保存時にlocalStorageが例外を投げても再throwしない', () => {
+    it('[covers:save-info.catch-swallows] 保存時にlocalStorageが例外を投げても再throwしない', () => {
       vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
         throw new Error('quota exceeded');
       });
@@ -299,7 +299,7 @@ describe('deck-cache', () => {
       expect(hash1).toBe(hash2);
     });
 
-    it('[covers:hash.uses_original_name_or_empty] originalNameが異なるとハッシュも変わる', () => {
+    it('[covers:hash.uses-original-name-or-empty] originalNameが異なるとハッシュも変わる', () => {
       const deck1 = createDeckInfo(1, 'Test Deck 1');
       const deck2 = createDeckInfo(1, 'Test Deck 2');
 
@@ -309,7 +309,7 @@ describe('deck-cache', () => {
       expect(hash1).not.toBe(hash2);
     });
 
-    it('[covers:hash.includes_ordered_cards_by_section] カードの順序が変わるとハッシュも変わる', () => {
+    it('[covers:hash.includes-ordered-cards-by-section] カードの順序が変わるとハッシュも変わる', () => {
       const deck1 = createDeckInfo(1);
       const deck2 = {
         ...createDeckInfo(1),
@@ -325,7 +325,7 @@ describe('deck-cache', () => {
       expect(hash1).not.toBe(hash2);
     });
 
-    it('[covers:hash.includes_ordered_cards_by_section] 数量が変わるとハッシュも変わる', () => {
+    it('[covers:hash.includes-ordered-cards-by-section] 数量が変わるとハッシュも変わる', () => {
       const deck1 = createDeckInfo(1);
       const deck2 = {
         ...createDeckInfo(1),
@@ -341,7 +341,7 @@ describe('deck-cache', () => {
       expect(hash1).not.toBe(hash2);
     });
 
-    it('[covers:hash.returns_unsigned_base36] 空のデッキでもハッシュを生成できる', () => {
+    it('[covers:hash.returns-unsigned-base36] 空のデッキでもハッシュを生成できる', () => {
       const deck: DeckInfo = {
         dno: 1,
         dname: 'Empty',
@@ -359,7 +359,7 @@ describe('deck-cache', () => {
       expect(typeof hash).toBe('string');
     });
 
-    it('[covers:hash.uses_original_name_or_empty] dnameだけが違ってもoriginalNameが同じなら同じハッシュになる', () => {
+    it('[covers:hash.uses-original-name-or-empty] dnameだけが違ってもoriginalNameが同じなら同じハッシュになる', () => {
       const deck1 = createDeckInfo(1, 'Original');
       const deck2 = {
         ...createDeckInfo(1, 'Original'),
@@ -372,7 +372,7 @@ describe('deck-cache', () => {
   });
 
   describe('isDeckInfoChanged', () => {
-    it('[covers:info_changed.no_cache_true] キャッシュがない場合はtrueを返す', () => {
+    it('[covers:info-changed.no-cache-true] キャッシュがない場合はtrueを返す', () => {
       const deck = createDeckInfo(1);
       const cache = new Map<number, CachedDeckInfo>();
 
@@ -381,7 +381,7 @@ describe('deck-cache', () => {
       expect(changed).toBe(true);
     });
 
-    it('[covers:info_changed.hash_match_false] ハッシュが一致する場合はfalseを返す', () => {
+    it('[covers:info-changed.hash-match-false] ハッシュが一致する場合はfalseを返す', () => {
       const deck = createDeckInfo(1);
       const hash = calculateDeckHash(deck);
       const cache = new Map<number, CachedDeckInfo>();
@@ -401,7 +401,7 @@ describe('deck-cache', () => {
       expect(changed).toBe(false);
     });
 
-    it('[covers:info_changed.hash_mismatch_true] ハッシュが異なる場合はtrueを返す', () => {
+    it('[covers:info-changed.hash-mismatch-true] ハッシュが異なる場合はtrueを返す', () => {
       const deck = createDeckInfo(1);
       const cache = new Map<number, CachedDeckInfo>();
       cache.set(1, {
@@ -422,7 +422,7 @@ describe('deck-cache', () => {
   });
 
   describe('isCacheExpired', () => {
-    it('[covers:cache_expired.age_within_or_equal_false] 有効期限内の場合はfalseを返す', () => {
+    it('[covers:cache-expired.age-within-or-equal-false] 有効期限内の場合はfalseを返す', () => {
       const cachedInfo: CachedDeckInfo = {
         dno: 1,
         name: 'Test',
@@ -439,7 +439,7 @@ describe('deck-cache', () => {
       expect(expired).toBe(false);
     });
 
-    it('[covers:cache_expired.age_greater_than_expiration_true] 有効期限切れの場合はtrueを返す', () => {
+    it('[covers:cache-expired.age-greater-than-expiration-true] 有効期限切れの場合はtrueを返す', () => {
       const cachedInfo: CachedDeckInfo = {
         dno: 1,
         name: 'Test',
@@ -456,7 +456,7 @@ describe('deck-cache', () => {
       expect(expired).toBe(true);
     });
 
-    it('[covers:cache_expired.age_greater_than_expiration_true] カスタム有効期限を指定できる', () => {
+    it('[covers:cache-expired.age-greater-than-expiration-true] カスタム有効期限を指定できる', () => {
       const cachedInfo: CachedDeckInfo = {
         dno: 1,
         name: 'Test',
@@ -473,7 +473,7 @@ describe('deck-cache', () => {
       expect(expired).toBe(true);
     });
 
-    it('[covers:cache_expired.age_within_or_equal_false] 経過時間が有効期限ちょうどならfalseを返す', () => {
+    it('[covers:cache-expired.age-within-or-equal-false] 経過時間が有効期限ちょうどならfalseを返す', () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2026-08-06T00:00:00.000Z'));
       const cachedInfo: CachedDeckInfo = {
@@ -492,7 +492,7 @@ describe('deck-cache', () => {
   });
 
   describe('generateAndCacheThumbnail', () => {
-    it('[covers:generate_cache.saves_deck_info_before_thumbnail] [covers:generate_cache.truthy_image_saved] デッキ情報を先に保存し、truthyなサムネイルURLを保存する', async () => {
+    it('[covers:generate-cache.saves-deck-info-before-thumbnail] [covers:generate-cache.truthy-image-saved] デッキ情報を先に保存し、truthyなサムネイルURLを保存する', async () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2026-08-06T00:00:00.000Z'));
       const deckInfo = { ...createDeckInfo(1), category: 'favorite' as any };
@@ -520,7 +520,7 @@ describe('deck-cache', () => {
       expect(generateDeckThumbnailImage).toHaveBeenCalledWith(deckInfo, ['12345']);
     });
 
-    it('[covers:generate_cache.falsy_image_empty_marker] サムネイル生成がfalsy値を返す場合は空文字列を保存する', async () => {
+    it('[covers:generate-cache.falsy-image-empty-marker] サムネイル生成がfalsy値を返す場合は空文字列を保存する', async () => {
       vi.mocked(generateDeckThumbnailImage).mockResolvedValueOnce('');
       const deckThumbnails = new Map<number, string>();
       const cachedDeckInfos = new Map<number, CachedDeckInfo>();
@@ -531,7 +531,7 @@ describe('deck-cache', () => {
       expect(JSON.parse(localStorage.getItem('ygoNext:deckThumbnails') || '{}')['1']).toBe('');
     });
 
-    it('[covers:generate_cache.catch_swallows] サムネイル生成がrejectしても再throwしない', async () => {
+    it('[covers:generate-cache.catch-swallows] サムネイル生成がrejectしても再throwしない', async () => {
       vi.mocked(generateDeckThumbnailImage).mockRejectedValueOnce(new Error('thumbnail failed'));
 
       await expect(generateAndCacheThumbnail(1, createDeckInfo(1), [], new Map(), new Map())).resolves.toBeUndefined();
@@ -539,7 +539,7 @@ describe('deck-cache', () => {
   });
 
   describe('updateDeckInfoAndThumbnail', () => {
-    it('[covers:check_needs.changed_or_expired_true] [covers:update_fetch.needs_update_generates] キャッシュがない場合は詳細取得後に生成してtrueを返す', async () => {
+    it('[covers:check-needs.changed-or-expired-true] [covers:update-fetch.needs-update-generates] キャッシュがない場合は詳細取得後に生成してtrueを返す', async () => {
       const deckInfo = createDeckInfo(1);
       const getDeckDetail = vi.fn().mockResolvedValue(deckInfo);
       const deckThumbnails = new Map<number, string>();
@@ -552,7 +552,7 @@ describe('deck-cache', () => {
       expect(deckThumbnails.get(1)).toBe('data:image/png;base64,mock');
     });
 
-    it('[covers:check_needs.null_detail_false] [covers:update_fetch.no_update_or_no_detail_skips_generation] getDeckDetailがnullを返した場合は生成せずfalseを返す', async () => {
+    it('[covers:check-needs.null-detail-false] [covers:update-fetch.no-update-or-no-detail-skips-generation] getDeckDetailがnullを返した場合は生成せずfalseを返す', async () => {
       const getDeckDetail = vi.fn().mockResolvedValue(null);
       const deckThumbnails = new Map<number, string>();
 
@@ -563,7 +563,7 @@ describe('deck-cache', () => {
       expect(generateDeckThumbnailImage).not.toHaveBeenCalled();
     });
 
-    it('[covers:check_needs.unchanged_and_fresh_false] [covers:update_fetch.no_update_or_no_detail_skips_generation] hash一致かつ期限内の場合は生成せずfalseを返す', async () => {
+    it('[covers:check-needs.unchanged-and-fresh-false] [covers:update-fetch.no-update-or-no-detail-skips-generation] hash一致かつ期限内の場合は生成せずfalseを返す', async () => {
       const deckInfo = createDeckInfo(1);
       const cachedDeckInfos = new Map<number, CachedDeckInfo>([
         [1, {
@@ -586,7 +586,7 @@ describe('deck-cache', () => {
       expect(generateDeckThumbnailImage).not.toHaveBeenCalled();
     });
 
-    it('[covers:check_needs.changed_or_expired_true] hash一致でも期限切れなら生成してtrueを返す', async () => {
+    it('[covers:check-needs.changed-or-expired-true] hash一致でも期限切れなら生成してtrueを返す', async () => {
       const deckInfo = createDeckInfo(1);
       const cachedDeckInfos = new Map<number, CachedDeckInfo>([
         [1, {
@@ -608,7 +608,7 @@ describe('deck-cache', () => {
       expect(deckThumbnails.get(1)).toBe('data:image/png;base64,mock');
     });
 
-    it('[covers:check_needs.catch_false_null] getDeckDetailがrejectした場合は生成せずfalseを返す', async () => {
+    it('[covers:check-needs.catch-false-null] getDeckDetailがrejectした場合は生成せずfalseを返す', async () => {
       const deckThumbnails = new Map<number, string>();
 
       const result = await updateDeckInfoAndThumbnail(
@@ -626,7 +626,7 @@ describe('deck-cache', () => {
   });
 
   describe('updateDeckInfoAndThumbnailWithData', () => {
-    it('[covers:update_with_data.setting_disabled_returns] 設定で無効なら更新しない', async () => {
+    it('[covers:update-with-data.setting-disabled-returns] 設定で無効なら更新しない', async () => {
       (window as any).ygoNextCurrentSettings = { updateThumbnailWithoutFetch: false };
       const deckThumbnails = new Map<number, string>();
       const cachedDeckInfos = new Map<number, CachedDeckInfo>();
@@ -638,7 +638,7 @@ describe('deck-cache', () => {
       expect(generateDeckThumbnailImage).not.toHaveBeenCalled();
     });
 
-    it('[covers:update_with_data.setting_access_error_continues] 設定取得がthrowしても通常の更新判定へ進む', async () => {
+    it('[covers:update-with-data.setting-access-error-continues] 設定取得がthrowしても通常の更新判定へ進む', async () => {
       Object.defineProperty(window, 'ygoNextCurrentSettings', {
         configurable: true,
         get: () => {
@@ -654,7 +654,7 @@ describe('deck-cache', () => {
       expect(cachedDeckInfos.has(1)).toBe(true);
     });
 
-    it('[covers:update_with_data.needs_update_or_thumbnail_missing_generates] hash一致でもサムネイルが無ければ生成する', async () => {
+    it('[covers:update-with-data.needs-update-or-thumbnail-missing-generates] hash一致でもサムネイルが無ければ生成する', async () => {
       const deckInfo = createDeckInfo(1);
       const cachedDeckInfos = new Map<number, CachedDeckInfo>([
         [1, {
@@ -675,7 +675,7 @@ describe('deck-cache', () => {
       expect(deckThumbnails.get(1)).toBe('data:image/png;base64,mock');
     });
 
-    it('[covers:update_with_data.no_need_and_thumbnail_exists_skips] hash一致かつサムネイルありなら生成しない', async () => {
+    it('[covers:update-with-data.no-need-and-thumbnail-exists-skips] hash一致かつサムネイルありなら生成しない', async () => {
       const deckInfo = createDeckInfo(1);
       const cachedDeckInfos = new Map<number, CachedDeckInfo>([
         [1, {
@@ -697,7 +697,7 @@ describe('deck-cache', () => {
       expect(generateDeckThumbnailImage).not.toHaveBeenCalled();
     });
 
-    it('[covers:update_with_data.catch_swallows] 更新判定中に例外が出ても再throwしない', async () => {
+    it('[covers:update-with-data.catch-swallows] 更新判定中に例外が出ても再throwしない', async () => {
       const invalidDeckInfo = { originalName: 'invalid' } as DeckInfo;
 
       await expect(updateDeckInfoAndThumbnailWithData(1, invalidDeckInfo, [], new Map(), new Map())).resolves.toBeUndefined();
@@ -724,7 +724,7 @@ describe('deck-cache', () => {
       ...overrides,
     });
 
-    it('[covers:background.empty_deck_list_returns] 空のデッキリストでは何もしない', async () => {
+    it('[covers:background.empty-deck-list-returns] 空のデッキリストでは何もしない', async () => {
       const getDeckDetail = vi.fn();
 
       await generateThumbnailsInBackground(0, 50, [], getDeckDetail, [], new Map(), new Map(), true);
@@ -732,7 +732,7 @@ describe('deck-cache', () => {
       expect(getDeckDetail).not.toHaveBeenCalled();
     });
 
-    it('[covers:background.force_false_requires_background_fetch_enabled] force=falseで設定が無い場合は何もしない', async () => {
+    it('[covers:background.force-false-requires-background-fetch-enabled] force=falseで設定が無い場合は何もしない', async () => {
       const getDeckDetail = vi.fn();
 
       await generateThumbnailsInBackground(0, 50, [{ dno: 1, name: 'Deck 1' }], getDeckDetail, [], new Map(), new Map());
@@ -740,7 +740,7 @@ describe('deck-cache', () => {
       expect(getDeckDetail).not.toHaveBeenCalled();
     });
 
-    it('[covers:background.force_false_thumbnail_generation_disabled_returns] force=falseでサムネイル生成が無効なら何もしない', async () => {
+    it('[covers:background.force-false-thumbnail-generation-disabled-returns] force=falseでサムネイル生成が無効なら何もしない', async () => {
       (window as any).ygoNextCurrentSettings = {
         backgroundDeckInfoFetch: true,
         enableDeckThumbnailGeneration: false,
@@ -752,7 +752,7 @@ describe('deck-cache', () => {
       expect(getDeckDetail).not.toHaveBeenCalled();
     });
 
-    it('[covers:background.force_bypasses_settings] force=trueなら設定未設定でも処理する', async () => {
+    it('[covers:background.force-bypasses-settings] force=trueなら設定未設定でも処理する', async () => {
       (window as any).requestIdleCallback = vi.fn((callback: IdleRequestCallback) => {
         callback({ didTimeout: false, timeRemaining: () => 1 });
         return 1;
@@ -766,7 +766,7 @@ describe('deck-cache', () => {
       expect(generateDeckThumbnailImage).toHaveBeenCalledWith(deckInfo, []);
     });
 
-    it('[covers:background.slices_target_decks] startIndexとbatchSizeの範囲だけを処理する', async () => {
+    it('[covers:background.slices-target-decks] startIndexとbatchSizeの範囲だけを処理する', async () => {
       (window as any).requestIdleCallback = vi.fn((callback: IdleRequestCallback) => {
         callback({ didTimeout: false, timeRemaining: () => 1 });
         return 1;
@@ -783,7 +783,7 @@ describe('deck-cache', () => {
       expect(getDeckDetail).not.toHaveBeenCalledWith(4);
     });
 
-    it('[covers:background.recent_update_skips_api] 1日以内に更新済みならAPI確認をスキップする', async () => {
+    it('[covers:background.recent-update-skips-api] 1日以内に更新済みならAPI確認をスキップする', async () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2026-08-06T00:00:00.000Z'));
       allowBackgroundSettings();
@@ -799,7 +799,7 @@ describe('deck-cache', () => {
       expect(generateDeckThumbnailImage).not.toHaveBeenCalled();
     });
 
-    it('[covers:subsequence.all_found_in_order_true] [covers:background.order_preserved_no_update_skip_records_check_time] 順序保持かつ変更なしならチェック時刻を記録して生成しない', async () => {
+    it('[covers:subsequence.all-found-in-order-true] [covers:background.order-preserved-no-update-skip-records-check-time] 順序保持かつ変更なしならチェック時刻を記録して生成しない', async () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2026-08-06T00:00:00.000Z'));
       allowBackgroundSettings();
@@ -817,7 +817,7 @@ describe('deck-cache', () => {
       expect(generateDeckThumbnailImage).not.toHaveBeenCalled();
     });
 
-    it('[covers:subsequence.missing_or_reordered_false] 順序が保持されていない場合は順序保持スキップ扱いにしない', async () => {
+    it('[covers:subsequence.missing-or-reordered-false] 順序が保持されていない場合は順序保持スキップ扱いにしない', async () => {
       allowBackgroundSettings();
       saveDeckListOrder([{ dno: 1, name: 'Deck 1' }, { dno: 2, name: 'Deck 2' }]);
       const deck1 = createDeckInfo(1);
@@ -843,7 +843,7 @@ describe('deck-cache', () => {
       expect(cachedDeckInfos.get(2)?.lastThumbnailUpdate).toBeUndefined();
     });
 
-    it('[covers:background.consecutive_five_skips_breaks] 5件連続スキップで残りを確認しない', async () => {
+    it('[covers:background.consecutive-five-skips-breaks] 5件連続スキップで残りを確認しない', async () => {
       const deckList = [1, 2, 3, 4, 5, 6, 7].map(dno => ({ dno, name: `Deck ${dno}` }));
       saveDeckListOrder(deckList);
       const cachedDeckInfos = new Map<number, CachedDeckInfo>();
@@ -859,7 +859,7 @@ describe('deck-cache', () => {
       expect(generateDeckThumbnailImage).not.toHaveBeenCalled();
     });
 
-    it('[covers:background.non_skip_changed_deck_queued] [covers:background.generates_each_queued_after_idle] [covers:wait_idle.uses_request_idle_callback] 更新対象をidle後に順番に生成する', async () => {
+    it('[covers:background.non-skip-changed-deck-queued] [covers:background.generates-each-queued-after-idle] [covers:wait-idle.uses-request-idle-callback] 更新対象をidle後に順番に生成する', async () => {
       const idle = vi.fn((callback: IdleRequestCallback) => {
         callback({ didTimeout: false, timeRemaining: () => 1 });
         return 1;
@@ -885,7 +885,7 @@ describe('deck-cache', () => {
       expect(cachedDeckInfos.size).toBe(2);
     });
 
-    it('[covers:background.no_decks_to_update_returns_after_save] 更新対象が無い場合はdeck info cache保存後に戻る', async () => {
+    it('[covers:background.no-decks-to-update-returns-after-save] 更新対象が無い場合はdeck info cache保存後に戻る', async () => {
       const deckList = [{ dno: 1, name: 'Deck 1' }];
       saveDeckListOrder(deckList);
       const deckInfo = createDeckInfo(1);
@@ -898,7 +898,7 @@ describe('deck-cache', () => {
       expect(generateDeckThumbnailImage).not.toHaveBeenCalled();
     });
 
-    it('[covers:wait_idle.fallback_set_timeout] requestIdleCallbackが無い場合は200msのsetTimeoutで生成へ進む', async () => {
+    it('[covers:wait-idle.fallback-set-timeout] requestIdleCallbackが無い場合は200msのsetTimeoutで生成へ進む', async () => {
       vi.useFakeTimers();
       const deckThumbnails = new Map<number, string>();
       const promise = generateThumbnailsInBackground(
@@ -920,7 +920,7 @@ describe('deck-cache', () => {
       expect(deckThumbnails.size).toBe(1);
     });
 
-    it('[covers:background.random_delay_before_second_api_when_not_force] force=falseの2回目以降のAPI確認前にランダム待機する', async () => {
+    it('[covers:background.random-delay-before-second-api-when-not-force] force=falseの2回目以降のAPI確認前にランダム待機する', async () => {
       vi.useFakeTimers();
       vi.spyOn(Math, 'random').mockReturnValue(0);
       allowBackgroundSettings();
