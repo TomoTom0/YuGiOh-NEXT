@@ -49,7 +49,7 @@ verified_at = "2026-09-15"
 verified_by = "claude"
 test_command = "N/A（上記「ユニットテスト非採用の技術的根拠」参照。tests/browser/でのE2E検証が適切）"
 source_hash = "6bfbbc5194fbc4170b73006bb3168b548134c74c"
-note = "export関数0件のオーケストレーション専用エントリーポイント。全31条件（TASK-330由来19条件+TASK-510追記12条件）がverified=false（webpack DefinePlugin依存のグローバル代入+多数の動的import依存によりユニットテストでの再現コストが不釣り合いに高いため。TASK-510実装時にsource_hashを再同期）"
+note = "export関数0件のオーケストレーション専用エントリーポイント。全31条件（TASK-330由来19条件+TASK-510追記12条件）がverified=false（webpack DefinePlugin依存のグローバル代入+多数の動的import依存によりユニットテストでの再現コストが不釣り合いに高いため。TASK-510実装時にsource_hashを再同期）。2026-11-22のTASK-542第19単位（PR #229、requestIdleCallback の型リファクタ）では再検証を伴わないため source_hash は同期しておらず、ハッシュは変更前の実装を指したまま"
 
 # --- prefetchEditUI() [非export] ---
 

@@ -91,7 +91,7 @@ function prefetchEditUI(): void {
   if (editUIModulePromise || isPrefetching) return;
 
   // requestIdleCallbackがサポートされていない場合はsetTimeoutで代用
-  const scheduleTask = (window as any).requestIdleCallback || ((cb: () => void) => setTimeout(cb, 1));
+  const scheduleTask = window.requestIdleCallback || ((cb: () => void) => setTimeout(cb, 1));
 
   isPrefetching = true;
   scheduleTask(() => {
@@ -400,7 +400,7 @@ async function initializeFeatures(): Promise<void> {
 
     // アプリケーション設定をlocalStorageにキャッシュ（idle時に実行）
     // localStorageはリロード後も保持され、編集ページで同期的に読み込める
-    const scheduleTask = (window as any).requestIdleCallback || ((cb: () => void) => setTimeout(cb, 1));
+    const scheduleTask = window.requestIdleCallback || ((cb: () => void) => setTimeout(cb, 1));
     scheduleTask(() => {
       cacheSettingsGlobally().catch(err =>
         console.warn('Failed to cache settings:', err)
