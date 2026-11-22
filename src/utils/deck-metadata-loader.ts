@@ -109,13 +109,13 @@ export async function getDeckMetadata(locale: string = 'ja'): Promise<DeckMetada
     return getDeckMetadata('ja');
   }
 
-  const initial = initialMetadata as any;
+  const initial = initialMetadata as { deckTypes: DeckMetadataEntry[]; deckStyles: DeckMetadataEntry[]; categories: CategoryEntry[] | Record<string, string>; tags: Record<string, string>; lastUpdated: string };
 
   // 初期JSONのcategoriesがRecord形式の場合は配列に変換
   if (initial.categories && !Array.isArray(initial.categories)) {
     const categoriesArray = Object.entries(initial.categories).map(([value, label]) => ({
       value,
-      label: label as string
+      label
     }));
     initial.categories = assignCategoryGroups(categoriesArray);
   }
