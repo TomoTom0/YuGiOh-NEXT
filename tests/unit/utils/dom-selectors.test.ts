@@ -42,8 +42,7 @@ describe('dom-selectors', () => {
     });
   });
 
-  // [covers:get_extension_id_selector.prefixes_hash_no_validation]
-  describe('getExtensionIdSelector', () => {
+  describe('getExtensionIdSelector [covers:get-extension-id-selector.prefixes-hash-no-validation]', () => {
     it('IDに # プレフィックスを付与する', () => {
       expect(getExtensionIdSelector('test-id')).toBe('#test-id');
       expect(getExtensionIdSelector('ygo-next-edit-btn')).toBe('#ygo-next-edit-btn');
@@ -55,8 +54,7 @@ describe('dom-selectors', () => {
     });
   });
 
-  // [covers:get_extension_class_selector.prefixes_dot_no_validation]
-  describe('getExtensionClassSelector', () => {
+  describe('getExtensionClassSelector [covers:get-extension-class-selector.prefixes-dot-no-validation]', () => {
     it('クラス名に . プレフィックスを付与する', () => {
       expect(getExtensionClassSelector('test-class')).toBe('.test-class');
       expect(getExtensionClassSelector('ygo-next')).toBe('.ygo-next');
@@ -85,15 +83,13 @@ describe('dom-selectors', () => {
       }
     });
 
-    // [covers:get_extension_element.found_returns_element]
-    it('存在する要素を取得できる', () => {
+    it('存在する要素を取得できる [covers:get-extension-element.found-returns-element]', () => {
       const element = getExtensionElement('test-element');
       expect(element).toBe(mockElement);
       expect(element?.id).toBe('test-element');
     });
 
-    // [covers:get_extension_element.not_found_returns_null]
-    it('存在しない要素の場合nullを返す', () => {
+    it('存在しない要素の場合nullを返す [covers:get-extension-element.not-found-returns-null]', () => {
       const element = getExtensionElement('non-existent-id');
       expect(element).toBeNull();
     });

@@ -18,42 +18,42 @@
 feature = "shuffle-icons"
 source_file = "src/utils/shuffle-icons.ts"
 verified = true
-verified_at = "2026-09-03"
+verified_at = "2026-11-22"
 verified_by = "claude"
-test_command = "mise run test:vitest -- tests/unit/utils/shuffle-icons.test.ts"
+test_command = "pnpm exec vitest run tests/unit/utils/shuffle-icons.test.ts"
 source_hash = "66936a61b18b3a21872cc554c39bf8e3bf96e853"
 note = "verified=falseは0件。export関数は存在しないため、export定数のliteral shapeを条件化した"
 
 # --- exported SVG icon constants ---
 
 [[condition]]
-id = "shuffle_icon.literal_svg_shape"
+id = "shuffle-icon.literal-svg-shape"
 target_function = "SHUFFLE_ICON"
-source_lines = "12-16"
+source_lines = "tests/unit/utils/shuffle-icons.test.ts:10"
 description = "SHUFFLE_ICONは16x16・viewBox='0 0 24 24'のsvg文字列で、デッキ編集画面(DeckSection.vue)と同じmdiShuffleのpath（fill=\"currentColor\"）を含む"
 given = "SHUFFLE_ICON"
 expect_return_shape = "svg文字列に '<path fill=\"currentColor\" d=\"M14.83,13.41L13.42,14.82L16.55,17.95L14.5,20H20V14.5L17.96,16.54L14.83,13.41M14.5,4L16.54,6.04L4,18.59L5.41,20L17.96,7.46L20,9.5V4M10.59,9.17L5.41,4L4,5.41L9.17,10.58L10.59,9.17Z\">' を含む"
 
 [[condition]]
-id = "sort_icon.literal_svg_shape"
+id = "sort-icon.literal-svg-shape"
 target_function = "SORT_ICON"
-source_lines = "22-26"
+source_lines = "tests/unit/utils/shuffle-icons.test.ts:15"
 description = "SORT_ICONは16x16・viewBox='0 0 24 24'のsvg文字列で、デッキ編集画面(DeckSection.vue)と同じmdiSortのpath（fill=\"currentColor\"）を含む"
 given = "SORT_ICON"
 expect_return_shape = "svg文字列に '<path fill=\"currentColor\" d=\"M18 21L14 17H17V7H14L18 3L22 7H19V17H22M2 19V17H12V19M2 13V11H9V13M2 7V5H6V7H2Z\">' を含む"
 
 [[condition]]
-id = "lock_closed_icon.literal_svg_shape"
+id = "lock-closed-icon.literal-svg-shape"
 target_function = "LOCK_CLOSED_ICON"
-source_lines = "31-36"
+source_lines = "tests/unit/utils/shuffle-icons.test.ts:20"
 description = "LOCK_CLOSED_ICONは12x12・viewBox='0 0 24 24'のsvg文字列で、lock本体のrectと閉じたU字pathを含む"
 given = "LOCK_CLOSED_ICON"
 expect_return_shape = "svg文字列に '<rect x=\"5\" y=\"11\" width=\"14\" height=\"10\" rx=\"2\" ry=\"2\" stroke=\"currentColor\" stroke-width=\"2\"/>' と '<path d=\"M7 11V7a5 5 0 0 1 10 0v4\" stroke=\"currentColor\" stroke-width=\"2\"/>' を含む"
 
 [[condition]]
-id = "lock_open_icon.literal_svg_shape"
+id = "lock-open-icon.literal-svg-shape"
 target_function = "LOCK_OPEN_ICON"
-source_lines = "41-46"
+source_lines = "tests/unit/utils/shuffle-icons.test.ts:26"
 description = "LOCK_OPEN_ICONは12x12・viewBox='0 0 24 24'のsvg文字列で、lock本体のrectと開いたpathを含む"
 given = "LOCK_OPEN_ICON"
 expect_return_shape = "svg文字列に '<rect x=\"5\" y=\"11\" width=\"14\" height=\"10\" rx=\"2\" ry=\"2\" stroke=\"currentColor\" stroke-width=\"2\"/>' と '<path d=\"M7 11V7a5 5 0 0 1 5-5c1.5 0 2.8 0.6 3.7 1.5M17 11V8\" stroke=\"currentColor\" stroke-width=\"2\"/>' を含む"

@@ -21,8 +21,7 @@ describe('deck-hash', () => {
   });
 
   describe('calculateDeckHash', () => {
-    // [covers:calculate_deck_hash.deterministic_same_content]
-    it('同じデッキで同じハッシュが生成される', () => {
+    it('同じデッキで同じハッシュが生成される [covers:calculate-deck-hash.deterministic-same-content]', () => {
       const deck1 = createDeckInfo(
         [
           { cid: '4007', ciid: '4007', lang: 'ja', quantity: 3 },
@@ -45,8 +44,7 @@ describe('deck-hash', () => {
       expect(hash1).toHaveLength(16);
     });
 
-    // [covers:calculate_deck_hash.differs_by_cid]
-    it('異なるデッキで異なるハッシュが生成される', () => {
+    it('異なるデッキで異なるハッシュが生成される [covers:calculate-deck-hash.differs-by-cid]', () => {
       const deck1 = createDeckInfo([{ cid: '4007', ciid: '4007', lang: 'ja', quantity: 3 }]);
       const deck2 = createDeckInfo([{ cid: '4008', ciid: '4008', lang: 'ja', quantity: 3 }]);
 
@@ -56,8 +54,7 @@ describe('deck-hash', () => {
       expect(hash1).not.toBe(hash2);
     });
 
-    // [covers:calculate_deck_hash.empty_deck_fixed_zero_hash]
-    it('空のデッキでもエラーが出ずにハッシュが生成される', () => {
+    it('空のデッキでもエラーが出ずにハッシュが生成される [covers:calculate-deck-hash.empty-deck-fixed-zero-hash]', () => {
       const emptyDeck = createDeckInfo();
 
       const hash = calculateDeckHash(emptyDeck);
@@ -69,8 +66,7 @@ describe('deck-hash', () => {
       expect(hash).toBe('0000000000000000');
     });
 
-    // [covers:calculate_deck_hash.return_length_always_16_hex]
-    it('ハッシュは常に16文字の小文字16進文字列になる', () => {
+    it('ハッシュは常に16文字の小文字16進文字列になる [covers:calculate-deck-hash.return-length-always-16-hex]', () => {
       const decks = [
         createDeckInfo(),
         createDeckInfo([{ cid: '4007', ciid: '4007', lang: 'ja', quantity: 3 }]),
@@ -91,8 +87,7 @@ describe('deck-hash', () => {
       }
     });
 
-    // [covers:calculate_deck_hash.order_and_section_sensitive]
-    it('カードの順序が異なると異なるハッシュになる', () => {
+    it('カードの順序が異なると異なるハッシュになる [covers:calculate-deck-hash.order-and-section-sensitive]', () => {
       const deck1 = createDeckInfo([
         { cid: '4007', ciid: '4007', lang: 'ja', quantity: 1 },
         { cid: '4008', ciid: '4008', lang: 'ja', quantity: 1 },
@@ -108,8 +103,7 @@ describe('deck-hash', () => {
       expect(hash1).not.toBe(hash2);
     });
 
-    // [covers:calculate_deck_hash.differs_by_quantity]
-    it('カードの数量が異なると異なるハッシュになる', () => {
+    it('カードの数量が異なると異なるハッシュになる [covers:calculate-deck-hash.differs-by-quantity]', () => {
       const deck1 = createDeckInfo([{ cid: '4007', ciid: '4007', lang: 'ja', quantity: 2 }]);
       const deck2 = createDeckInfo([{ cid: '4007', ciid: '4007', lang: 'ja', quantity: 3 }]);
 
@@ -119,8 +113,7 @@ describe('deck-hash', () => {
       expect(hash1).not.toBe(hash2);
     });
 
-    // [covers:calculate_deck_hash.order_and_section_sensitive]
-    it('mainDeck, extraDeck, sideDeck の順序が考慮される', () => {
+    it('mainDeck, extraDeck, sideDeck の順序が考慮される [covers:calculate-deck-hash.order-and-section-sensitive]', () => {
       // mainDeckに2枚、extraDeckに1枚
       const deck1 = createDeckInfo(
         [
@@ -143,8 +136,7 @@ describe('deck-hash', () => {
       expect(hash1).not.toBe(hash2);
     });
 
-    // [covers:calculate_deck_hash.ignores_ciid_and_lang]
-    it('ciidやlangが異なってもcid/quantityが同じなら同じハッシュになる', () => {
+    it('ciidやlangが異なってもcid/quantityが同じなら同じハッシュになる [covers:calculate-deck-hash.ignores-ciid-and-lang]', () => {
       const deck1 = createDeckInfo([
         { cid: '4007', ciid: '4007', lang: 'ja', quantity: 1 },
       ]);
@@ -161,8 +153,7 @@ describe('deck-hash', () => {
   });
 
   describe('isDeckModified', () => {
-    // [covers:is_deck_modified.false_when_hash_equal]
-    it('同じデッキでfalseを返す', () => {
+    it('同じデッキでfalseを返す [covers:is-deck-modified.false-when-hash-equal]', () => {
       const deck1 = createDeckInfo(
         [
           { cid: '4007', ciid: '4007', lang: 'ja', quantity: 3 },
@@ -183,8 +174,7 @@ describe('deck-hash', () => {
       expect(result).toBe(false);
     });
 
-    // [covers:is_deck_modified.true_when_hash_differs]
-    it('カードが追加されたらtrueを返す', () => {
+    it('カードが追加されたらtrueを返す [covers:is-deck-modified.true-when-hash-differs]', () => {
       const deck1 = createDeckInfo([{ cid: '4007', ciid: '4007', lang: 'ja', quantity: 1 }]);
       const deck2 = createDeckInfo([
         { cid: '4007', ciid: '4007', lang: 'ja', quantity: 1 },
@@ -196,8 +186,7 @@ describe('deck-hash', () => {
       expect(result).toBe(true);
     });
 
-    // [covers:is_deck_modified.true_when_hash_differs]
-    it('カードの順序が変わったらtrueを返す', () => {
+    it('カードの順序が変わったらtrueを返す [covers:is-deck-modified.true-when-hash-differs]', () => {
       const deck1 = createDeckInfo([
         { cid: '4007', ciid: '4007', lang: 'ja', quantity: 1 },
         { cid: '4008', ciid: '4008', lang: 'ja', quantity: 1 },
@@ -212,8 +201,7 @@ describe('deck-hash', () => {
       expect(result).toBe(true);
     });
 
-    // [covers:is_deck_modified.true_when_hash_differs]
-    it('カードの数量が変わったらtrueを返す', () => {
+    it('カードの数量が変わったらtrueを返す [covers:is-deck-modified.true-when-hash-differs]', () => {
       const deck1 = createDeckInfo([{ cid: '4007', ciid: '4007', lang: 'ja', quantity: 2 }]);
       const deck2 = createDeckInfo([{ cid: '4007', ciid: '4007', lang: 'ja', quantity: 3 }]);
 
@@ -222,8 +210,7 @@ describe('deck-hash', () => {
       expect(result).toBe(true);
     });
 
-    // [covers:is_deck_modified.false_when_only_ciid_or_lang_differs]
-    it('ciidのみ異なる場合はfalseを返す（cid/quantityが同一のため）', () => {
+    it('ciidのみ異なる場合はfalseを返す（cid/quantityが同一のため） [covers:is-deck-modified.false-when-only-ciid-or-lang-differs]', () => {
       const deck1 = createDeckInfo([{ cid: '4007', ciid: '4007', lang: 'ja', quantity: 1 }]);
       const deck2 = createDeckInfo([{ cid: '4007', ciid: '9999', lang: 'ja', quantity: 1 }]);
 
@@ -233,8 +220,7 @@ describe('deck-hash', () => {
       expect(result).toBe(false);
     });
 
-    // [covers:is_deck_modified.true_when_hash_differs]
-    it('カードが削除されたらtrueを返す', () => {
+    it('カードが削除されたらtrueを返す [covers:is-deck-modified.true-when-hash-differs]', () => {
       const deck1 = createDeckInfo([
         { cid: '4007', ciid: '4007', lang: 'ja', quantity: 1 },
         { cid: '4008', ciid: '4008', lang: 'ja', quantity: 1 },

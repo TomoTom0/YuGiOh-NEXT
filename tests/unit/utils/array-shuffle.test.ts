@@ -6,7 +6,7 @@ describe('fisherYatesShuffle', () => {
     vi.restoreAllMocks();
   });
 
-  it('入力配列を変更せず、別配列を返す [covers:fisher_yates.returns_new_array_copy]', () => {
+  it('入力配列を変更せず、別配列を返す [covers:fisher-yates.returns-new-array-copy]', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.999999);
     const input = [1, 2, 3];
 
@@ -17,7 +17,7 @@ describe('fisherYatesShuffle', () => {
     expect(input).toEqual([1, 2, 3]);
   });
 
-  it('空配列と単一要素配列ではループを実行しない [covers:fisher_yates.length_zero_or_one_skips_loop]', () => {
+  it('空配列と単一要素配列ではループを実行しない [covers:fisher-yates.length-zero-or-one-skips-loop]', () => {
     const randomSpy = vi.spyOn(Math, 'random');
 
     const emptyInput: number[] = [];
@@ -32,13 +32,13 @@ describe('fisherYatesShuffle', () => {
     expect(randomSpy).not.toHaveBeenCalled();
   });
 
-  it('Math.randomが0の場合は各iを先頭要素と交換する [covers:fisher_yates.random_zero_swaps_with_first_index]', () => {
+  it('Math.randomが0の場合は各iを先頭要素と交換する [covers:fisher-yates.random-zero-swaps-with-first-index]', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0);
 
     expect(fisherYatesShuffle([1, 2, 3])).toEqual([2, 3, 1]);
   });
 
-  it('Math.randomが1未満で1に近い場合は自己交換になる [covers:fisher_yates.random_near_one_self_swaps]', () => {
+  it('Math.randomが1未満で1に近い場合は自己交換になる [covers:fisher-yates.random-near-one-self-swaps]', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.999999);
     const input = [1, 2, 3];
 
@@ -48,7 +48,7 @@ describe('fisherYatesShuffle', () => {
     expect(result).not.toBe(input);
   });
 
-  it('長さnの配列ではn-1回乱数を使う [covers:fisher_yates.iterates_descending_until_one]', () => {
+  it('長さnの配列ではn-1回乱数を使う [covers:fisher-yates.iterates-descending-until-one]', () => {
     const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.999999);
 
     fisherYatesShuffle([1, 2, 3, 4]);

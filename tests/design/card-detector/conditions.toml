@@ -16,66 +16,66 @@
 feature = "card-detector"
 source_file = "src/content/card/detector.ts"
 verified = true
-verified_at = "2026-08-29"
+verified_at = "2026-11-22"
 verified_by = "claude"
-test_command = "mise run test:vitest -- tests/unit/content/detector.test.ts"
+test_command = "pnpm exec vitest run tests/unit/content/detector.test.ts"
 source_hash = "0ae9aa2f4546b5c10c57ed3a96d9d987655f5b4a"
 note = "verified=falseは0件"
 
 # --- detectCardType(row) ---
 
 [[condition]]
-id = "detect_card_type.no_img_returns_null"
+id = "detect-card-type.no-img-returns-null"
 target_function = "detectCardType"
-source_lines = "16-20"
+source_lines = "tests/unit/content/detector.test.ts:154"
 description = ".box_card_attribute内にimg要素が見つからない場合、nullを返す"
 given = ".box_card_attributeはあるがimg要素が無いrow"
 expect_return = "null"
 
 [[condition]]
-id = "detect_card_type.empty_src_returns_null"
+id = "detect-card-type.empty-src-returns-null"
 target_function = "detectCardType"
-source_lines = "22-26"
+source_lines = "tests/unit/content/detector.test.ts:163"
 description = "img要素は見つかるがsrc属性が空文字列の場合、nullを返す"
 given = "img[src='']"
 expect_return = "null"
 
 [[condition]]
-id = "detect_card_type.spell_icon_returns_spell"
+id = "detect-card-type.spell-icon-returns-spell"
 target_function = "detectCardType"
-source_lines = "29-30"
+source_lines = "tests/unit/content/detector.test.ts:14,tests/unit/content/detector.test.ts:31"
 description = "srcに'attribute_icon_spell'を含む場合、'spell'を返す（絶対パス・相対パス両方）"
 given = "img[src*='attribute_icon_spell.png']"
 expect_return = "'spell'"
 
 [[condition]]
-id = "detect_card_type.trap_icon_returns_trap"
+id = "detect-card-type.trap-icon-returns-trap"
 target_function = "detectCardType"
-source_lines = "31-32"
+source_lines = "tests/unit/content/detector.test.ts:46"
 description = "srcに'attribute_icon_trap'を含む場合、'trap'を返す"
 given = "img[src*='attribute_icon_trap.png']"
 expect_return = "'trap'"
 
 [[condition]]
-id = "detect_card_type.attribute_icon_returns_monster"
+id = "detect-card-type.attribute-icon-returns-monster"
 target_function = "detectCardType"
-source_lines = "33-35"
+source_lines = "tests/unit/content/detector.test.ts:61,tests/unit/content/detector.test.ts:74,tests/unit/content/detector.test.ts:87,tests/unit/content/detector.test.ts:100,tests/unit/content/detector.test.ts:113,tests/unit/content/detector.test.ts:126,tests/unit/content/detector.test.ts:139"
 description = "srcに'attribute_icon_'を含み、かつspell/trap以外の場合、'monster'を返す（light/dark/water/fire/earth/wind/divineの7属性全て）"
 given = "img[src*='attribute_icon_light.png'] 等7属性"
 expect_return = "'monster'"
 
 [[condition]]
-id = "detect_card_type.unrecognized_icon_returns_null"
+id = "detect-card-type.unrecognized-icon-returns-null"
 target_function = "detectCardType"
-source_lines = "38-39"
+source_lines = "tests/unit/content/detector.test.ts:176"
 description = "srcが'attribute_icon_'パターンに一致しない場合、nullを返す"
 given = "img[src*='unknown_icon.png']"
 expect_return = "null"
 
 [[condition]]
-id = "detect_card_type.no_box_card_attribute_returns_null"
+id = "detect-card-type.no-box-card-attribute-returns-null"
 target_function = "detectCardType"
-source_lines = "16-20"
+source_lines = "tests/unit/content/detector.test.ts:189"
 description = ".box_card_attribute要素自体がrow内に無い場合、querySelectorがnullを返しimg取得に失敗するためnullを返す"
 given = ".box_card_attributeクラスを持つ要素が無いrow"
 expect_return = "null"

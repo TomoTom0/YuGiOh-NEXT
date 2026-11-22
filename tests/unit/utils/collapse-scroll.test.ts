@@ -65,7 +65,7 @@ describe('collapse-scroll', () => {
   });
 
   describe('collapseWithScroll', () => {
-    it('[covers:collapse_with_scroll.set_collapsed_called_synchronously] setCollapsedはsetTimeoutスケジュール前に同期的に1回呼ばれる', () => {
+    it('[covers:collapse-with-scroll.set-collapsed-called-synchronously] setCollapsedはsetTimeoutスケジュール前に同期的に1回呼ばれる', () => {
       const { el } = createItemEl(200);
       const setCollapsed = vi.fn();
 
@@ -76,7 +76,7 @@ describe('collapse-scroll', () => {
       expect(vi.getTimerCount()).toBe(1);
     });
 
-    it('[covers:collapse_with_scroll.default_container_selector] containerSelector省略時は既定の.card-tab-contentが検索に使われる', async () => {
+    it('[covers:collapse-with-scroll.default-container-selector] containerSelector省略時は既定の.card-tab-contentが検索に使われる', async () => {
       const { el, setScrollHeight } = createItemEl(200);
       el.getBoundingClientRect = () => makeRect(50);
       const container = createContainer({ clientHeight: 300, scrollTop: 100, top: 0, className: 'card-tab-content' });
@@ -90,7 +90,7 @@ describe('collapse-scroll', () => {
       expect(container.scrollTo).toHaveBeenCalledTimes(1);
     });
 
-    it('[covers:collapse_with_scroll.height_diff_non_positive_returns_early] heightDiffが0以下の場合はcontainer探索・scrollToを行わず早期returnする', async () => {
+    it('[covers:collapse-with-scroll.height-diff-non-positive-returns-early] heightDiffが0以下の場合はcontainer探索・scrollToを行わず早期returnする', async () => {
       const { el, setScrollHeight } = createItemEl(200);
       const closestSpy = vi.spyOn(el, 'closest');
 
@@ -102,7 +102,7 @@ describe('collapse-scroll', () => {
       expect(closestSpy).not.toHaveBeenCalled();
     });
 
-    it('[covers:collapse_with_scroll.container_not_found_returns_early] heightDiff>0でもclosestがnullを返す場合はscrollToを呼ばず例外も投げない', async () => {
+    it('[covers:collapse-with-scroll.container-not-found-returns-early] heightDiff>0でもclosestがnullを返す場合はscrollToを呼ばず例外も投げない', async () => {
       const { el, setScrollHeight } = createItemEl(200);
       el.closest = vi.fn(() => null);
 
@@ -113,7 +113,7 @@ describe('collapse-scroll', () => {
       expect(el.closest).toHaveBeenCalledWith('.no-such-container');
     });
 
-    it('[covers:collapse_with_scroll.item_within_visible_area_scrolls] アイテム上端がコンテナ可視領域内ならscrollTo({top, behavior:"smooth"})が呼ばれる', async () => {
+    it('[covers:collapse-with-scroll.item-within-visible-area-scrolls] アイテム上端がコンテナ可視領域内ならscrollTo({top, behavior:"smooth"})が呼ばれる', async () => {
       const { el, setScrollHeight } = createItemEl(200);
       el.getBoundingClientRect = () => makeRect(100); // itemTop = 100
       const container = createContainer({ clientHeight: 300, scrollTop: 200, top: 0, className: 'custom-container' }); // containerTop + clientHeight = 300 > 100
@@ -128,7 +128,7 @@ describe('collapse-scroll', () => {
       expect(container.scrollTo).toHaveBeenCalledWith({ top: 150, behavior: 'smooth' });
     });
 
-    it('[covers:collapse_with_scroll.scroll_top_clamped_at_zero] heightDiffがscrollTopを上回る場合はtopが0にクランプされる', async () => {
+    it('[covers:collapse-with-scroll.scroll-top-clamped-at-zero] heightDiffがscrollTopを上回る場合はtopが0にクランプされる', async () => {
       const { el, setScrollHeight } = createItemEl(200);
       el.getBoundingClientRect = () => makeRect(100);
       const container = createContainer({ clientHeight: 300, scrollTop: 10, top: 0, className: 'custom-container' });
@@ -142,7 +142,7 @@ describe('collapse-scroll', () => {
       expect(container.scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' });
     });
 
-    it('[covers:collapse_with_scroll.item_below_visible_area_no_scroll] アイテム上端がコンテナ可視領域より下ならscrollToは呼ばれない', async () => {
+    it('[covers:collapse-with-scroll.item-below-visible-area-no-scroll] アイテム上端がコンテナ可視領域より下ならscrollToは呼ばれない', async () => {
       const { el, setScrollHeight } = createItemEl(200);
       el.getBoundingClientRect = () => makeRect(500); // itemTop = 500
       const container = createContainer({ clientHeight: 300, scrollTop: 200, top: 0, className: 'custom-container' }); // containerTop + clientHeight = 300 <= 500
@@ -156,7 +156,7 @@ describe('collapse-scroll', () => {
       expect(container.scrollTo).not.toHaveBeenCalled();
     });
 
-    it('[covers:collapse_with_scroll.timeout_delays_measurement] timeout未経過ではDOM再計測・scrollToは行われない', async () => {
+    it('[covers:collapse-with-scroll.timeout-delays-measurement] timeout未経過ではDOM再計測・scrollToは行われない', async () => {
       const { el, setScrollHeight } = createItemEl(200);
       el.getBoundingClientRect = () => makeRect(100);
       const container = createContainer({ clientHeight: 300, scrollTop: 200, top: 0, className: 'custom-container' });

@@ -24,14 +24,14 @@ describe('useDeckSorting', () => {
   });
 
   describe('sortDisplayOrderForOfficial', () => {
-    it('空の配列を渡すと空の結果を返す [covers:sort.empty_display_order_early_return]', () => {
+    it('空の配列を渡すと空の結果を返す [covers:sort.empty-display-order-early-return]', () => {
       const result = sortDisplayOrderForOfficial([], []);
 
       expect(result.sortedDisplayOrder).toEqual([]);
       expect(result.sortedDeck).toEqual([]);
     });
 
-    it('モンスター→魔法→罠の順にソートされる [covers:sort.primary_sort_by_card_type_priority]', () => {
+    it('モンスター→魔法→罠の順にソートされる [covers:sort.primary-sort-by-card-type-priority]', () => {
       // テストデータ準備
 
       const monsterCard: CardInfo = {
@@ -88,7 +88,7 @@ describe('useDeckSorting', () => {
       ]);
     });
 
-    it('同じカードタイプ内では最初の登場順を保持する [covers:sort.secondary_sort_by_first_appearance_within_same_type]', () => {
+    it('同じカードタイプ内では最初の登場順を保持する [covers:sort.secondary-sort-by-first-appearance-within-same-type]', () => {
 
       const monster1: CardInfo = {
         cid: 'monster1',
@@ -144,7 +144,7 @@ describe('useDeckSorting', () => {
       ]);
     });
 
-    it('同じカードが複数枚ある場合、最初の登場順を保持する [covers:sort.secondary_sort_by_first_appearance_within_same_type]', () => {
+    it('同じカードが複数枚ある場合、最初の登場順を保持する [covers:sort.secondary-sort-by-first-appearance-within-same-type]', () => {
 
       const monster1: CardInfo = {
         cid: 'monster1',
@@ -184,7 +184,7 @@ describe('useDeckSorting', () => {
       ]);
     });
 
-    it('ciid（Card Image ID）は変更されない [covers:sort.preserves_ciid_via_string_coercion]', () => {
+    it('ciid（Card Image ID）は変更されない [covers:sort.preserves-ciid-via-string-coercion]', () => {
 
       const monster1: CardInfo = {
         cid: 'monster1',
@@ -228,7 +228,7 @@ describe('useDeckSorting', () => {
       ]);
     });
 
-    it('TempCardDB にカード情報がない場合、モンスターとして扱われる [covers:sort.card_info_missing_defaults_to_monster_priority]', () => {
+    it('TempCardDB にカード情報がない場合、モンスターとして扱われる [covers:sort.card-info-missing-defaults-to-monster-priority]', () => {
       // カード情報を登録しない
       const displayOrder: DisplayCardRef[] = [
         { cid: 'unknown1', ciid: 1, uuid: 'U1' },
@@ -254,7 +254,7 @@ describe('useDeckSorting', () => {
       ]);
     });
 
-    it('【TASK-281修正確認】TempCardDB未設定時(parseDeckDetail修正前の状態)は魔法・罠がモンスター扱いでソートされない [covers:sort.card_info_missing_defaults_to_monster_priority]', () => {
+    it('【TASK-281修正確認】TempCardDB未設定時(parseDeckDetail修正前の状態)は魔法・罠がモンスター扱いでソートされない [covers:sort.card-info-missing-defaults-to-monster-priority]', () => {
       // TempCardDB は空のまま（parseDeckDetail がTempCardDB未設定だった旧バグを再現）
       // 魔法→モンスター→罠の混在順
       const displayOrder: DisplayCardRef[] = [
@@ -275,7 +275,7 @@ describe('useDeckSorting', () => {
       expect(result.sortedDisplayOrder.map(d => d.cid)).toEqual(['spell1', 'monster1', 'trap1']);
     });
 
-    it('【TASK-281修正確認】TempCardDB設定済み(parseDeckDetail修正後の状態)は魔法・罠を正しくソートする [covers:sort.primary_sort_by_card_type_priority]', () => {
+    it('【TASK-281修正確認】TempCardDB設定済み(parseDeckDetail修正後の状態)は魔法・罠を正しくソートする [covers:sort.primary-sort-by-card-type-priority]', () => {
       // parseDeckDetail の修正後: TempCardDB にカードタイプが登録される
       const spellInfo: CardInfo = { cid: 'spell1', nameRuby: '魔法1', cardType: 'spell', cardKindTitle: '魔法' };
       const monsterInfo: CardInfo = { cid: 'monster1', nameRuby: 'モンスター1', cardType: 'monster', cardKindTitle: 'モンスター' };
@@ -302,7 +302,7 @@ describe('useDeckSorting', () => {
       expect(result.sortedDisplayOrder.map(d => d.cid)).toEqual(['monster1', 'spell1', 'trap1']);
     });
 
-    it('複雑な混合ケース: モンスター・魔法・罠が混在し、同じカードが複数枚ある [covers:sort.primary_sort_by_card_type_priority] [covers:sort.secondary_sort_by_first_appearance_within_same_type]', () => {
+    it('複雑な混合ケース: モンスター・魔法・罠が混在し、同じカードが複数枚ある [covers:sort.primary-sort-by-card-type-priority] [covers:sort.secondary-sort-by-first-appearance-within-same-type]', () => {
 
       const monster1: CardInfo = {
         cid: 'monster1',
@@ -370,7 +370,7 @@ describe('useDeckSorting', () => {
       ]);
     });
 
-    it('sortedDeck は cid+ciid 重複を除去する [covers:sort.dedup_sorted_deck_by_cid_ciid_composite]', () => {
+    it('sortedDeck は cid+ciid 重複を除去する [covers:sort.dedup-sorted-deck-by-cid-ciid-composite]', () => {
       // displayOrder に同一 cid+ciid の重複エントリが含まれるケース
       const monster1: CardInfo = {
         cid: 'monster1',
@@ -411,7 +411,7 @@ describe('useDeckSorting', () => {
       expect(result.sortedDeck.length).toBe(2);
     });
 
-    it('deck に存在しない displayOrder 要素は sortedDeck から除外される [covers:sort.skips_display_cards_without_matching_deck_card]', () => {
+    it('deck に存在しない displayOrder 要素は sortedDeck から除外される [covers:sort.skips-display-cards-without-matching-deck-card]', () => {
       const monster1: CardInfo = {
         cid: 'monster1',
         nameRuby: 'モンスター1',
