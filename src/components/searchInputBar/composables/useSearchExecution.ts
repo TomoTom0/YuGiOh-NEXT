@@ -4,7 +4,7 @@ import type { SearchFilters } from '../../../types/search-filters'
 import type { SearchOptions } from '../../../api/card-search'
 import { useDeckEditStore } from '../../../stores/deck-edit'
 import { useSearchStore } from '../../../stores/search'
-import type { SortOrder } from '../../../types/settings'
+import { isSortOrder, type SortOrder } from '../../../types/settings'
 import { useSearchHistory } from '../../../composables/useSearchHistory'
 import { buildSearchOptions } from '../../../utils/search-options-builder'
 
@@ -248,12 +248,16 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
       let searchOptions: SearchOptions | null = null
       let delegatedToName = false  // autoモードからname検索に委譲したかどうか
 
+      // deckStore.sortOrder は string 型で SortOrder 外の値が入りうるため実行時に検証する。
+      // 不正値はストアの初期値（release_desc）へ倒す（TASK-542: as キャストの置換）
+      const sortOrder: SortOrder = isSortOrder(deckStore.sortOrder) ? deckStore.sortOrder : 'release_desc'
+
       if (effectiveSearchMode === 'auto') {
         // autoモード用のSearchOptionsを構築
         const autoOptions = buildSearchOptions(
           keyword,
           '1',  // searchTypeはauto関数内で上書きされるので仮の値
-          deckStore.sortOrder as SortOrder,
+          sortOrder,
           filtersSnapshot
         )
 
@@ -273,7 +277,7 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
         searchOptions = buildSearchOptions(
           keyword,
           searchType,
-          deckStore.sortOrder as SortOrder,
+          sortOrder,
           filtersSnapshot
         )
 

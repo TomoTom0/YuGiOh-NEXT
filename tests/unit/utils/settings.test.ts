@@ -11,6 +11,7 @@ import {
   DEFAULT_APP_SETTINGS,
 } from '@/types/settings';
 import type { FeatureSettings, AppSettings } from '@/types/settings';
+import { isSortOrder, SORT_ORDERS } from '@/types/settings';
 
 // chrome.storage.local のモック
 const mockChromeStorage = {
@@ -313,5 +314,32 @@ describe('settings', () => {
 
       consoleErrorSpy.mockRestore();
     });
+  });
+});
+
+describe('isSortOrder（types/settings）', () => {
+  it('SortOrderの全値をtrueと判定する', () => {
+    for (const order of SORT_ORDERS) {
+      expect(isSortOrder(order)).toBe(true);
+    }
+  });
+
+  it('CardListが発行しAPIマッパーが対応する属性・種族ソートをtrueと判定する', () => {
+    // RightArea経由でdeckStore.sortOrderへ入る正規値（SORT_ORDER_TO_API_VALUE対応）。
+    // ガードで弾くとrelease_descへ倒れ、上限超過時の取得集合が変わる（PR#211 Codex P2）
+    expect(isSortOrder('attribute_asc')).toBe(true);
+    expect(isSortOrder('attribute_desc')).toBe(true);
+    expect(isSortOrder('race_asc')).toBe(true);
+    expect(isSortOrder('race_desc')).toBe(true);
+  });
+
+  it('SortOrder外の文字列・非文字列をfalseと判定する', () => {
+    expect(isSortOrder('code_asc')).toBe(false);
+    expect(isSortOrder('actual_asc')).toBe(false);
+    expect(isSortOrder('')).toBe(false);
+    expect(isSortOrder('RELEASE_DESC')).toBe(false);
+    expect(isSortOrder(undefined)).toBe(false);
+    expect(isSortOrder(null)).toBe(false);
+    expect(isSortOrder(42)).toBe(false);
   });
 });
