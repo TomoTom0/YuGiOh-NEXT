@@ -7,8 +7,7 @@ import type { CardType, Attribute, MonsterType } from '../../../src/types/card-m
 // 各テストのコメントに [covers:<id>] を付与し、どの条件をカバーしているかを明示する。
 
 describe('convertFiltersToIcons', () => {
-  // [covers:convert_filters_to_icons.all_empty_returns_empty_array]
-  it('空のフィルターの場合、空の配列を返す', () => {
+  it('[covers:convert-filters-to-icons.all-empty-returns-empty-array] 空のフィルターの場合、空の配列を返す', () => {
     const filters: SearchFilters = {
       cardType: null,
       attributes: [],
@@ -32,8 +31,7 @@ describe('convertFiltersToIcons', () => {
     expect(result).toEqual([]);
   });
 
-  // [covers:convert_filters_to_icons.card_type_present_pushes_mapped_icon]
-  it('カードタイプのアイコンを生成する', () => {
+  it('[covers:convert-filters-to-icons.card-type-present-pushes-mapped-icon] カードタイプのアイコンを生成する', () => {
     const filters: SearchFilters = {
       cardType: 'monster',
       attributes: [],
@@ -57,8 +55,7 @@ describe('convertFiltersToIcons', () => {
     expect(result).toEqual([{ type: 'cardType', label: 'M', value: 'monster' }]);
   });
 
-  // [covers:convert_filters_to_icons.card_type_unmapped_fallback]
-  it('CARD_TYPE_ID_TO_SHORTNAMEに無いカードタイプは生値をlabelにフォールバックする', () => {
+  it('[covers:convert-filters-to-icons.card-type-unmapped-fallback] CARD_TYPE_ID_TO_SHORTNAMEに無いカードタイプは生値をlabelにフォールバックする', () => {
     const filters: SearchFilters = {
       cardType: 'unknown' as unknown as CardType,
       attributes: [],
@@ -82,8 +79,7 @@ describe('convertFiltersToIcons', () => {
     expect(result).toEqual([{ type: 'cardType', label: 'unknown', value: 'unknown' }]);
   });
 
-  // [covers:convert_filters_to_icons.spell_types_each_produces_icon_in_order]
-  it('魔法タイプのアイコンを配列順に生成する', () => {
+  it('[covers:convert-filters-to-icons.spell-types-each-produces-icon-in-order] 魔法タイプのアイコンを配列順に生成する', () => {
     const filters: SearchFilters = {
       cardType: null,
       attributes: [],
@@ -110,8 +106,7 @@ describe('convertFiltersToIcons', () => {
     ]);
   });
 
-  // [covers:convert_filters_to_icons.trap_types_each_produces_icon_in_order]
-  it('罠タイプのアイコンを配列順に生成する', () => {
+  it('[covers:convert-filters-to-icons.trap-types-each-produces-icon-in-order] 罠タイプのアイコンを配列順に生成する', () => {
     const filters: SearchFilters = {
       cardType: null,
       attributes: [],
@@ -138,8 +133,7 @@ describe('convertFiltersToIcons', () => {
     ]);
   });
 
-  // [covers:convert_filters_to_icons.attributes_each_produces_mapped_icon]
-  it('属性のアイコンを生成する', () => {
+  it('[covers:convert-filters-to-icons.attributes-each-produces-mapped-icon] 属性のアイコンを生成する', () => {
     const filters: SearchFilters = {
       cardType: null,
       attributes: ['light', 'dark'],
@@ -166,8 +160,7 @@ describe('convertFiltersToIcons', () => {
     ]);
   });
 
-  // [covers:convert_filters_to_icons.attribute_unmapped_fallback]
-  it('ATTRIBUTE_ID_TO_NAMEに無い属性は生値をlabelにフォールバックする', () => {
+  it('[covers:convert-filters-to-icons.attribute-unmapped-fallback] ATTRIBUTE_ID_TO_NAMEに無い属性は生値をlabelにフォールバックする', () => {
     const filters: SearchFilters = {
       cardType: null,
       attributes: ['unknownAttr'] as unknown as Attribute[],
@@ -191,8 +184,7 @@ describe('convertFiltersToIcons', () => {
     expect(result).toEqual([{ type: 'attr', label: 'unknownAttr', value: 'unknownAttr' }]);
   });
 
-  // [covers:convert_filters_to_icons.races_each_produces_icon]
-  it('種族のアイコンを生成する', () => {
+  it('[covers:convert-filters-to-icons.races-each-produces-icon] 種族のアイコンを生成する', () => {
     const filters: SearchFilters = {
       cardType: null,
       attributes: [],
@@ -217,8 +209,7 @@ describe('convertFiltersToIcons', () => {
     expect(result.length).toBe(2);
   });
 
-  // [covers:convert_filters_to_icons.level_values_present_pushes_range_icon]
-  it('レベル範囲のアイコンを生成する', () => {
+  it('[covers:convert-filters-to-icons.level-values-present-pushes-range-icon] レベル範囲のアイコンを生成する', () => {
     const filters: SearchFilters = {
       cardType: null,
       attributes: [],
@@ -242,8 +233,7 @@ describe('convertFiltersToIcons', () => {
     expect(result).toEqual([{ type: 'level', label: '★4-6', value: 'all' }]);
   });
 
-  // [covers:convert_filters_to_icons.level_values_empty_no_icon]
-  it('レベル範囲未指定の場合、levelアイコンを含まない', () => {
+  it('[covers:convert-filters-to-icons.level-values-empty-no-icon] レベル範囲未指定の場合、levelアイコンを含まない', () => {
     const filters: SearchFilters = {
       cardType: null,
       attributes: [],
@@ -267,8 +257,7 @@ describe('convertFiltersToIcons', () => {
     expect(result.some(icon => icon.type === 'level')).toBe(false);
   });
 
-  // [covers:convert_filters_to_icons.atk_label_present_pushes_icon]
-  it('ATKのアイコンを生成する', () => {
+  it('[covers:convert-filters-to-icons.atk-label-present-pushes-icon] ATKのアイコンを生成する', () => {
     const filters: SearchFilters = {
       cardType: null,
       attributes: [],
@@ -292,8 +281,7 @@ describe('convertFiltersToIcons', () => {
     expect(result).toEqual([{ type: 'atk', label: 'ATK=2500', value: 'atk' }]);
   });
 
-  // [covers:convert_filters_to_icons.atk_label_null_no_icon]
-  it('ATK条件なしの場合、atkアイコンを含まない', () => {
+  it('[covers:convert-filters-to-icons.atk-label-null-no-icon] ATK条件なしの場合、atkアイコンを含まない', () => {
     const filters: SearchFilters = {
       cardType: null,
       attributes: [],
@@ -317,8 +305,7 @@ describe('convertFiltersToIcons', () => {
     expect(result.some(icon => icon.type === 'atk')).toBe(false);
   });
 
-  // [covers:convert_filters_to_icons.def_label_present_pushes_icon]
-  it('DEFのアイコンを生成する', () => {
+  it('[covers:convert-filters-to-icons.def-label-present-pushes-icon] DEFのアイコンを生成する', () => {
     const filters: SearchFilters = {
       cardType: null,
       attributes: [],
@@ -342,8 +329,7 @@ describe('convertFiltersToIcons', () => {
     expect(result).toEqual([{ type: 'def', label: 'DEF≥2000', value: 'def' }]);
   });
 
-  // [covers:convert_filters_to_icons.def_label_null_no_icon]
-  it('DEF条件なしの場合、defアイコンを含まない', () => {
+  it('[covers:convert-filters-to-icons.def-label-null-no-icon] DEF条件なしの場合、defアイコンを含まない', () => {
     const filters: SearchFilters = {
       cardType: null,
       attributes: [],
@@ -367,8 +353,7 @@ describe('convertFiltersToIcons', () => {
     expect(result.some(icon => icon.type === 'def')).toBe(false);
   });
 
-  // [covers:convert_filters_to_icons.monster_types_each_isNot_false_when_normal]
-  it('モンスタータイプのアイコンを生成する（state=normalはisNot=false）', () => {
+  it('[covers:convert-filters-to-icons.monster-types-each-is-not-false-when-normal] モンスタータイプのアイコンを生成する（state=normalはisNot=false）', () => {
     const filters: SearchFilters = {
       cardType: null,
       attributes: [],
@@ -398,8 +383,7 @@ describe('convertFiltersToIcons', () => {
     ]);
   });
 
-  // [covers:convert_filters_to_icons.monster_types_isNot_true_when_state_not]
-  it('モンスタータイプのstateがnotの場合、isNot=trueになる', () => {
+  it('[covers:convert-filters-to-icons.monster-types-is-not-true-when-state-not] モンスタータイプのstateがnotの場合、isNot=trueになる', () => {
     const filters: SearchFilters = {
       cardType: null,
       attributes: [],
@@ -423,8 +407,7 @@ describe('convertFiltersToIcons', () => {
     expect(result).toEqual([{ type: 'mtype', label: 'X', value: 'xyz', isNot: true }]);
   });
 
-  // [covers:convert_filters_to_icons.monster_type_unmapped_fallback_first_char]
-  it('MONSTER_TYPE_ID_TO_SHORTNAMEに無いモンスタータイプは先頭1文字をlabelにフォールバックする', () => {
+  it('[covers:convert-filters-to-icons.monster-type-unmapped-fallback-first-char] MONSTER_TYPE_ID_TO_SHORTNAMEに無いモンスタータイプは先頭1文字をlabelにフォールバックする', () => {
     const filters: SearchFilters = {
       cardType: null,
       attributes: [],
@@ -448,8 +431,7 @@ describe('convertFiltersToIcons', () => {
     expect(result).toEqual([{ type: 'mtype', label: 'u', value: 'unknownType', isNot: false }]);
   });
 
-  // [covers:convert_filters_to_icons.link_values_present_pushes_range_icon]
-  it('リンク数のアイコンを生成する', () => {
+  it('[covers:convert-filters-to-icons.link-values-present-pushes-range-icon] リンク数のアイコンを生成する', () => {
     const filters: SearchFilters = {
       cardType: null,
       attributes: [],
@@ -473,8 +455,7 @@ describe('convertFiltersToIcons', () => {
     expect(result).toEqual([{ type: 'link', label: 'L2-4', value: 'all' }]);
   });
 
-  // [covers:convert_filters_to_icons.link_values_empty_no_icon]
-  it('リンク数未指定の場合、linkアイコンを含まない', () => {
+  it('[covers:convert-filters-to-icons.link-values-empty-no-icon] リンク数未指定の場合、linkアイコンを含まない', () => {
     const filters: SearchFilters = {
       cardType: null,
       attributes: [],
@@ -498,8 +479,7 @@ describe('convertFiltersToIcons', () => {
     expect(result.some(icon => icon.type === 'link')).toBe(false);
   });
 
-  // [covers:convert_filters_to_icons.scale_values_present_pushes_range_icon]
-  it('ペンデュラムスケールのアイコンを生成する', () => {
+  it('[covers:convert-filters-to-icons.scale-values-present-pushes-range-icon] ペンデュラムスケールのアイコンを生成する', () => {
     const filters: SearchFilters = {
       cardType: null,
       attributes: [],
@@ -523,8 +503,7 @@ describe('convertFiltersToIcons', () => {
     expect(result).toEqual([{ type: 'scale', label: 'PS1,13', value: 'all' }]);
   });
 
-  // [covers:convert_filters_to_icons.scale_values_empty_no_icon]
-  it('ペンデュラムスケール未指定の場合、scaleアイコンを含まない', () => {
+  it('[covers:convert-filters-to-icons.scale-values-empty-no-icon] ペンデュラムスケール未指定の場合、scaleアイコンを含まない', () => {
     const filters: SearchFilters = {
       cardType: null,
       attributes: [],
@@ -548,8 +527,7 @@ describe('convertFiltersToIcons', () => {
     expect(result.some(icon => icon.type === 'scale')).toBe(false);
   });
 
-  // [covers:convert_filters_to_icons.link_markers_present_pushes_icon]
-  it('リンクマーカーのアイコンを生成する', () => {
+  it('[covers:convert-filters-to-icons.link-markers-present-pushes-icon] リンクマーカーのアイコンを生成する', () => {
     const filters: SearchFilters = {
       cardType: null,
       attributes: [],
@@ -573,8 +551,7 @@ describe('convertFiltersToIcons', () => {
     expect(result).toContainEqual({ type: 'linkMarker', label: expect.any(String), value: 'all' });
   });
 
-  // [covers:convert_filters_to_icons.link_markers_empty_no_icon]
-  it('リンクマーカー未指定の場合、linkMarkerアイコンを含まない', () => {
+  it('[covers:convert-filters-to-icons.link-markers-empty-no-icon] リンクマーカー未指定の場合、linkMarkerアイコンを含まない', () => {
     const filters: SearchFilters = {
       cardType: null,
       attributes: [],
@@ -598,8 +575,7 @@ describe('convertFiltersToIcons', () => {
     expect(result.some(icon => icon.type === 'linkMarker')).toBe(false);
   });
 
-  // [covers:convert_filters_to_icons.icons_pushed_in_fixed_source_order]
-  it('複数のフィルターを組み合わせた場合、正しい順序でアイコンを生成する', () => {
+  it('[covers:convert-filters-to-icons.icons-pushed-in-fixed-source-order] 複数のフィルターを組み合わせた場合、正しい順序でアイコンを生成する', () => {
     const filters: SearchFilters = {
       cardType: 'monster',
       attributes: ['light'],
