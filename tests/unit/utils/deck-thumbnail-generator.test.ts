@@ -42,8 +42,7 @@ describe('deck-thumbnail-generator', () => {
   });
 
   describe('constructor', () => {
-    // [covers:constructor.uses_defaults_when_omitted]
-    it('デフォルト値でインスタンスを作成できる', () => {
+    it('[covers:constructor.uses-defaults-when-omitted] デフォルト値でインスタンスを作成できる', () => {
       const generator = new DeckThumbnailGenerator();
       expect(generator).toBeInstanceOf(DeckThumbnailGenerator);
       expect(generator['options'].width).toBe(300);
@@ -52,8 +51,7 @@ describe('deck-thumbnail-generator', () => {
       expect(generator['options'].includeExtraSide).toBe(false);
     });
 
-    // [covers:constructor.merges_provided_over_defaults]
-    it('カスタムオプションを指定できる', () => {
+    it('[covers:constructor.merges-provided-over-defaults] カスタムオプションを指定できる', () => {
       const generator = new DeckThumbnailGenerator({
         width: 400,
         height: 300,
@@ -66,8 +64,7 @@ describe('deck-thumbnail-generator', () => {
       expect(generator['options'].includeExtraSide).toBe(true);
     });
 
-    // [covers:constructor.merges_provided_over_defaults]
-    it('部分的なオプション指定でデフォルト値とマージされる', () => {
+    it('[covers:constructor.merges-provided-over-defaults] 部分的なオプション指定でデフォルト値とマージされる', () => {
       const generator = new DeckThumbnailGenerator({
         width: 500,
       });
@@ -76,8 +73,7 @@ describe('deck-thumbnail-generator', () => {
       expect(generator['options'].quality).toBe(0.8); // デフォルト値
     });
 
-    // [covers:constructor.uses_defaults_when_omitted]
-    it('空のオプションでもエラーにならない', () => {
+    it('[covers:constructor.uses-defaults-when-omitted] 空のオプションでもエラーにならない', () => {
       const generator = new DeckThumbnailGenerator({});
       expect(generator).toBeInstanceOf(DeckThumbnailGenerator);
     });
@@ -89,8 +85,7 @@ describe('deck-thumbnail-generator', () => {
     // generateWebPThumbnail自体のオーケストレーション（成功/エラーログ+rethrow）のみを検証する。
     // canvasToWebP自体の分岐は下の describe('canvasToWebP (private)') で個別に検証する。
 
-    // [covers:generate_webp_thumbnail.success_returns_data_url]
-    it('createCanvasThumbnailとcanvasToWebPが成功した場合、WebP Data URLを返す', async () => {
+    it('[covers:generate-webp-thumbnail.success-returns-data-url] createCanvasThumbnailとcanvasToWebPが成功した場合、WebP Data URLを返す', async () => {
       const generator = new DeckThumbnailGenerator();
       const fakeCanvas = {} as any;
       vi.spyOn(generator as any, 'createCanvasThumbnail').mockResolvedValue(fakeCanvas);
@@ -102,8 +97,7 @@ describe('deck-thumbnail-generator', () => {
       expect(consoleErrorSpy).not.toHaveBeenCalled();
     });
 
-    // [covers:generate_webp_thumbnail.error_logged_and_rethrown]
-    it('createCanvasThumbnailが失敗した場合、console.errorでログを出力し同じerrorをthrowする', async () => {
+    it('[covers:generate-webp-thumbnail.error-logged-and-rethrown] createCanvasThumbnailが失敗した場合、console.errorでログを出力し同じerrorをthrowする', async () => {
       const generator = new DeckThumbnailGenerator();
       const error = new Error('canvas failed');
       vi.spyOn(generator as any, 'createCanvasThumbnail').mockRejectedValue(error);
@@ -115,8 +109,7 @@ describe('deck-thumbnail-generator', () => {
       );
     });
 
-    // [covers:generate_webp_thumbnail.error_logged_and_rethrown]
-    it('canvasToWebPが失敗した場合、console.errorでログを出力し同じerrorをthrowする', async () => {
+    it('[covers:generate-webp-thumbnail.error-logged-and-rethrown] canvasToWebPが失敗した場合、console.errorでログを出力し同じerrorをthrowする', async () => {
       const generator = new DeckThumbnailGenerator();
       const fakeCanvas = {} as any;
       const error = new Error('webp conversion failed');
@@ -132,8 +125,7 @@ describe('deck-thumbnail-generator', () => {
   });
 
   describe('canvasToWebP (private)', () => {
-    // [covers:canvas_to_webp.file_reader_string_result_resolves]
-    it('blobが取得できFileReaderが文字列を返す場合、そのData URLでresolveする', async () => {
+    it('[covers:canvas-to-webp.file-reader-string-result-resolves] blobが取得できFileReaderが文字列を返す場合、そのData URLでresolveする', async () => {
       const generator = new DeckThumbnailGenerator();
       const fakeBlob = new Blob(['dummy-image-bytes'], { type: 'image/webp' });
       const toBlobFn = vi.fn((cb: (blob: Blob | null) => void) => cb(fakeBlob));
@@ -146,16 +138,14 @@ describe('deck-thumbnail-generator', () => {
       expect(toBlobFn).toHaveBeenCalledWith(expect.any(Function), 'image/webp', 0.8);
     });
 
-    // [covers:canvas_to_webp.blob_null_rejects]
-    it('blobがnullの場合、Canvas toBlob failedでrejectする', async () => {
+    it('[covers:canvas-to-webp.blob-null-rejects] blobがnullの場合、Canvas toBlob failedでrejectする', async () => {
       const generator = new DeckThumbnailGenerator();
       const fakeCanvas = { toBlob: (cb: (blob: Blob | null) => void) => cb(null) } as any;
 
       await expect(generator['canvasToWebP'](fakeCanvas)).rejects.toThrow('Canvas toBlob failed');
     });
 
-    // [covers:canvas_to_webp.sync_throw_in_to_blob_rejects]
-    it('canvas.toBlobが同期的にthrowした場合、そのerrorでrejectする', async () => {
+    it('[covers:canvas-to-webp.sync-throw-in-to-blob-rejects] canvas.toBlobが同期的にthrowした場合、そのerrorでrejectする', async () => {
       const generator = new DeckThumbnailGenerator();
       const syncError = new Error('toBlob sync failure');
       const fakeCanvas = {
@@ -167,8 +157,7 @@ describe('deck-thumbnail-generator', () => {
       await expect(generator['canvasToWebP'](fakeCanvas)).rejects.toBe(syncError);
     });
 
-    // [covers:canvas_to_webp.file_reader_non_string_result_rejects]
-    it('FileReaderの結果が文字列でない場合、FileReader result is not a stringでrejectする', async () => {
+    it('[covers:canvas-to-webp.file-reader-non-string-result-rejects] FileReaderの結果が文字列でない場合、FileReader result is not a stringでrejectする', async () => {
       const generator = new DeckThumbnailGenerator();
       const fakeBlob = new Blob(['dummy']);
       const fakeCanvas = { toBlob: (cb: (blob: Blob | null) => void) => cb(fakeBlob) } as any;
@@ -192,8 +181,7 @@ describe('deck-thumbnail-generator', () => {
       }
     });
 
-    // [covers:canvas_to_webp.file_reader_onerror_rejects]
-    it('FileReaderがonerrorを発火した場合、FileReader failedでrejectする', async () => {
+    it('[covers:canvas-to-webp.file-reader-onerror-rejects] FileReaderがonerrorを発火した場合、FileReader failedでrejectする', async () => {
       const generator = new DeckThumbnailGenerator();
       const fakeBlob = new Blob(['dummy']);
       const fakeCanvas = { toBlob: (cb: (blob: Blob | null) => void) => cb(fakeBlob) } as any;
@@ -217,8 +205,7 @@ describe('deck-thumbnail-generator', () => {
   });
 
   describe('createCanvasThumbnail', () => {
-    // [covers:create_canvas_thumbnail.returns_canvas_sized_per_options]
-    it('指定されたサイズのCanvasを作成する', async () => {
+    it('[covers:create-canvas-thumbnail.returns-canvas-sized-per-options] 指定されたサイズのCanvasを作成する', async () => {
       const generator = new DeckThumbnailGenerator({
         width: 400,
         height: 250,
@@ -231,8 +218,7 @@ describe('deck-thumbnail-generator', () => {
       expect(canvas.height).toBe(250);
     });
 
-    // [covers:create_canvas_thumbnail.returns_canvas_sized_per_options]
-    it('デッキ名なしでもエラーにならない', async () => {
+    it('[covers:create-canvas-thumbnail.returns-canvas-sized-per-options] デッキ名なしでもエラーにならない', async () => {
       const generator = new DeckThumbnailGenerator();
       const mockDeck = makeDeck({ name: '' });
 
@@ -242,8 +228,7 @@ describe('deck-thumbnail-generator', () => {
       expect(canvas.height).toBe(200);
     });
 
-    // [covers:create_canvas_thumbnail.returns_canvas_sized_per_options]
-    it('カードデータを含むデッキでCanvasを作成できる', async () => {
+    it('[covers:create-canvas-thumbnail.returns-canvas-sized-per-options] カードデータを含むデッキでCanvasを作成できる', async () => {
       const generator = new DeckThumbnailGenerator();
       const mockDeck = makeDeck({
         name: 'テストデッキ',
@@ -261,8 +246,7 @@ describe('deck-thumbnail-generator', () => {
       expect(canvas.height).toBe(200);
     });
 
-    // [covers:create_canvas_thumbnail.ctx_null_throws]
-    it('canvasの2Dコンテキストが取得できない場合、Errorをthrowする', async () => {
+    it('[covers:create-canvas-thumbnail.ctx-null-throws] canvasの2Dコンテキストが取得できない場合、Errorをthrowする', async () => {
       const generator = new DeckThumbnailGenerator();
       const fakeCanvas = { getContext: () => null, width: 0, height: 0 };
       global.document = {
@@ -276,8 +260,7 @@ describe('deck-thumbnail-generator', () => {
   });
 
   describe('drawDeckInfoOnCanvas', () => {
-    // [covers:draw_deck_info.name_wraps_via_wrap_text]
-    it('デッキ情報をCanvasに描画してもエラーにならない', () => {
+    it('[covers:draw-deck-info.name-wraps-via-wrap-text] デッキ情報をCanvasに描画してもエラーにならない', () => {
       const generator = new DeckThumbnailGenerator();
       const canvas = createCanvas(300, 200);
       const ctx = canvas.getContext('2d')!;
@@ -292,8 +275,7 @@ describe('deck-thumbnail-generator', () => {
       }).not.toThrow();
     });
 
-    // [covers:draw_deck_info.name_wraps_via_wrap_text]
-    it('長いデッキ名を正しく折り返して描画する', () => {
+    it('[covers:draw-deck-info.name-wraps-via-wrap-text] 長いデッキ名を正しく折り返して描画する', () => {
       const generator = new DeckThumbnailGenerator();
       const canvas = createCanvas(300, 200);
       const ctx = canvas.getContext('2d')!;
@@ -316,8 +298,7 @@ describe('deck-thumbnail-generator', () => {
       });
     });
 
-    // [covers:draw_deck_info.name_fallback_when_empty]
-    it('デッキ名が空の場合(No Name)を描画する', () => {
+    it('[covers:draw-deck-info.name-fallback-when-empty] デッキ名が空の場合(No Name)を描画する', () => {
       const generator = new DeckThumbnailGenerator();
       const canvas = createCanvas(300, 200);
       const ctx = canvas.getContext('2d')!;
@@ -330,8 +311,7 @@ describe('deck-thumbnail-generator', () => {
       expect(fillTextSpy.mock.calls[0][0]).toBe('(No Name)');
     });
 
-    // [covers:draw_deck_info.stats_reflect_card_quantity_sums]
-    it('Main/Extra/Sideの枚数はquantityの合計値として描画される', () => {
+    it('[covers:draw-deck-info.stats-reflect-card-quantity-sums] Main/Extra/Sideの枚数はquantityの合計値として描画される', () => {
       const generator = new DeckThumbnailGenerator();
       const canvas = createCanvas(300, 200);
       const ctx = canvas.getContext('2d')!;
@@ -358,8 +338,7 @@ describe('deck-thumbnail-generator', () => {
       expect(texts).toContain('Side: 3');
     });
 
-    // [covers:draw_deck_info.stats_and_cards_skipped_when_y_exceeds_height]
-    it('canvas高さが小さい場合、統計行・カード行は描画されない', () => {
+    it('[covers:draw-deck-info.stats-and-cards-skipped-when-y-exceeds-height] canvas高さが小さい場合、統計行・カード行は描画されない', () => {
       const generator = new DeckThumbnailGenerator();
       const canvas = createCanvas(300, 15); // padding=12を差し引くと余白がほぼ無い
       const ctx = canvas.getContext('2d')!;
@@ -383,8 +362,7 @@ describe('deck-thumbnail-generator', () => {
       expect(texts).toContain('A');
     });
 
-    // [covers:draw_deck_info.include_extra_side_false_excludes_extra_and_side]
-    it('includeExtraSide=falseの場合、extraDeck/sideDeckのカードは描画されない', () => {
+    it('[covers:draw-deck-info.include-extra-side-false-excludes-extra-and-side] includeExtraSide=falseの場合、extraDeck/sideDeckのカードは描画されない', () => {
       const generator = new DeckThumbnailGenerator({ includeExtraSide: false });
       const canvas = createCanvas(300, 500);
       const ctx = canvas.getContext('2d')!;
@@ -405,8 +383,7 @@ describe('deck-thumbnail-generator', () => {
       expect(texts.some((t) => t.includes('MAIN1'))).toBe(true);
     });
 
-    // [covers:draw_deck_info.include_extra_side_true_includes_extra_and_side]
-    it('includeExtraSide=trueの場合、extraDeck/sideDeckのカードも候補に含まれる', () => {
+    it('[covers:draw-deck-info.include-extra-side-true-includes-extra-and-side] includeExtraSide=trueの場合、extraDeck/sideDeckのカードも候補に含まれる', () => {
       const generator = new DeckThumbnailGenerator({ includeExtraSide: true });
       const canvas = createCanvas(300, 500);
       const ctx = canvas.getContext('2d')!;
@@ -426,8 +403,7 @@ describe('deck-thumbnail-generator', () => {
       expect(texts.some((t) => t.includes('SIDE1'))).toBe(true);
     });
 
-    // [covers:draw_deck_info.all_cards_sliced_to_first_ten]
-    it('カード一覧は先頭10件のみ描画される', () => {
+    it('[covers:draw-deck-info.all-cards-sliced-to-first-ten] カード一覧は先頭10件のみ描画される', () => {
       const generator = new DeckThumbnailGenerator();
       const canvas = createCanvas(300, 500); // 十分な高さでy上限による打ち切りを排除
       const ctx = canvas.getContext('2d')!;
@@ -451,8 +427,7 @@ describe('deck-thumbnail-generator', () => {
       expect(texts.some((t) => t.includes('CARD12'))).toBe(false);
     });
 
-    // [covers:draw_deck_info.card_text_truncated_when_over_25_chars]
-    it('カードテキストが25文字を超える場合は22文字+...に切り詰められる', () => {
+    it('[covers:draw-deck-info.card-text-truncated-when-over-25-chars] カードテキストが25文字を超える場合は22文字+...に切り詰められる', () => {
       const generator = new DeckThumbnailGenerator();
       const canvas = createCanvas(300, 500);
       const ctx = canvas.getContext('2d')!;
@@ -475,8 +450,7 @@ describe('deck-thumbnail-generator', () => {
       expect(texts).not.toContain(cardText);
     });
 
-    // [covers:draw_deck_info.card_text_kept_when_25_or_under]
-    it('カードテキストが25文字以下の場合は切り詰められずそのまま描画される', () => {
+    it('[covers:draw-deck-info.card-text-kept-when-25-or-under] カードテキストが25文字以下の場合は切り詰められずそのまま描画される', () => {
       const generator = new DeckThumbnailGenerator();
       const canvas = createCanvas(300, 500);
       const ctx = canvas.getContext('2d')!;
@@ -499,15 +473,13 @@ describe('deck-thumbnail-generator', () => {
   });
 
   describe('wrapText', () => {
-    // [covers:wrap_text.under_20_chars_no_wrap]
-    it('短いテキストはそのまま返される', () => {
+    it('[covers:wrap-text.under-20-chars-no-wrap] 短いテキストはそのまま返される', () => {
       const generator = new DeckThumbnailGenerator();
       const result = generator['wrapText']('短いテキスト', 300);
       expect(result).toEqual(['短いテキスト']);
     });
 
-    // [covers:wrap_text.multi_line_wrap_for_long_text]
-    it('長いテキストは20文字で折り返される', () => {
+    it('[covers:wrap-text.multi-line-wrap-for-long-text] 長いテキストは20文字で折り返される', () => {
       const generator = new DeckThumbnailGenerator();
       const longText = 'これは20文字を超える非常に長いテキストです。折り返されるべきです。';
       const result = generator['wrapText'](longText, 300);
@@ -517,30 +489,26 @@ describe('deck-thumbnail-generator', () => {
       });
     });
 
-    // [covers:wrap_text.empty_string_returns_empty_array]
-    it('空文字列の場合空配列を返す', () => {
+    it('[covers:wrap-text.empty-string-returns-empty-array] 空文字列の場合空配列を返す', () => {
       const generator = new DeckThumbnailGenerator();
       const result = generator['wrapText']('', 300);
       expect(result).toEqual([]);
     });
 
-    // [covers:wrap_text.under_20_chars_no_wrap]
-    it('1文字でも正しく動作する', () => {
+    it('[covers:wrap-text.under-20-chars-no-wrap] 1文字でも正しく動作する', () => {
       const generator = new DeckThumbnailGenerator();
       const result = generator['wrapText']('A', 300);
       expect(result).toEqual(['A']);
     });
 
-    // [covers:wrap_text.exactly_20_chars_no_wrap]
-    it('正確に20文字のテキストは折り返されない', () => {
+    it('[covers:wrap-text.exactly-20-chars-no-wrap] 正確に20文字のテキストは折り返されない', () => {
       const generator = new DeckThumbnailGenerator();
       const exactly20 = '12345678901234567890'; // 20文字
       const result = generator['wrapText'](exactly20, 300);
       expect(result).toEqual([exactly20]);
     });
 
-    // [covers:wrap_text.21_chars_wraps_into_two_lines]
-    it('21文字のテキストは折り返される', () => {
+    it('[covers:wrap-text.21-chars-wraps-into-two-lines] 21文字のテキストは折り返される', () => {
       const generator = new DeckThumbnailGenerator();
       const exactly21 = '123456789012345678901'; // 21文字
       const result = generator['wrapText'](exactly21, 300);
@@ -549,8 +517,7 @@ describe('deck-thumbnail-generator', () => {
       expect(result[1]).toBe('1');
     });
 
-    // [covers:wrap_text.multi_line_wrap_for_long_text]
-    it('複数行に折り返される長いテキスト', () => {
+    it('[covers:wrap-text.multi-line-wrap-for-long-text] 複数行に折り返される長いテキスト', () => {
       const generator = new DeckThumbnailGenerator();
       const veryLong = 'あ'.repeat(50); // 50文字
       const result = generator['wrapText'](veryLong, 300);
@@ -560,8 +527,7 @@ describe('deck-thumbnail-generator', () => {
       expect(result[2].length).toBe(10);
     });
 
-    // [covers:wrap_text.max_width_param_is_ignored]
-    it('maxWidth引数の値によらず結果は変わらない', () => {
+    it('[covers:wrap-text.max-width-param-is-ignored] maxWidth引数の値によらず結果は変わらない', () => {
       const generator = new DeckThumbnailGenerator();
       const text = 'あ'.repeat(30);
       const resultNarrow = generator['wrapText'](text, 10);
