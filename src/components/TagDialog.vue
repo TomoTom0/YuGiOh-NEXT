@@ -112,6 +112,7 @@
 import { ref, computed, watch } from 'vue';
 import BaseDialog from './BaseDialog.vue';
 import type { TagEntry } from '@/types/dialog';
+import type { CardInfo } from '@/types/card';
 import { 
   classifyTagById, 
   getMonsterTypeFromLabel, 
@@ -126,7 +127,7 @@ const props = defineProps<{
   isVisible: boolean;
   tags: Array<{ value: string; label: string }>;
   modelValue: string[];
-  deckCards: any[];
+  deckCards: CardInfo[];
 }>();
 
 const emit = defineEmits<{
@@ -193,7 +194,7 @@ function countMonstersWithTag(tag: TagEntry): number {
   return props.deckCards.filter(card => {
     if (card.cardType !== 'monster') return false;
     
-    const monsterCard = card as any;
+    const monsterCard = card;
     
     // internalKeyを使って直接比較
     switch (tag.group) {
@@ -203,7 +204,7 @@ function countMonstersWithTag(tag: TagEntry): number {
         return tag.internalKey ? monsterCard.race === tag.internalKey : false;
       case 'type':
         // typesは英語キーの配列なので、internalKeyで比較
-        return tag.internalKey ? (monsterCard.types && monsterCard.types.includes(tag.internalKey)) : false;
+        return tag.internalKey ? (monsterCard.types ?? []).some((t) => t === tag.internalKey) : false;
       default:
         return false;
     }
@@ -259,12 +260,12 @@ const filteredTags = computed(() => {
             // エクストラデッキのこのタイプの枚数をカウント
             const extraCount = props.deckCards.filter(card => {
               if (card.cardType !== 'monster') return false;
-              const monsterCard = card as any;
+              const monsterCard = card;
               if (!monsterCard.isExtraDeck) return false;
               
               // tag.internalKey（英語キー）と一致するかチェック
               const cardTypes = monsterCard.types || [];
-              return tag.internalKey && cardTypes.includes(tag.internalKey);
+              return tag.internalKey && cardTypes.some((t) => t === tag.internalKey);
             }).length;
             return extraCount >= 7;
           }
