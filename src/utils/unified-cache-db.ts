@@ -274,7 +274,7 @@ export class UnifiedCacheDB {
     const memoryData = Object.fromEntries(this.cardTableA);
 
     // Chrome Storage の既存データを読み込み
-    const storageData = await safeStorageGet(STORAGE_KEYS.cardTableA) as Record<string, CardTableA>;
+    const storageData = await safeStorageGet<CardTableA>(STORAGE_KEYS.cardTableA);
 
     // cardId ごとに langsImgs と langs_ciids をマージ
     const mergedData: Record<string, CardTableA> = { ...memoryData };
@@ -581,8 +581,8 @@ export class UnifiedCacheDB {
 
     // ストレージから読み込み
     const key = STORAGE_KEYS.cardTableCPrefix + cardId;
-    const result = await safeStorageGet(key);
-    const data = result[key] as CardTableC | undefined;
+    const result = await safeStorageGet<CardTableC>(key);
+    const data = result[key];
     if (data) {
       this.cardTableCCache.set(cardId, data);
       return data;
