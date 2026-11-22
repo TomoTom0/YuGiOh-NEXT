@@ -30,18 +30,18 @@
 feature = "safe-html-renderer"
 source_file = "src/utils/safe-html-renderer.ts"
 verified = true
-verified_at = "2026-08-28"
+verified_at = "2026-11-22"
 verified_by = "claude"
 test_command = "mise run test:vitest -- tests/unit/utils/safe-html-renderer.test.ts"
-source_hash = "0bd62177d4e5713ea9869c622fd0bb0732023ca4"
+source_hash = "3a636b78e4172189af34af5ec2e3f97e0de9f72d"
 note = "verified=falseは0件。TASK-478で重複していたsrc/utils/__tests__/safe-html-renderer.test.ts（41it）から実世界XSS防止の統合テスト3件をtests/unit/utils/safe-html-renderer.test.tsへ移植し、対応する統合条件3件（xss_integration.*）を新規追加、src側ファイルを削除して一本化した。残り38件はtests/unit側に同趣旨の検証が既存のため移植せず"
 
 # --- escapeHtml(text: string): string ---
 
 [[condition]]
-id = "escape_html.escapes_five_special_chars"
+id = "escape-html.escapes-five-special-chars"
 target_function = "escapeHtml"
-source_lines = "24-33"
+source_lines = "tests/unit/utils/safe-html-renderer.test.ts:14"
 description = "& < > \" ' の5文字をそれぞれ &amp; &lt; &gt; &quot; &#39; に置換する。それ以外の文字はそのまま返す。"
 given = "text = '<div class=\"test\" data-value=\\'test & \"data\"\\'>Content</div>'"
 expect_return = "5種の特殊文字が全てエンティティに置換された文字列"
@@ -49,9 +49,9 @@ expect_return = "5種の特殊文字が全てエンティティに置換され�
 # --- eSafe(value: any): string ---
 
 [[condition]]
-id = "e_safe.coerces_then_escapes"
+id = "e-safe.coerces-then-escapes"
 target_function = "eSafe"
-source_lines = "48-50"
+source_lines = "tests/unit/utils/safe-html-renderer.test.ts:60"
 description = "value を String(value) で文字列化してから escapeHtml でエスケープする。string以外の型(number/null/undefined/object等)でも String() の変換結果に依存する。"
 given = "value = 12345 | null | undefined | { key: 'value' } | 危険文字を含む文字列"
 expect_return = "String(value) を escapeHtml した結果（'12345'/'null'/'undefined'/'[object Object]'/エスケープ済み文字列）"
@@ -59,17 +59,17 @@ expect_return = "String(value) を escapeHtml した結果（'12345'/'null'/'und
 # --- escapeAttribute(text: string): string ---
 
 [[condition]]
-id = "escape_attribute.escapes_quotes_only"
+id = "escape-attribute.escapes-quotes-only"
 target_function = "escapeAttribute"
-source_lines = "62-64"
+source_lines = "tests/unit/utils/safe-html-renderer.test.ts:88,tests/unit/utils/safe-html-renderer.test.ts:95,tests/unit/utils/safe-html-renderer.test.ts:102"
 description = "ダブルクォート(\") とシングルクォート(') のみをそれぞれ &quot; &#39; に置換する。"
 given = "text = 'This is a \"test\" and \\'data\\''"
 expect_return = "クォートのみエスケープされた文字列"
 
 [[condition]]
-id = "escape_attribute.does_not_escape_ampersand_or_angle_brackets"
+id = "escape-attribute.does-not-escape-ampersand-or-angle-brackets"
 target_function = "escapeAttribute"
-source_lines = "62-64"
+source_lines = "tests/unit/utils/safe-html-renderer.test.ts:109"
 description = "escapeHtmlとは異なり、&, <, > はエスケープ対象に含まれず無変換のまま返る（セキュリティ上の注意点。escapeAttributeを万能なHTMLエスケープと誤用しないこと）。"
 given = "text = 'a & b < c > d'"
 expect_return = "'a & b < c > d'（無変化）"
@@ -77,71 +77,71 @@ expect_return = "'a & b < c > d'（無変化）"
 # --- setSafeInnerHTML(element: Element | null, html: string): boolean ---
 
 [[condition]]
-id = "set_safe_inner_html.null_element_returns_false"
+id = "set-safe-inner-html.null-element-returns-false"
 target_function = "setSafeInnerHTML"
-source_lines = "81-82"
+source_lines = "tests/unit/utils/safe-html-renderer.test.ts:128"
 description = "elementがnull(falsy)の場合、innerHTMLへの代入を行わずfalseを返す。"
 given = "element = null"
 expect_return = false
 
 [[condition]]
-id = "set_safe_inner_html.sets_html_verbatim_returns_true"
+id = "set-safe-inner-html.sets-html-verbatim-returns-true"
 target_function = "setSafeInnerHTML"
-source_lines = "83-84"
+source_lines = "tests/unit/utils/safe-html-renderer.test.ts:118"
 description = "elementが非nullの場合、htmlを一切エスケープせずそのままelement.innerHTMLに設定し、trueを返す。呼び出し側が事前にエスケープ済みのhtmlを渡すことが前提の関数であり、本関数自体はサニタイズを行わない。"
 given = "element = document.createElement('div'), html = '<span>Safe HTML</span>'"
 expect_return = true
-expect_side_effect = "element.innerHTML が html の値そのままに設定される（追加のエスケープなし）"
+expect_return_shape = "element.innerHTML が html の値そのままに設定される（追加のエスケープなし）"
 
 # --- setSafeTextContent(element: Element | null, text: string): boolean ---
 
 [[condition]]
-id = "set_safe_text_content.null_element_returns_false"
+id = "set-safe-text-content.null-element-returns-false"
 target_function = "setSafeTextContent"
-source_lines = "100-101"
+source_lines = "tests/unit/utils/safe-html-renderer.test.ts:155"
 description = "elementがnull(falsy)の場合、textContentへの代入を行わずfalseを返す。"
 given = "element = null"
 expect_return = false
 
 [[condition]]
-id = "set_safe_text_content.sets_text_returns_true"
+id = "set-safe-text-content.sets-text-returns-true"
 target_function = "setSafeTextContent"
-source_lines = "102-103"
+source_lines = "tests/unit/utils/safe-html-renderer.test.ts:145"
 description = "elementが非nullの場合、element.textContentにtextをそのまま設定する。textContentはブラウザ側で自動的にテキストとして扱われHTMLとして解釈されないため、危険文字を含んでいても実行されない。"
 given = "element = document.createElement('div'), text = '<script>alert(1)</script>'"
 expect_return = true
-expect_side_effect = "element.textContent = text（rawテキストとして格納）。結果としてelement.innerHTMLを参照すると自動エスケープされた表示になる"
+expect_return_shape = "element.textContent = text（rawテキストとして格納）。結果としてelement.innerHTMLを参照すると自動エスケープされた表示になる"
 
 # --- SafeHtmlBuilder.div(options): string ---
 
 [[condition]]
-id = "safe_html_builder_div.defaults_when_options_empty"
+id = "safe-html-builder-div.defaults-when-options-empty"
 target_function = "SafeHtmlBuilder.div"
-source_lines = "123-134"
+source_lines = "tests/unit/utils/safe-html-renderer.test.ts:174,tests/unit/utils/safe-html-renderer.test.ts:182"
 description = "class/attributes/content未指定の場合、それぞれ空文字列/空オブジェクト({})/空文字列がデフォルトとなり、属性もクラスも中身も無い<div></div>を返す。"
 given = "options = {}"
 expect_return = "'<div></div>'"
 
 [[condition]]
-id = "safe_html_builder_div.attribute_values_escaped_keys_not"
+id = "safe-html-builder-div.attribute-values-escaped-keys-not"
 target_function = "SafeHtmlBuilder.div"
-source_lines = "128-130"
+source_lines = "tests/unit/utils/safe-html-renderer.test.ts:206"
 description = "options.attributesの各エントリは ` key=\"escapeAttribute(value)\"` の形で連結される。属性値(value)はescapeAttributeでエスケープされるが、属性キー(key)はエスケープされずそのまま出力される。"
 given = "options.attributes = { 'data-id': '123\"x' }"
 expect_return_shape = "生成されたタグに ' data-id=\"123&quot;x\"' が含まれる（値はエスケープ、キーは無変換）"
 
 [[condition]]
-id = "safe_html_builder_div.class_not_escaped"
+id = "safe-html-builder-div.class-not-escaped"
 target_function = "SafeHtmlBuilder.div"
-source_lines = "131"
+source_lines = "tests/unit/utils/safe-html-renderer.test.ts:214"
 description = "options.classはエスケープされずそのままclass属性値として埋め込まれる。呼び出し側が信頼できない文字列をclassに渡すと未エスケープのまま出力される。"
 given = "options.class = 'x\"y'"
 expect_return_shape = "生成されたタグに ' class=\"x\"y\"' がそのまま含まれる（エスケープなし）"
 
 [[condition]]
-id = "safe_html_builder_div.content_not_escaped"
+id = "safe-html-builder-div.content-not-escaped"
 target_function = "SafeHtmlBuilder.div"
-source_lines = "132-133"
+source_lines = "tests/unit/utils/safe-html-renderer.test.ts:222"
 description = "options.contentはエスケープされずそのままタグの内側に挿入される。事前にescapeHtml等でエスケープ済みの文字列を渡すことが呼び出し側の責務であり(JSDocコメントの推奨用法)、SafeHtmlBuilder自体は追加のエスケープを行わない。"
 given = "options.content = '<script>alert(1)</script>'（未エスケープの生文字列）"
 expect_return = "'<div><script>alert(1)</script></div>'（contentがそのまま埋め込まれる）"
@@ -149,9 +149,9 @@ expect_return = "'<div><script>alert(1)</script></div>'（contentがそのまま
 # --- SafeHtmlBuilder.span(options): string ---
 
 [[condition]]
-id = "safe_html_builder_span.same_construction_pattern_as_div"
+id = "safe-html-builder-span.same-construction-pattern-as-div"
 target_function = "SafeHtmlBuilder.span"
-source_lines = "139-150"
+source_lines = "tests/unit/utils/safe-html-renderer.test.ts:252"
 description = "divと同一のロジック(attributesの値のみescapeAttributeでエスケープ、class/contentは無エスケープ)でspanタグを構築する。"
 given = "options = { class: 'highlight', attributes: { 'data-value': '100' }, content: 'Highlighted text' }"
 expect_return_shape = "'<span class=\"highlight\" data-value=\"100\">Highlighted text</span>'"
@@ -159,9 +159,9 @@ expect_return_shape = "'<span class=\"highlight\" data-value=\"100\">Highlighted
 # --- SafeHtmlBuilder.p(options): string ---
 
 [[condition]]
-id = "safe_html_builder_p.same_construction_pattern_as_div"
+id = "safe-html-builder-p.same-construction-pattern-as-div"
 target_function = "SafeHtmlBuilder.p"
-source_lines = "155-166"
+source_lines = "tests/unit/utils/safe-html-renderer.test.ts:266"
 description = "divと同一ロジックでpタグを構築する。"
 given = "options = { content: 'Paragraph content' }"
 expect_return = "'<p>Paragraph content</p>'"
@@ -169,25 +169,25 @@ expect_return = "'<p>Paragraph content</p>'"
 # --- SafeHtmlBuilder.a(options): string ---
 
 [[condition]]
-id = "safe_html_builder_a.href_escaped_via_escape_attribute"
+id = "safe-html-builder-a.href-escaped-via-escape-attribute"
 target_function = "SafeHtmlBuilder.a"
-source_lines = "177,183"
+source_lines = "tests/unit/utils/safe-html-renderer.test.ts:300"
 description = "options.hrefはescapeAttributeでエスケープされてからhref属性値に埋め込まれる。div/span/pのcontentやclassとは異なり、hrefは必ずエスケープされる。"
 given = "options.href = 'https://example.com/path?q=\"test\"'"
 expect_return_shape = "href属性値中のダブルクォートが&quot;にエスケープされる"
 
 [[condition]]
-id = "safe_html_builder_a.href_escape_does_not_block_javascript_protocol"
+id = "safe-html-builder-a.href-escape-does-not-block-javascript-protocol"
 target_function = "SafeHtmlBuilder.a"
-source_lines = "177,183"
+source_lines = "tests/unit/utils/safe-html-renderer.test.ts:310"
 description = "escapeAttributeはクォート文字のみをエスケープし、'javascript:'のような危険なプロトコル文字列自体は除去・検知しない。SafeHtmlBuilder.a()は呼び出し側でhrefのプロトコル安全性を検証する責務を負わない（プロトコル検知は別関数checkHTMLSafetyが担う）。"
 given = "options.href = 'javascript:alert(1)'"
 expect_return_shape = "'<a href=\"javascript:alert(1)\">...</a>' がそのまま生成される（'javascript:'はエスケープされず残存する）"
 
 [[condition]]
-id = "safe_html_builder_a.class_and_content_not_escaped"
+id = "safe-html-builder-a.class-and-content-not-escaped"
 target_function = "SafeHtmlBuilder.a"
-source_lines = "181-183"
+source_lines = "tests/unit/utils/safe-html-renderer.test.ts:285"
 description = "div/span/pと同様、classとcontentはエスケープされずそのまま埋め込まれる。"
 given = "options = { href: 'https://example.com', class: 'external-link', content: 'External link' }"
 expect_return_shape = "class/contentがそのまま埋め込まれた'<a href=\"https://example.com\" class=\"external-link\">External link</a>'"
@@ -195,57 +195,57 @@ expect_return_shape = "class/contentがそのまま埋め込まれた'<a href=\"
 # --- checkHTMLSafety(html: string): string[] ---
 
 [[condition]]
-id = "check_html_safety.empty_array_when_no_pattern_matches"
+id = "check-html-safety.empty-array-when-no-pattern-matches"
 target_function = "checkHTMLSafety"
-source_lines = "226-243"
+source_lines = "tests/unit/utils/safe-html-renderer.test.ts:369"
 description = "dangerousPatternsの5パターンいずれにもマッチしない場合、issuesは空配列のまま返る。"
 given = "html = '<div class=\"safe\">Safe content</div>'"
 expect_return = "[]"
 
 [[condition]]
-id = "check_html_safety.javascript_protocol_detected"
+id = "check-html-safety.javascript-protocol-detected"
 target_function = "checkHTMLSafety"
-source_lines = "229,236-240"
+source_lines = "tests/unit/utils/safe-html-renderer.test.ts:322"
 description = "/javascript:/i にマッチする場合、'javascript: プロトコルが検出されました' をissuesに追加する。"
 given = "html = '<a href=\"javascript:alert(1)\">Click</a>'"
 expect_return_shape = "issuesに該当メッセージを含む（1件以上）"
 
 [[condition]]
-id = "check_html_safety.inline_event_handler_detected"
+id = "check-html-safety.inline-event-handler-detected"
 target_function = "checkHTMLSafety"
-source_lines = "230,236-240"
+source_lines = "tests/unit/utils/safe-html-renderer.test.ts:330"
 description = "/on\\w+\\s*=/i にマッチする場合(on〇〇= のパターン)、'インラインイベントハンドラが検出されました' をissuesに追加する。"
 given = "html = '<img src=x onerror=\"alert(1)\">'"
 expect_return_shape = "issuesに該当メッセージを含む（1件以上）"
 
 [[condition]]
-id = "check_html_safety.script_tag_detected"
+id = "check-html-safety.script-tag-detected"
 target_function = "checkHTMLSafety"
-source_lines = "231,236-240"
+source_lines = "tests/unit/utils/safe-html-renderer.test.ts:338"
 description = "/<script/i にマッチする場合、'<script> タグが検出されました' をissuesに追加する。大文字小文字を区別しない(iフラグ)。"
 given = "html = '<SCRIPT>alert(1)</SCRIPT>'"
 expect_return_shape = "issuesに該当メッセージを含む（1件以上）"
 
 [[condition]]
-id = "check_html_safety.iframe_tag_detected"
+id = "check-html-safety.iframe-tag-detected"
 target_function = "checkHTMLSafety"
-source_lines = "232,236-240"
+source_lines = "tests/unit/utils/safe-html-renderer.test.ts:346"
 description = "/<iframe/i にマッチする場合、'<iframe> タグが検出されました' をissuesに追加する。"
 given = "html = '<iframe src=\"https://evil.com\"></iframe>'"
 expect_return_shape = "issuesに該当メッセージを含む（1件以上）"
 
 [[condition]]
-id = "check_html_safety.object_or_embed_tag_detected_same_message"
+id = "check-html-safety.object-or-embed-tag-detected-same-message"
 target_function = "checkHTMLSafety"
-source_lines = "233,236-240"
+source_lines = "tests/unit/utils/safe-html-renderer.test.ts:354,tests/unit/utils/safe-html-renderer.test.ts:362"
 description = "/<object|<embed/i の1パターンで<object>と<embed>の両方を検知し、タグ種別を区別せず同一メッセージ'<object>/<embed> タグが検出されました'をissuesに追加する。"
 given = "html = '<object data=\"https://evil.com\"></object>' または '<embed src=\"https://evil.com\">'"
 expect_return_shape = "issuesに該当メッセージを含む（1件以上）"
 
 [[condition]]
-id = "check_html_safety.multiple_patterns_accumulate_in_declaration_order"
+id = "check-html-safety.multiple-patterns-accumulate-in-declaration-order"
 target_function = "checkHTMLSafety"
-source_lines = "228-240"
+source_lines = "tests/unit/utils/safe-html-renderer.test.ts:387"
 description = "複数の危険パターンに同時にマッチする場合、issuesにはdangerousPatterns配列の宣言順(javascript: → イベントハンドラ → <script> → <iframe> → <object>/<embed>)でメッセージが追加される。html文字列中の出現順序ではなく配列の宣言順で決まる。"
 given = "html内にiframeがscriptより前に出現し、かつscript/iframe両方の危険パターンにマッチする"
 expect_return_shape = "issues配列内での各メッセージの並び順はdangerousPatterns宣言順(script用メッセージがiframe用メッセージより前)"
@@ -256,28 +256,28 @@ expect_return_shape = "issues配列内での各メッセージの並び順はdan
 # 組み合わせた際に危険要素がDOMへ生成されないことを保証する統合条件。
 
 [[condition]]
-id = "xss_integration.stored_data_escaped_via_builder_no_dynamic_element"
+id = "xss-integration.stored-data-escaped-via-builder-no-dynamic-element"
 target_function = "escapeHtml + SafeHtmlBuilder.div + setSafeInnerHTML"
 source = "tm TASK-478: src/utils/__tests__/safe-html-renderer.test.ts 旧テストの実世界XSS統合検証（tests/unitへの移植に伴い条件化）"
-source_lines = "24-33,123-134,81-85"
+source_lines = "tests/unit/utils/safe-html-renderer.test.ts:409"
 description = "APIデータ等の外部文字列をescapeHtmlでエスケープしてからSafeHtmlBuilderでHTML文字列を構築しsetSafeInnerHTMLで設定した場合、元文字列に含まれるimg/script等のタグはHTMLとして解釈されずテキストとして描画される（格納型XSSの防止）"
 given = "apiData.name = 'Product<img src=x onerror=\"alert(1)\">' をescapeHtmlしてSafeHtmlBuilder.divのcontentに渡し、setSafeInnerHTMLでdiv要素へ設定"
-expect_side_effect = "描画結果にimg要素は存在せず、textContentは'Product'を含む"
+expect_return_shape = "描画結果にimg要素は存在せず、textContentは'Product'を含む"
 
 [[condition]]
-id = "xss_integration.attribute_boundary_protected_by_escape_attribute"
+id = "xss-integration.attribute-boundary-protected-by-escape-attribute"
 target_function = "escapeAttribute + setSafeInnerHTML"
 source = "tm TASK-478: src/utils/__tests__/safe-html-renderer.test.ts 旧テストの実世界XSS統合検証（tests/unitへの移植に伴い条件化）"
-source_lines = "62-64,81-85"
+source_lines = "tests/unit/utils/safe-html-renderer.test.ts:426"
 description = "テンプレートリテラルのダブルクォート属性値に外部文字列を埋め込む際、escapeAttributeでクォート文字をエスケープしていれば属性値の境界を突破されてscript要素等を注入されることはない（DOMベースXSSの防止）"
 given = "userInput = '\"><script>alert(1)</script><div class=\"' をescapeAttributeしてhref属性値に埋め込んだHTMLをsetSafeInnerHTMLでdiv要素へ設定"
-expect_side_effect = "描画結果にscript要素は存在しない"
+expect_return_shape = "描画結果にscript要素は存在しない"
 
 [[condition]]
-id = "xss_integration.user_html_escaped_no_dynamic_element"
+id = "xss-integration.user-html-escaped-no-dynamic-element"
 target_function = "escapeHtml + setSafeInnerHTML"
 source = "tm TASK-478: src/utils/__tests__/safe-html-renderer.test.ts 旧テストの実世界XSS統合検証（tests/unitへの移植に伴い条件化）"
-source_lines = "24-33,81-85"
+source_lines = "tests/unit/utils/safe-html-renderer.test.ts:437"
 description = "ユーザー提供のHTML文字列をinnerHTMLへそのまま渡さずescapeHtmlで文字列化してからsetSafeInnerHTMLで設定した場合、タグはすべてリテラル文字列として描画され要素は生成されない"
 given = "userHtml = '<p>Hello</p><img src=x onerror=\"alert(1)\">' をescapeHtmlしてsetSafeInnerHTMLでdiv要素へ設定"
-expect_side_effect = "描画結果にimg要素は存在せず、textContentは'<p>Hello</p>'を含む"
+expect_return_shape = "描画結果にimg要素は存在せず、textContentは'<p>Hello</p>'を含む"
