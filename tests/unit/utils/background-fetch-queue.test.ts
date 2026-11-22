@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { getBackgroundFetchQueue } from '../../../src/utils/background-fetch-queue';
-import type { CardInfo } from '../../../src/utils/background-fetch-queue';
+import type { CardDetail } from '../../../src/types/card';
 
 // getCardDetail をモック（即座に解決するPromiseを返す）
 const mockGetCardDetail = vi.fn().mockResolvedValue(null);
@@ -124,19 +124,27 @@ describe('background-fetch-queue', () => {
     // [covers:fetch_card.success_truthy_result]
     it('成功時にonCompleteが呼ばれる', async () => {
       const onComplete = vi.fn();
-      const mockCard: CardInfo = {
-        cardId: 'test-card-1',
-        name: 'Test Card',
-      } as CardInfo;
+      const mockCardDetail: CardDetail = {
+        card: {
+          cardId: 'test-card-1',
+          name: 'Test Card',
+          ciid: '1',
+          lang: 'ja',
+          imgs: [{ ciid: '1', imgHash: 'test-hash' }],
+          cardType: 'spell',
+        },
+        packs: [{ name: 'Test Pack' }],
+        relatedCards: [],
+      };
 
-      mockGetCardDetail.mockResolvedValue(mockCard);
+      mockGetCardDetail.mockResolvedValue(mockCardDetail);
 
       queue.enqueue('test-card-1', 'normal', onComplete);
 
       // 処理が完了するまで待つ
       await new Promise((resolve) => setTimeout(resolve, 200));
 
-      expect(onComplete).toHaveBeenCalledWith(mockCard);
+      expect(onComplete).toHaveBeenCalledWith(mockCardDetail);
     });
 
     // [covers:fetch_card.success_null_result]
@@ -442,21 +450,29 @@ describe('background-fetch-queue', () => {
     });
   });
 
-  describe('CardInfo type', () => {
-    it('onCompleteに渡されるCardInfoが正しい型である', async () => {
+  describe('CardDetail type', () => {
+    it('onCompleteに渡されるCardDetailがそのまま渡る', async () => {
       const onComplete = vi.fn();
-      const mockCard: any = {
-        cardId: 'test-card',
-        name: 'Test Card Name',
+      const mockCardDetail: CardDetail = {
+        card: {
+          cardId: 'test-card',
+          name: 'Test Card Name',
+          ciid: '1',
+          lang: 'ja',
+          imgs: [{ ciid: '1', imgHash: 'test-hash' }],
+          cardType: 'spell',
+        },
+        packs: [],
+        relatedCards: [],
       };
 
-      mockGetCardDetail.mockResolvedValue(mockCard);
+      mockGetCardDetail.mockResolvedValue(mockCardDetail);
 
       queue.enqueue('test-card', 'normal', onComplete);
 
       await new Promise((resolve) => setTimeout(resolve, 300));
 
-      expect(onComplete).toHaveBeenCalledWith(mockCard);
+      expect(onComplete).toHaveBeenCalledWith(mockCardDetail);
     });
   });
 
