@@ -20,13 +20,13 @@
 #   dispatchEventとdataTransfer付与で再現する（第20号practice-slotと同一手法）
 
 [meta]
-verified_at = "2026-11-21"
+verified_at = "2026-11-22"
 verified_by = "claude"
 feature = "practice-hand-area"
 source_file = "src/components/practice/PracticeHandArea.vue"
 verified = true
-test_command = "mise run test:vitest -- tests/unit/components/PracticeHandArea.test.ts"
-source_hash = "66542c290aee3369113492b2db74772ed73689a3"
+test_command = "pnpm exec vitest run"
+source_hash = "2346b55ba9503cf56f5694c9efdc10592d6a4ea1"
 note = "TASK-570（TASK-331第21号）でPractice系コンポーネント10ファイル目の条件化。12条件=レイアウト2（2Pモード／通常モードの順序）+カード描画2（手札／Temp）+カードサイズfallback1+gap計算1+drag-overクラス1+手札カード上drop2（practice系／deck系）+領域drop2（手札領域／Temp領域）+カードイベント転送1。テストは新規作成（DeckCardはカスタムstub、settings storeとdrag-dataガードは実物）。src不変"
 
 # --- レイアウトモード ---

@@ -32,8 +32,8 @@
                 :style="handCardStyle"
                 :show-face-indicator="false"
                 @click="$emit('card-click', card)"
-                @practice-action="(action, uuid) => $emit('card-action', action, uuid)"
-                @practice-dragstart="(event, uuid, offset) => $emit('card-dragstart', card, event)"
+                @practice-action="(action: string, uuid: string) => $emit('card-action', action, uuid)"
+                @practice-dragstart="(event: DragEvent, _uuid: string, _offset: { x: number; y: number }) => $emit('card-dragstart', card, event)"
                 @practice-dragend="$emit('card-dragend')"
               />
             </TransitionGroup>
@@ -54,10 +54,10 @@
             :style="handCardStyle"
             :show-face-indicator="false"
             @dragover.prevent
-            @drop.stop="(e) => handleCardDrop(card, Number(index), e as DragEvent)"
+            @drop.stop="(e: DragEvent) => handleCardDrop(card, Number(index), e)"
             @click="$emit('card-click', card)"
-            @practice-action="(action, uuid) => $emit('card-action', action, uuid)"
-            @practice-dragstart="(event, uuid, offset) => $emit('card-dragstart', card, event)"
+            @practice-action="(action: string, uuid: string) => $emit('card-action', action, uuid)"
+            @practice-dragstart="(event: DragEvent, _uuid: string, _offset: { x: number; y: number }) => $emit('card-dragstart', card, event)"
             @practice-dragend="$emit('card-dragend')"
           />
         </TransitionGroup>
@@ -92,8 +92,8 @@
                 :style="handCardStyle"
                 :show-face-indicator="false"
                 @click="$emit('card-click', card)"
-                @practice-action="(action, uuid) => $emit('card-action', action, uuid)"
-                @practice-dragstart="(event, uuid, offset) => $emit('card-dragstart', card, event)"
+                @practice-action="(action: string, uuid: string) => $emit('card-action', action, uuid)"
+                @practice-dragstart="(event: DragEvent, _uuid: string, _offset: { x: number; y: number }) => $emit('card-dragstart', card, event)"
                 @practice-dragend="$emit('card-dragend')"
               />
             </TransitionGroup>
@@ -113,10 +113,10 @@
           :style="handCardStyle"
           :show-face-indicator="false"
           @dragover.prevent
-          @drop.stop="(e) => handleCardDrop(card, Number(index), e as DragEvent)"
+          @drop.stop="(e: DragEvent) => handleCardDrop(card, Number(index), e)"
           @click="$emit('card-click', card)"
-          @practice-action="(action, uuid) => $emit('card-action', action, uuid)"
-          @practice-dragstart="(event, uuid, offset) => $emit('card-dragstart', card, event)"
+          @practice-action="(action: string, uuid: string) => $emit('card-action', action, uuid)"
+          @practice-dragstart="(event: DragEvent, _uuid: string, _offset: { x: number; y: number }) => $emit('card-dragstart', card, event)"
           @practice-dragend="$emit('card-dragend')"
         />
       </TransitionGroup>
@@ -146,8 +146,8 @@
                 :style="handCardStyle"
                 :show-face-indicator="false"
                 @click="$emit('card-click', card)"
-                @practice-action="(action, uuid) => $emit('card-action', action, uuid)"
-                @practice-dragstart="(event, uuid, offset) => $emit('card-dragstart', card, event)"
+                @practice-action="(action: string, uuid: string) => $emit('card-action', action, uuid)"
+                @practice-dragstart="(event: DragEvent, _uuid: string, _offset: { x: number; y: number }) => $emit('card-dragstart', card, event)"
                 @practice-dragend="$emit('card-dragend')"
               />
             </TransitionGroup>
@@ -250,7 +250,7 @@ function handleTempDragLeave(event: DragEvent) {
   }
 }
 
-function handleCardDrop(card: PracticeCard, index: number, event: DragEvent) {
+function handleCardDrop(_card: PracticeCard, index: number, event: DragEvent) {
   const target = event.currentTarget as HTMLElement | null
   const rect = target?.getBoundingClientRect()
   const isRight = rect ? event.clientX > rect.left + rect.width / 2 : true
