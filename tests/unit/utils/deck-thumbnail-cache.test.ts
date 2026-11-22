@@ -67,7 +67,7 @@ describe('deck-thumbnail-cache', () => {
   });
 
   describe('constructor / getCacheStats', () => {
-    it('デフォルトmaxItemsを設定し、統計に10MB上限を返す [covers:constructor.default_max_items] [covers:stats.returns_memory_state]', () => {
+    it('デフォルトmaxItemsを設定し、統計に10MB上限を返す [covers:constructor.default-max-items] [covers:stats.returns-memory-state]', () => {
       const cache = new DeckThumbnailCache();
 
       expect(cache.getCacheStats()).toEqual({
@@ -78,7 +78,7 @@ describe('deck-thumbnail-cache', () => {
       });
     });
 
-    it('カスタムmaxItemsを設定できる [covers:constructor.custom_max_items]', () => {
+    it('カスタムmaxItemsを設定できる [covers:constructor.custom-max-items]', () => {
       const cache = new DeckThumbnailCache(100);
 
       expect(cache.getCacheStats().maxItems).toBe(100);
@@ -86,7 +86,7 @@ describe('deck-thumbnail-cache', () => {
   });
 
   describe('loadCacheIndex', () => {
-    it('保存済みインデックスを読み込んで返す [covers:load_index.storage_hit_assigns] [covers:storage_get.success_resolves_result]', async () => {
+    it('保存済みインデックスを読み込んで返す [covers:load-index.storage-hit-assigns] [covers:storage-get.success-resolves-result]', async () => {
       const testIndex = { hash1: makeEntry('hash1') };
       mockStorage[STORAGE_KEY_INDEX] = testIndex;
 
@@ -95,13 +95,13 @@ describe('deck-thumbnail-cache', () => {
       await expect(cache.loadCacheIndex()).resolves.toBe(testIndex);
     });
 
-    it('インデックスが無い場合は現在値を返す [covers:load_index.storage_missing_keeps_current]', async () => {
+    it('インデックスが無い場合は現在値を返す [covers:load-index.storage-missing-keeps-current]', async () => {
       const cache = new DeckThumbnailCache();
 
       await expect(cache.loadCacheIndex()).resolves.toEqual({});
     });
 
-    it('getエラーは警告して飲み込む [covers:load_index.get_error_swallows] [covers:storage_get.last_error_rejects]', async () => {
+    it('getエラーは警告して飲み込む [covers:load-index.get-error-swallows] [covers:storage-get.last-error-rejects]', async () => {
       mockLastError = { message: 'Storage error' };
       const cache = new DeckThumbnailCache();
 
@@ -114,7 +114,7 @@ describe('deck-thumbnail-cache', () => {
   });
 
   describe('loadCacheOrder', () => {
-    it('保存済み順序を読み込んで返す [covers:load_order.storage_hit_assigns]', async () => {
+    it('保存済み順序を読み込んで返す [covers:load-order.storage-hit-assigns]', async () => {
       const testOrder = { order: ['hash1', 'hash2'], maxItems: 200, currentSize: 1000 };
       mockStorage[STORAGE_KEY_ORDER] = testOrder;
 
@@ -123,7 +123,7 @@ describe('deck-thumbnail-cache', () => {
       await expect(cache.loadCacheOrder()).resolves.toBe(testOrder);
     });
 
-    it('順序が無い場合は現在値を返す [covers:load_order.storage_missing_keeps_current]', async () => {
+    it('順序が無い場合は現在値を返す [covers:load-order.storage-missing-keeps-current]', async () => {
       const cache = new DeckThumbnailCache(50);
 
       await expect(cache.loadCacheOrder()).resolves.toEqual({
@@ -133,7 +133,7 @@ describe('deck-thumbnail-cache', () => {
       });
     });
 
-    it('getエラーは警告して飲み込む [covers:load_order.get_error_swallows]', async () => {
+    it('getエラーは警告して飲み込む [covers:load-order.get-error-swallows]', async () => {
       mockLastError = { message: 'Storage error' };
       const cache = new DeckThumbnailCache(50);
 
@@ -150,13 +150,13 @@ describe('deck-thumbnail-cache', () => {
   });
 
   describe('getImage / updateAccessTime', () => {
-    it('存在しないハッシュはnullを返す [covers:get_image.missing_returns_null]', async () => {
+    it('存在しないハッシュはnullを返す [covers:get-image.missing-returns-null]', async () => {
       const cache = new DeckThumbnailCache();
 
       await expect(cache.getImage('missing')).resolves.toBeNull();
     });
 
-    it('存在する画像を返し、アクセス時刻と順序を更新する [covers:get_image.found_updates_access_and_returns] [covers:update_access.entry_present_moves_to_tail_and_saves]', async () => {
+    it('存在する画像を返し、アクセス時刻と順序を更新する [covers:get-image.found-updates-access-and-returns] [covers:update-access.entry-present-moves-to-tail-and-saves]', async () => {
       const oldTime = Date.now() - 10_000;
       mockStorage[STORAGE_KEY_INDEX] = {
         hash1: { ...makeEntry('hash1', 'data:image/webp;base64,1'), lastAccessTime: oldTime },
@@ -171,7 +171,7 @@ describe('deck-thumbnail-cache', () => {
       expect(mockStorage[STORAGE_KEY_ORDER].order).toEqual(['hash2', 'hash1']);
     });
 
-    it('アクセス時刻保存エラーでも画像を返す [covers:get_image.update_error_swallows_and_returns] [covers:update_access.storage_error_swallows]', async () => {
+    it('アクセス時刻保存エラーでも画像を返す [covers:get-image.update-error-swallows-and-returns] [covers:update-access.storage-error-swallows]', async () => {
       mockStorage[STORAGE_KEY_INDEX] = { hash1: makeEntry('hash1', 'data:image/webp;base64,1') };
       mockStorage[STORAGE_KEY_ORDER] = { order: ['hash1'], maxItems: 200, currentSize: 24 };
       vi.mocked(chrome.storage.local.set).mockImplementation((items, callback) => {
@@ -190,7 +190,7 @@ describe('deck-thumbnail-cache', () => {
       );
     });
 
-    it('entryが無いupdateAccessTimeは何もしない [covers:update_access.entry_absent_noop]', async () => {
+    it('entryが無いupdateAccessTimeは何もしない [covers:update-access.entry-absent-noop]', async () => {
       const cache = new DeckThumbnailCache() as any;
 
       await expect(cache.updateAccessTime('missing')).resolves.toBeUndefined();
@@ -199,7 +199,7 @@ describe('deck-thumbnail-cache', () => {
   });
 
   describe('saveImage / enforceMaxItems', () => {
-    it('新規画像はentryを作成し、サイズを加算し、order末尾に追加する [covers:save_image.new_entry_fields_and_size] [covers:save_image.new_hash_appends_order] [covers:storage_set.success_resolves]', async () => {
+    it('新規画像はentryを作成し、サイズを加算し、order末尾に追加する [covers:save-image.new-entry-fields-and-size] [covers:save-image.new-hash-appends-order] [covers:storage-set.success-resolves]', async () => {
       const cache = new DeckThumbnailCache();
       const imageData = 'data:image/webp;base64,test';
 
@@ -218,7 +218,7 @@ describe('deck-thumbnail-cache', () => {
       });
     });
 
-    it('既存画像の上書きは古いサイズを差し引き、orderを重複させない [covers:save_image.existing_subtracts_old_size] [covers:save_image.existing_order_not_duplicated]', async () => {
+    it('既存画像の上書きは古いサイズを差し引き、orderを重複させない [covers:save-image.existing-subtracts-old-size] [covers:save-image.existing-order-not-duplicated]', async () => {
       const cache = new DeckThumbnailCache();
       const newImage = 'data:image/webp;base64,new-longer';
 
@@ -234,7 +234,7 @@ describe('deck-thumbnail-cache', () => {
       expect(mockStorage[STORAGE_KEY_ORDER].order).toEqual(['hash1']);
     });
 
-    it('保存エラーは再throwする [covers:save_image.storage_error_rethrows] [covers:storage_set.last_error_rejects]', async () => {
+    it('保存エラーは再throwする [covers:save-image.storage-error-rethrows] [covers:storage-set.last-error-rejects]', async () => {
       vi.mocked(chrome.storage.local.set).mockImplementation((items, callback) => {
         Object.assign(mockStorage, items);
         mockLastError = { message: 'Storage error' };
@@ -250,7 +250,7 @@ describe('deck-thumbnail-cache', () => {
       );
     });
 
-    it('個数上限を超えるとorder先頭のentryを削除する [covers:enforce.item_count_over_limit_deletes_oldest]', async () => {
+    it('個数上限を超えるとorder先頭のentryを削除する [covers:enforce.item-count-over-limit-deletes-oldest]', async () => {
       const cache = new DeckThumbnailCache(3);
 
       await cache.saveImage('hash1', 1, 'Test1', 'data:1');
@@ -263,7 +263,7 @@ describe('deck-thumbnail-cache', () => {
       await expect(cache.getImage('hash1')).resolves.toBeNull();
     });
 
-    it('個数上限処理はstaleなorder要素だけをshiftする [covers:enforce.item_count_stale_order_only_shifts]', async () => {
+    it('個数上限処理はstaleなorder要素だけをshiftする [covers:enforce.item-count-stale-order-only-shifts]', async () => {
       mockStorage[STORAGE_KEY_INDEX] = {};
       mockStorage[STORAGE_KEY_ORDER] = { order: ['stale'], maxItems: 1, currentSize: 0 };
       const cache = new DeckThumbnailCache(1);
@@ -274,7 +274,7 @@ describe('deck-thumbnail-cache', () => {
       expect(mockStorage[STORAGE_KEY_ORDER].currentSize).toBe('data:1'.length);
     });
 
-    it('サイズ上限を超えると削除できる古いentryを削除する [covers:enforce.size_over_limit_deletes_oldest]', async () => {
+    it('サイズ上限を超えると削除できる古いentryを削除する [covers:enforce.size-over-limit-deletes-oldest]', async () => {
       const cache = new DeckThumbnailCache();
       const hugeImage = 'x'.repeat(MAX_CACHE_SIZE_BYTES + 1);
 
@@ -285,7 +285,7 @@ describe('deck-thumbnail-cache', () => {
       expect(mockStorage[STORAGE_KEY_ORDER].currentSize).toBe(0);
     });
 
-    it('サイズ上限処理は削除対象が無い場合breakする [covers:enforce.size_over_limit_no_deletable_breaks]', async () => {
+    it('サイズ上限処理は削除対象が無い場合breakする [covers:enforce.size-over-limit-no-deletable-breaks]', async () => {
       mockStorage[STORAGE_KEY_INDEX] = {};
       mockStorage[STORAGE_KEY_ORDER] = {
         order: [],
@@ -303,7 +303,7 @@ describe('deck-thumbnail-cache', () => {
   });
 
   describe('deleteCacheEntry', () => {
-    it('存在するentryを削除し、サイズを減らす [covers:delete_entry.present_deletes_and_subtracts]', async () => {
+    it('存在するentryを削除し、サイズを減らす [covers:delete-entry.present-deletes-and-subtracts]', async () => {
       mockStorage[STORAGE_KEY_INDEX] = { hash1: makeEntry('hash1', 'data:1', 100) };
       mockStorage[STORAGE_KEY_ORDER] = { order: ['hash1'], maxItems: 200, currentSize: 100 };
       const cache = new DeckThumbnailCache();
@@ -314,7 +314,7 @@ describe('deck-thumbnail-cache', () => {
       expect(mockStorage[STORAGE_KEY_ORDER]).toMatchObject({ order: [], currentSize: 0 });
     });
 
-    it('存在しないentryはorderだけをfilterする [covers:delete_entry.absent_filters_order_only]', async () => {
+    it('存在しないentryはorderだけをfilterする [covers:delete-entry.absent-filters-order-only]', async () => {
       mockStorage[STORAGE_KEY_INDEX] = {};
       mockStorage[STORAGE_KEY_ORDER] = { order: ['missing', 'hash1'], maxItems: 200, currentSize: 100 };
       const cache = new DeckThumbnailCache();
@@ -324,7 +324,7 @@ describe('deck-thumbnail-cache', () => {
       expect(mockStorage[STORAGE_KEY_ORDER]).toMatchObject({ order: ['hash1'], currentSize: 100 });
     });
 
-    it('保存エラーは飲み込む [covers:delete_entry.storage_error_swallows]', async () => {
+    it('保存エラーは飲み込む [covers:delete-entry.storage-error-swallows]', async () => {
       mockStorage[STORAGE_KEY_INDEX] = { hash1: makeEntry('hash1', 'data:1', 100) };
       mockStorage[STORAGE_KEY_ORDER] = { order: ['hash1'], maxItems: 200, currentSize: 100 };
       vi.mocked(chrome.storage.local.set).mockImplementation((items, callback) => {
@@ -344,7 +344,7 @@ describe('deck-thumbnail-cache', () => {
   });
 
   describe('clearAll', () => {
-    it('メモリをリセットしてstorageを削除する [covers:clear_all.resets_memory_and_removes_storage]', async () => {
+    it('メモリをリセットしてstorageを削除する [covers:clear-all.resets-memory-and-removes-storage]', async () => {
       mockStorage[STORAGE_KEY_INDEX] = { hash1: makeEntry('hash1', 'data:1', 100) };
       mockStorage[STORAGE_KEY_ORDER] = { order: ['hash1'], maxItems: 200, currentSize: 100 };
       const cache = new DeckThumbnailCache(50);
@@ -358,7 +358,7 @@ describe('deck-thumbnail-cache', () => {
       expect(cache.getCacheStats()).toMatchObject({ itemCount: 0, totalSize: 0, maxItems: 50 });
     });
 
-    it('remove例外は飲み込む [covers:clear_all.remove_error_swallows]', async () => {
+    it('remove例外は飲み込む [covers:clear-all.remove-error-swallows]', async () => {
       vi.mocked(chrome.storage.local.remove).mockImplementation(() => {
         throw new Error('Remove error');
       });
