@@ -41,15 +41,16 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import SuggestionList from './SuggestionList.vue'
+import SuggestionList, { type Suggestion } from './SuggestionList.vue'
+import type { DeckSuggestion } from '@/types/search-ui'
 // @ts-ignore - PendingCommand is used in defineProps type parameter
 import { type PendingCommand } from '../composables/useSlashCommands'
 
 const props = defineProps<{
   pendingCommand: PendingCommand | null
-  commandSuggestions: any[]
-  filteredSuggestions: any[]
-  mydeckSuggestions: any[]
+  commandSuggestions: Suggestion[]
+  filteredSuggestions: Suggestion[]
+  mydeckSuggestions: DeckSuggestion[]
   selectedCommandIndex: number
   selectedSuggestionIndex: number
   selectedMydeckIndex: number
@@ -58,9 +59,9 @@ const props = defineProps<{
 }>()
 
 defineEmits<{
-  'select-command': [suggestion: any]
-  'select-suggestion': [suggestion: any]
-  'select-mydeck': [suggestion: any]
+  'select-command': [suggestion: Suggestion]
+  'select-suggestion': [suggestion: Suggestion]
+  'select-mydeck': [suggestion: DeckSuggestion]
   'close-mydeck': []
 }>()
 
