@@ -10,7 +10,7 @@ import type { CardInfo } from '@/types/card';
 /**
  * デッキ編集用ドラッグデータ
  */
-export type SectionType = 'main' | 'extra' | 'side' | 'trash' | 'search';
+export type SectionType = 'main' | 'extra' | 'side' | 'trash' | 'search' | 'info';
 
 export interface DeckDragData {
   sectionType: SectionType;
