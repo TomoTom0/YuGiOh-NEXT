@@ -179,6 +179,7 @@ import { useSettingsStore } from '../../stores/settings'
 const SearchFilterDialog = defineAsyncComponent(() => import('../SearchFilterDialog.vue'))
 import type { Attribute, Race, MonsterType, CardType } from '../../types/card'
 import type { SearchMode } from '../../types/settings'
+import type { FilterIcon } from '@/utils/filter-icons'
 import {
   COMMANDS,
   ATTRIBUTE_MAP,
@@ -446,7 +447,7 @@ export default defineComponent({
           }
         }
 
-        const onConfirm = (suggestion: any) => {
+        const onConfirm = (suggestion: { value: string; label: string }) => {
           const prefix = isNegatedInput.value ? '-' : ''
           searchStore.searchQuery = prefix + suggestion.value
           nextTick(() => {
@@ -723,7 +724,7 @@ export default defineComponent({
     expose({ focus, inputRef: inputFieldRef })
 
     // removeFilterIcon をラップして onFilterApply を提供
-    const handleRemoveFilterIcon = (icon: any) => {
+    const handleRemoveFilterIcon = (icon: FilterIcon) => {
       removeFilterIcon(icon, () => {
         // フィルター削除後の処理（特になし、フィルター状態の更新のみ）
       })
