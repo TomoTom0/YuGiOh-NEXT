@@ -75,7 +75,7 @@ describe('stores/practice', () => {
     });
   });
 
-  it('selects zones and returns field-specific helpers [covers:select_zone.records_zone_slot_and_field] [covers:get_zones_ref.returns_field2_only_for_index_1] [covers:get_deck_count.returns_by_field_index]', () => {
+  it('selects zones and returns field-specific helpers [covers:select-zone.records-zone-slot-and-field] [covers:get-zones-ref.returns-field2-only-for-index-1] [covers:get-deck-count.returns-by-field-index]', () => {
     const store = usePracticeStore();
 
     store.selectZone('monster', 3);
@@ -96,7 +96,7 @@ describe('stores/practice', () => {
     expect(store.getDeckCount(1)).toBe(store.deckCount2);
   });
 
-  it('initializes cards from cache, unknown fallback, shuffle result, and up to five opening hand [covers:init_practice.resets_target_field_and_originals_then_draws_up_to_five] [covers:init_practice.unknown_cache_card_creates_unknown_card] [covers:init_practice.cached_monster_card_copies_monster_fields] [covers:init_practice.cached_spell_or_trap_card_copies_effect_type]', () => {
+  it('initializes cards from cache, unknown fallback, shuffle result, and up to five opening hand [covers:init-practice.resets-target-field-and-originals-then-draws-up-to-five] [covers:init-practice.unknown-cache-card-creates-unknown-card] [covers:init-practice.cached-monster-card-copies-monster-fields] [covers:init-practice.cached-spell-or-trap-card-copies-effect-type]', () => {
     const store = usePracticeStore();
 
     store.addExternalCard('old-temp', '0', 'hand', undefined);
@@ -135,7 +135,7 @@ describe('stores/practice', () => {
     expect(unknown).toMatchObject({ name: '', lang: 'ja', imgs: [], cardType: 'unknown', face: 'up' });
   });
 
-  it('draws all cards into hand when deck has fewer than five cards [covers:init_practice.resets_target_field_and_originals_then_draws_up_to_five]', () => {
+  it('draws all cards into hand when deck has fewer than five cards [covers:init-practice.resets-target-field-and-originals-then-draws-up-to-five]', () => {
     const store = usePracticeStore();
 
     store.initPractice([deckRef('monster-a', 3)], []);
@@ -144,7 +144,7 @@ describe('stores/practice', () => {
     expect(store.deckCount).toBe(0);
   });
 
-  it('returns zone arrays and empty arrays for invalid slots [covers:get_cards.monster_valid_slot_returns_slot] [covers:get_cards.monster_invalid_slot_returns_empty_array] [covers:get_cards.spell_trap_valid_slot_returns_slot] [covers:get_cards.spell_trap_invalid_slot_returns_empty_array] [covers:get_cards.extra_monster_valid_slot_returns_slot] [covers:get_cards.extra_monster_invalid_slot_returns_empty_array] [covers:get_cards.simple_zone_returns_zone_array]', () => {
+  it('returns zone arrays and empty arrays for invalid slots [covers:get-cards.monster-valid-slot-returns-slot] [covers:get-cards.monster-invalid-slot-returns-empty-array] [covers:get-cards.spell-trap-valid-slot-returns-slot] [covers:get-cards.spell-trap-invalid-slot-returns-empty-array] [covers:get-cards.extra-monster-valid-slot-returns-slot] [covers:get-cards.extra-monster-invalid-slot-returns-empty-array] [covers:get-cards.simple-zone-returns-zone-array]', () => {
     const store = usePracticeStore();
     store.initPractice([deckRef('monster-a', 6)], []);
 
@@ -161,7 +161,7 @@ describe('stores/practice', () => {
     expect(store.getCards('extraMonster', 2)).toEqual([]);
   });
 
-  it('finds cards in simple/slotted zones and across both fields [covers:find_card.simple_zone_match_returns_location] [covers:find_card.slotted_zone_match_returns_location] [covers:find_card.no_match_returns_null] [covers:find_card_global_prefers_field1_then_field2]', () => {
+  it('finds cards in simple/slotted zones and across both fields [covers:find-card.simple-zone-match-returns-location] [covers:find-card.slotted-zone-match-returns-location] [covers:find-card.no-match-returns-null] [covers:find-card-global.prefers-field1-then-field2]', () => {
     const store = usePracticeStore();
     store.initPractice([deckRef('monster-a', 7)], [], 0);
     store.initPractice([deckRef('spell-a', 7)], [], 1);
@@ -179,7 +179,7 @@ describe('stores/practice', () => {
     expect(store.findCard('missing')).toBeNull();
   });
 
-  it('resets only initialized fields and preserves temp recipe through rebuild [covers:reset_practice.not_initialized_is_noop] [covers:reset_practice.rebuilds_from_original_and_temp_recipe]', () => {
+  it('resets only initialized fields and preserves temp recipe through rebuild [covers:reset-practice.not-initialized-is-noop] [covers:reset-practice.rebuilds-from-original-and-temp-recipe]', () => {
     const store = usePracticeStore();
     mocks.cards.set('temp-extra', {
       cardId: 'temp-extra',
@@ -221,7 +221,7 @@ describe('stores/practice', () => {
     expect(store.getUndoDescription()).toBe('リセット');
   });
 
-  it('draws one card or noops on empty deck [covers:draw.empty_deck_is_noop] [covers:draw.moves_top_deck_card_to_hand_face_up]', () => {
+  it('draws one card or noops on empty deck [covers:draw.empty-deck-is-noop] [covers:draw.moves-top-deck-card-to-hand-face-up]', () => {
     const store = usePracticeStore();
     store.initPractice([deckRef('monster-a', 6)], []);
 
@@ -239,7 +239,7 @@ describe('stores/practice', () => {
     expect(store.canUndo).toBe(false);
   });
 
-  it('draws to target zone and draws multiple with min(count, deck length) [covers:draw_to_zone.empty_deck_is_noop] [covers:draw_to_zone.unshift_top_deck_card_to_target_face_up] [covers:draw_multiple.empty_deck_is_noop] [covers:draw_multiple.draws_min_count_and_deck_length]', () => {
+  it('draws to target zone and draws multiple with min(count, deck length) [covers:draw-to-zone.empty-deck-is-noop] [covers:draw-to-zone.unshift-top-deck-card-to-target-face-up] [covers:draw-multiple.empty-deck-is-noop] [covers:draw-multiple.draws-min-count-and-deck-length]', () => {
     const store = usePracticeStore();
     store.initPractice([deckRef('monster-a', 9)], []);
 
@@ -260,7 +260,7 @@ describe('stores/practice', () => {
     expect(store.canUndo).toBe(false);
   });
 
-  it('draws the requested count when it is smaller than the remaining deck [covers:draw_multiple.draws_min_count_and_deck_length]', () => {
+  it('draws the requested count when it is smaller than the remaining deck [covers:draw-multiple.draws-min-count-and-deck-length]', () => {
     const store = usePracticeStore();
     store.initPractice([deckRef('monster-a', 20)], []);
 
@@ -270,7 +270,7 @@ describe('stores/practice', () => {
     expect(store.deckCount).toBe(12);
   });
 
-  it('moves cards with face/orientation and position variants [covers:move_card.no_location_is_noop] [covers:move_card.applies_face_orientation_and_top_position] [covers:move_card.bottom_position_pushes] [covers:move_card.numeric_position_is_clamped]', () => {
+  it('moves cards with face/orientation and position variants [covers:move-card.no-location-is-noop] [covers:move-card.applies-face-orientation-and-top-position] [covers:move-card.bottom-position-pushes] [covers:move-card.numeric-position-is-clamped]', () => {
     const store = usePracticeStore();
     store.initPractice([deckRef('monster-a', 9)], []);
 
@@ -295,7 +295,7 @@ describe('stores/practice', () => {
     expect(store.zones.gy.at(-1)!.instanceId).toBe(fourth.instanceId);
   });
 
-  it('moves a card into deck, shuffles, and forces deck cards down [covers:move_card_to_deck_and_shuffle.no_location_is_noop] [covers:move_card_to_deck_and_shuffle_inserts_down_vertical_and_sets_all_deck_down]', () => {
+  it('moves a card into deck, shuffles, and forces deck cards down [covers:move-card-to-deck-and-shuffle.no-location-is-noop] [covers:move-card-to-deck-and-shuffle.inserts-down-vertical-and-sets-all-deck-down]', () => {
     const store = usePracticeStore();
     store.initPractice([deckRef('monster-a', 7)], []);
 
@@ -320,7 +320,7 @@ describe('stores/practice', () => {
     expect(store.getUndoDescription()).toBe('デッキにシャッフル挿入');
   });
 
-  it('shuffles deck, hand, and extra only when size is greater than one [covers:shuffle_deck.length_zero_or_one_is_noop] [covers:shuffle_deck.uses_fisher_yates_return_value] [covers:shuffle_hand.length_zero_or_one_is_noop] [covers:shuffle_hand.uses_fisher_yates_return_value] [covers:shuffle_extra.length_zero_or_one_is_noop] [covers:shuffle_extra.uses_fisher_yates_return_value]', () => {
+  it('shuffles deck, hand, and extra only when size is greater than one [covers:shuffle-deck.length-zero-or-one-is-noop] [covers:shuffle-deck.uses-fisher-yates-return-value] [covers:shuffle-hand.length-zero-or-one-is-noop] [covers:shuffle-hand.uses-fisher-yates-return-value] [covers:shuffle-extra.length-zero-or-one-is-noop] [covers:shuffle-extra.uses-fisher-yates-return-value]', () => {
     const store = usePracticeStore();
     store.initPractice([deckRef('monster-a', 7)], [deckRef('trap-a', 2)]);
     store.clearHistory();
@@ -353,7 +353,7 @@ describe('stores/practice', () => {
     expect(store.canUndo).toBe(false);
   });
 
-  it('sets face and orientation only when changed [covers:set_card_face.no_location_or_same_face_is_noop] [covers:set_card_face.changes_face_and_pushes_command] [covers:set_card_orientation.no_location_or_same_orientation_is_noop] [covers:set_card_orientation.changes_orientation_and_pushes_command]', () => {
+  it('sets face and orientation only when changed [covers:set-card-face.no-location-or-same-face-is-noop] [covers:set-card-face.changes-face-and-pushes-command] [covers:set-card-orientation.no-location-or-same-orientation-is-noop] [covers:set-card-orientation.changes-orientation-and-pushes-command]', () => {
     const store = usePracticeStore();
     store.initPractice([deckRef('monster-a', 6)], []);
     const card = store.zones.hand[0]!;
@@ -373,7 +373,7 @@ describe('stores/practice', () => {
     expect(store.getUndoDescription()).toBe('縦横切替');
   });
 
-  it('reorders with guard clauses and valid moves [covers:reorder_in_zone.invalid_indices_or_same_index_are_noop] [covers:reorder_in_zone.moves_card_and_pushes_command]', () => {
+  it('reorders with guard clauses and valid moves [covers:reorder-in-zone.invalid-indices-or-same-index-are-noop] [covers:reorder-in-zone.moves-card-and-pushes-command]', () => {
     const store = usePracticeStore();
     store.initPractice([deckRef('monster-a', 8)], []);
     for (let i = 0; i < 3; i++) {
@@ -393,7 +393,7 @@ describe('stores/practice', () => {
     expect(store.getUndoDescription()).toBe('並び替え');
   });
 
-  it('adds external cards at positions and records temp recipe section [covers:add_external_card.inserts_top_bottom_or_clamped_numeric_position] [covers:add_external_card.records_temp_recipe_section]', () => {
+  it('adds external cards at positions and records temp recipe section [covers:add-external-card.inserts-top-bottom-or-clamped-numeric-position] [covers:add-external-card.records-temp-recipe-section]', () => {
     const store = usePracticeStore();
     mocks.cards.set('new-extra', {
       cardId: 'new-extra',
@@ -427,7 +427,7 @@ describe('stores/practice', () => {
     expect(store.hasTempRecipe).toBe(true);
   });
 
-  it('classifies temp recipe sections by intrinsic card type regardless of drop zone [covers:add_external_card.records_temp_recipe_section]', () => {
+  it('classifies temp recipe sections by intrinsic card type regardless of drop zone [covers:add-external-card.records-temp-recipe-section]', () => {
     const store = usePracticeStore();
     store.initPractice([deckRef('monster-a', 5)], []);
     mocks.cards.set('extra-mon', {
@@ -464,7 +464,7 @@ describe('stores/practice', () => {
     expect(store.tempRecipe.find(card => card.cid === 'main-mon')?.section).toBe('main');
   });
 
-  it('sets reveal flags for both fields [covers:reveal_deck_contents_sets_field_flag] [covers:reveal_extra_contents_sets_field_flag]', () => {
+  it('sets reveal flags for both fields [covers:reveal-deck-contents.sets-field-flag] [covers:reveal-extra-contents.sets-field-flag]', () => {
     const store = usePracticeStore();
 
     store.revealDeckContents(true);
@@ -478,7 +478,7 @@ describe('stores/practice', () => {
     expect(store.revealExtra2).toBe(true);
   });
 
-  it('saves stripped state and loads field1/field2/defaults/errors [covers:save_to_local_storage_strips_cards_and_persists_dual_field_state] [covers:load_from_local_storage.no_raw_returns_false] [covers:load_from_local_storage.missing_zones_returns_false] [covers:load_from_local_storage.rehydrates_field1_and_defaults] [covers:load_from_local_storage.rehydrates_field2_when_initialized2_or_legacy_two_deck_mode] [covers:load_from_local_storage.parse_or_rehydrate_error_returns_false]', () => {
+  it('saves stripped state and loads field1/field2/defaults/errors [covers:save-to-local-storage.strips-cards-and-persists-dual-field-state] [covers:load-from-local-storage.no-raw-returns-false] [covers:load-from-local-storage.missing-zones-returns-false] [covers:load-from-local-storage.rehydrates-field1-and-defaults] [covers:load-from-local-storage.rehydrates-field2-when-initialized2-or-legacy-two-deck-mode] [covers:load-from-local-storage.parse-or-rehydrate-error-returns-false]', () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
     const store = usePracticeStore();
     expect(store.loadFromLocalStorage()).toBe(false);
@@ -521,7 +521,7 @@ describe('stores/practice', () => {
     expect(consoleError).toHaveBeenCalled();
   });
 
-  it('persists temp recipe through save and reload [covers:save_to_local_storage_strips_cards_and_persists_dual_field_state] [covers:load_from_local_storage.rehydrates_field1_and_defaults]', () => {
+  it('persists temp recipe through save and reload [covers:save-to-local-storage.strips-cards-and-persists-dual-field-state] [covers:load-from-local-storage.rehydrates-field1-and-defaults]', () => {
     const store = usePracticeStore();
     store.initPractice([deckRef('monster-a', 5)], []);
     store.addExternalCard('saved-card', '5', 'monster', 0);
@@ -535,7 +535,7 @@ describe('stores/practice', () => {
     expect(reloaded.hasTempRecipe).toBe(true);
   });
 
-  it('clears field2 and localStorage according to implementation [covers:clear_field2_resets_field2_state_but_not_reveal_extra2_or_temp_recipe2] [covers:clear_local_storage_removes_key_and_swallows_errors]', () => {
+  it('clears field2 and localStorage according to implementation [covers:clear-field2.resets-field2-state-but-not-reveal-extra2-or-temp-recipe2] [covers:clear-local-storage.removes-key-and-swallows-errors]', () => {
     const store = usePracticeStore();
     store.initPractice([deckRef('spell-a', 6)], [], 1);
     store.addExternalCard('field2-temp', '2', 'hand', undefined, 1);
@@ -560,7 +560,7 @@ describe('stores/practice', () => {
     expect(localStorage.getItem('ygoNext:practice')).toBeNull();
   });
 
-  it('undoes/redoes snapshot commands and saves even when unavailable [covers:undo_delegates_to_undo_command_then_saves] [covers:redo_delegates_to_redo_command_then_saves]', () => {
+  it('undoes/redoes snapshot commands and saves even when unavailable [covers:undo.delegates-to-undo-command-then-saves] [covers:redo.delegates-to-redo-command-then-saves]', () => {
     const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const store = usePracticeStore();
     const setItem = vi.spyOn(localStorage, 'setItem');
@@ -581,7 +581,7 @@ describe('stores/practice', () => {
     expect(store.handCount).toBe(handBefore + 1);
   });
 
-  it('undo restores state after moveCard and setCardFace [covers:undo_delegates_to_undo_command_then_saves]', () => {
+  it('undo restores state after moveCard and setCardFace [covers:undo.delegates-to-undo-command-then-saves]', () => {
     const store = usePracticeStore();
     store.initPractice([deckRef('monster-a', 10)], []);
     const card = store.zones.hand[0]!;
@@ -598,7 +598,7 @@ describe('stores/practice', () => {
     expect(store.zones.hand[0]!.face).toBe('up');
   });
 
-  it('undo restores state before resetPractice [covers:reset_practice.rebuilds_from_original_and_temp_recipe] [covers:undo_delegates_to_undo_command_then_saves]', () => {
+  it('undo restores state before resetPractice [covers:reset-practice.rebuilds-from-original-and-temp-recipe] [covers:undo.delegates-to-undo-command-then-saves]', () => {
     const store = usePracticeStore();
     store.initPractice([deckRef('monster-a', 10)], []);
 
@@ -613,7 +613,7 @@ describe('stores/practice', () => {
     expect(store.handCount).toBe(7);
   });
 
-  it('tracks canUndo/canRedo flags across the undo/redo cycle [covers:undo_redo_flags.transition_with_command_history] [covers:draw_to_zone.unshift_top_deck_card_to_target_face_up]', () => {
+  it('tracks canUndo/canRedo flags across the undo/redo cycle [covers:undo-redo-flags.transition-with-command-history] [covers:draw-to-zone.unshift-top-deck-card-to-target-face-up]', () => {
     const store = usePracticeStore();
     store.initPractice([deckRef('monster-a', 10)], []);
 
@@ -641,5 +641,92 @@ describe('stores/practice', () => {
 
     // drawToZoneのslotted zone宛: getCards('monster', 2)の戻り配列先頭へ配置される
     expect(store.zones.monster[2]).toHaveLength(1);
+  });
+  it('getCards returns an array for every ZoneType so drawToZone always has a target [covers:draw-to-zone.target-missing-is-unreachable-for-typed-zone]', () => {
+    const store = usePracticeStore();
+    store.initPractice([deckRef('monster-a', 9)], []);
+
+    const zones = ['field', 'monster', 'spellTrap', 'gy', 'banish', 'deck', 'extra', 'extraMonster', 'hand', 'temp'] as const;
+    for (const zone of zones) {
+      expect(Array.isArray(store.getCards(zone))).toBe(true);
+    }
+
+    const firstDeck = store.zones.deck[0]!;
+    store.drawToZone('monster', 1);
+    expect(store.zones.monster[1][0]).toMatchObject({ instanceId: firstDeck.instanceId, face: 'up' });
+  });
+
+  it('findCard location always points at an existing card so moveCard proceeds [covers:move-card.source-array-invalid-is-unreachable-after-find-card]', () => {
+    const store = usePracticeStore();
+    store.initPractice([deckRef('monster-a', 9)], []);
+
+    const card = store.zones.hand[0]!;
+    const loc = store.findCard(card.instanceId!);
+    expect(loc).not.toBeNull();
+    const cards = store.getCards(loc!.zone, loc!.slotIndex, loc!.fieldIndex);
+    expect(cards[loc!.cardIndex]).toMatchObject({ instanceId: card.instanceId });
+
+    store.moveCard(card.instanceId!, 'gy');
+    expect(store.zones.gy[0]).toMatchObject({ instanceId: card.instanceId });
+  });
+
+  it('moveCard target is always an array for typed zones [covers:move-card.target-missing-is-unreachable-for-typed-zone]', () => {
+    const store = usePracticeStore();
+    store.initPractice([deckRef('monster-a', 9)], []);
+
+    const first = store.zones.hand[0]!;
+    store.moveCard(first.instanceId!, 'monster', 2);
+    expect(store.zones.monster[2][0]).toMatchObject({ instanceId: first.instanceId });
+
+    const second = store.zones.hand[0]!;
+    store.moveCard(second.instanceId!, 'temp');
+    expect(store.zones.temp[0]).toMatchObject({ instanceId: second.instanceId });
+  });
+
+  it('findCard location always points at an existing card so moveCardToDeckAndShuffle proceeds [covers:move-card-to-deck-and-shuffle.source-array-invalid-is-unreachable-after-find-card]', () => {
+    const store = usePracticeStore();
+    store.initPractice([deckRef('monster-a', 7)], []);
+
+    const card = store.zones.hand[0]!;
+    const loc = store.findCard(card.instanceId!);
+    expect(loc).not.toBeNull();
+    const cards = store.getCards(loc!.zone, loc!.slotIndex, loc!.fieldIndex);
+    expect(cards[loc!.cardIndex]).toMatchObject({ instanceId: card.instanceId });
+
+    store.moveCardToDeckAndShuffle(card.instanceId!);
+    expect(store.zones.deck.some((c) => c.instanceId === card.instanceId)).toBe(true);
+    expect(store.zones.hand.some((c) => c.instanceId === card.instanceId)).toBe(false);
+  });
+
+  it('setCardFace always resolves the card array for a found card [covers:set-card-face.cards-ref-missing-is-unreachable-after-find-card]', () => {
+    const store = usePracticeStore();
+    store.initPractice([deckRef('monster-a', 6)], []);
+
+    const card = store.zones.hand[0]!;
+    expect(store.findCard(card.instanceId!)).not.toBeNull();
+    store.setCardFace(card.instanceId!, 'down');
+    expect(store.zones.hand[0]).toMatchObject({ instanceId: card.instanceId, face: 'down' });
+  });
+
+  it('setCardOrientation always resolves the card array for a found card [covers:set-card-orientation.cards-ref-missing-is-unreachable-after-find-card]', () => {
+    const store = usePracticeStore();
+    store.initPractice([deckRef('monster-a', 6)], []);
+
+    const card = store.zones.hand[0]!;
+    expect(store.findCard(card.instanceId!)).not.toBeNull();
+    store.setCardOrientation(card.instanceId!, 'horizontal');
+    expect(store.zones.hand[0]).toMatchObject({ instanceId: card.instanceId, orientation: 'horizontal' });
+  });
+
+  it('reorderInZone always splices out an existing card after the range check [covers:reorder-in-zone.moved-missing-is-unreachable-after-range-check]', () => {
+    const store = usePracticeStore();
+    store.initPractice([deckRef('monster-a', 6)], []);
+
+    const before = store.zones.hand.map((c) => c.instanceId);
+    store.reorderInZone('hand', undefined, 0, 2);
+    const after = store.zones.hand.map((c) => c.instanceId);
+    expect(after[2]).toBe(before[0]);
+    expect(after[0]).toBe(before[1]);
+    expect(store.canUndo).toBe(true);
   });
 });
