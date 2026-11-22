@@ -85,10 +85,58 @@ export function isPracticeDragData(data: unknown): data is PracticeDragData {
 }
 
 /**
- * Deck系ドラッグデータの型ガード
+ * isDeckDragData が保証する、Deck系ドラッグデータのカード部分の最小形。
+ *
+ * 消費側（PracticeSlot / PracticeHandArea）が参照するのは、カードの識別子
+ * （cardId または cid）と ciid、empty のみであり、ガードが保証するのもここまで。
+ * CardInfo 全体の完全性は保証しない（デッキ編集側の消費は
+ * parseDragData<DeckDragData> の表明で扱う）。
+ *
+ * 識別子が cardId / cid のどちらか一方でよいのは、DeckCardRef 形式
+ * （cid のみ）のペイロードを受容するのが既存の振る舞いであるため。
+ * 識別子・ciid は文字列のほか数値も受容する（文字列化は消費側の責務）。
+ * どちらも欠けるペイロードは、消費側で String(undefined) が識別子として
+ * 送出されてしまうため、ガードで弾く。
  */
-export function isDeckDragData(data: unknown): data is DeckDragData {
+export interface DeckDragCardRef {
+  /** カードID（CardInfo 形式で供給される場合） */
+  cardId?: string | number;
+  /** カードID（DeckCardRef 形式で供給される場合） */
+  cid?: string | number;
+  /** 画像識別子 */
+  ciid: string | number;
+  /** 空スロットのプレースホルダかどうか */
+  empty?: boolean;
+}
+
+/**
+ * isDeckDragData が保証する Deck系ドラッグデータの最小形
+ */
+export interface DeckDragDataRef {
+  sectionType: string;
+  index?: number;
+  uuid?: string;
+  card: DeckDragCardRef;
+}
+
+function isDragCardId(value: unknown): value is string | number {
+  return (typeof value === 'string' && value !== '') || typeof value === 'number';
+}
+
+/**
+ * Deck系ドラッグデータの型ガード
+ *
+ * sectionType が文字列であること、card がオブジェクトであること、
+ * カードの識別子（cardId または cid のどちらか）と ciid が
+ * 空でない文字列または数値として存在することを検証する。
+ */
+export function isDeckDragData(data: unknown): data is DeckDragDataRef {
   if (typeof data !== 'object' || data === null) return false;
   const record = data as Record<string, unknown>;
-  return typeof record.sectionType === 'string' && record.card != null;
+  if (typeof record.sectionType !== 'string') return false;
+  const card = record.card;
+  if (typeof card !== 'object' || card === null) return false;
+  const cardRecord = card as Record<string, unknown>;
+  if (!isDragCardId(cardRecord.cardId) && !isDragCardId(cardRecord.cid)) return false;
+  return isDragCardId(cardRecord.ciid);
 }
