@@ -3,8 +3,7 @@ import { assignCategoryGroups } from '@/utils/category-grouping';
 
 describe('category-grouping', () => {
   describe('assignCategoryGroups', () => {
-    // [covers:assign.index0_hardcoded_o]
-    it('最初のカテゴリは ruby_オ グループ', () => {
+    it('[covers:assign.index0-hardcoded-o] 最初のカテゴリは ruby_オ グループ', () => {
       const categories = [
         { value: '678', label: '王家の神殿' },
         { value: '4', label: 'アクアアクトレス' }
@@ -16,8 +15,7 @@ describe('category-grouping', () => {
       expect(result[0].originalIndex).toBe(0);
     });
 
-    // [covers:assign.index0_hardcoded_o]
-    it('最初のカテゴリはlabelの内容に関わらず ruby_オ グループ固定', () => {
+    it('[covers:assign.index0-hardcoded-o] 最初のカテゴリはlabelの内容に関わらず ruby_オ グループ固定', () => {
       const categories = [
         { value: '999', label: 'ザザザ' },
         { value: '4', label: 'アクアアクトレス' }
@@ -28,8 +26,7 @@ describe('category-grouping', () => {
       expect(result[0].group).toEqual(['ruby_オ']);
     });
 
-    // [covers:assign.index1_hardcoded_a]
-    it('2番目のカテゴリは ruby_ア グループ', () => {
+    it('[covers:assign.index1-hardcoded-a] 2番目のカテゴリは ruby_ア グループ', () => {
       const categories = [
         { value: '678', label: '王家の神殿' },
         { value: '583', label: '赤き竜' }
@@ -41,8 +38,7 @@ describe('category-grouping', () => {
       expect(result[1].originalIndex).toBe(1);
     });
 
-    // [covers:assign.index1_hardcoded_a]
-    it('2番目のカテゴリはlabelの内容に関わらず ruby_ア グループ固定', () => {
+    it('[covers:assign.index1-hardcoded-a] 2番目のカテゴリはlabelの内容に関わらず ruby_ア グループ固定', () => {
       const categories = [
         { value: '678', label: '王家の神殿' },
         { value: '999', label: 'ザザザ' }
@@ -53,9 +49,7 @@ describe('category-grouping', () => {
       expect(result[1].group).toEqual(['ruby_ア']);
     });
 
-    // [covers:assign.kana_readable_uses_getKanaGroup]
-    // [covers:get_kana_group.not_in_map_uses_original]
-    it('カタカナ始まりは正しいグループに分類', () => {
+    it('[covers:assign.kana-readable-uses-get-kana-group,get-kana-group.not-in-map-uses-original] カタカナ始まりは正しいグループに分類', () => {
       const categories = [
         { value: '678', label: '王家の神殿' },
         { value: '583', label: '赤き竜' },
@@ -71,8 +65,25 @@ describe('category-grouping', () => {
       expect(result[4].group).toEqual(['ruby_サ']); // サイバー
     });
 
-    // [covers:get_kana_group.hiragana_converted_first]
-    it('ひらがな始まりはカタカナに変換して分類', () => {
+    it('[covers:hiragana-to-katakana.non-hiragana-fallback] 非ひらがな（カタカナ）は変換されずそのままグループになる（前提固定）', () => {
+      // 前提固定: hiraganaToKatakana は export されておらず、唯一の呼び出し元
+      // getKanaGroup は isHiragana(char)===true の場合のみこの関数を呼ぶため、
+      // 非ひらがな文字でのフォールバック分岐は公開API経由では到達できない。
+      // 代わりに「非ひらがな文字は変換されずそのまま使われる」という前提
+      // そのものを公開挙動で固定する（条件の verified=false と
+      // unverifiable_reason は保持する）。
+      const categories = [
+        { value: '678', label: '王家の神殿' },
+        { value: '583', label: '赤き竜' },
+        { value: '100', label: 'アーティファクト' }
+      ];
+
+      const result = assignCategoryGroups(categories);
+
+      expect(result[2].group).toEqual(['ruby_ア']); // ア は変換されずそのまま
+    });
+
+    it('[covers:get-kana-group.hiragana-converted-first] ひらがな始まりはカタカナに変換して分類', () => {
       const categories = [
         { value: '678', label: '王家の神殿' },
         { value: '583', label: '赤き竜' },
@@ -84,8 +95,7 @@ describe('category-grouping', () => {
       expect(result[2].group).toEqual(['ruby_シ']); // し → シ
     });
 
-    // [covers:get_kana_group.dakuten_voiced_mapped]
-    it('濁点は清音のグループに分類', () => {
+    it('[covers:get-kana-group.dakuten-voiced-mapped] 濁点は清音のグループに分類', () => {
       const categories = [
         { value: '678', label: '王家の神殿' },
         { value: '583', label: '赤き竜' },
@@ -97,8 +107,7 @@ describe('category-grouping', () => {
       expect(result[2].group).toEqual(['ruby_カ']); // ガ → カ
     });
 
-    // [covers:get_kana_group.dakuten_semivoiced_mapped_same_as_voiced]
-    it('半濁点は濁点と同じ清音のグループに分類', () => {
+    it('[covers:get-kana-group.dakuten-semivoiced-mapped-same-as-voiced] 半濁点は濁点と同じ清音のグループに分類', () => {
       const categories = [
         { value: '678', label: '王家の神殿' },
         { value: '583', label: '赤き竜' },
@@ -110,8 +119,7 @@ describe('category-grouping', () => {
       expect(result[2].group).toEqual(['ruby_ハ']); // パ → ハ（バ行と同じ）
     });
 
-    // [covers:get_kana_group.vu_self_mapped]
-    it('ヴは独立したグループに分類', () => {
+    it('[covers:get-kana-group.vu-self-mapped] ヴは独立したグループに分類', () => {
       const categories = [
         { value: '678', label: '王家の神殿' },
         { value: '583', label: '赤き竜' },
@@ -123,9 +131,7 @@ describe('category-grouping', () => {
       expect(result[2].group).toEqual(['ruby_ヴ']);
     });
 
-    // [covers:assign.nonkana_char_dispatches_helper]
-    // [covers:nonkana.both_equal_returns_single]
-    it('漢字始まりで前後が同じグループなら同じグループ', () => {
+    it('[covers:assign.nonkana-char-dispatches-helper,nonkana.both-equal-returns-single] 漢字始まりで前後が同じグループなら同じグループ', () => {
       const categories = [
         { value: '678', label: '王家の神殿' },
         { value: '583', label: '赤き竜' },
@@ -140,9 +146,7 @@ describe('category-grouping', () => {
       expect(result[3].group).toEqual(['ruby_ア']);
     });
 
-    // [covers:nonkana.both_different_returns_range]
-    // [covers:groups_between.normal_range]
-    it('漢字始まりで前後が異なるグループなら間のすべてのグループ', () => {
+    it('[covers:nonkana.both-different-returns-range,groups-between.normal-range] 漢字始まりで前後が異なるグループなら間のすべてのグループ', () => {
       const categories = [
         { value: '678', label: '王家の神殿' },
         { value: '583', label: '赤き竜' },
@@ -157,8 +161,7 @@ describe('category-grouping', () => {
       expect(result[3].group).toEqual(['ruby_カ', 'ruby_キ', 'ruby_ク', 'ruby_ケ', 'ruby_コ', 'ruby_サ']);
     });
 
-    // [covers:assign.empty_label_dispatches_nonkana_helper]
-    it('空文字labelは非カナ扱いとなり前後探索でグループが決まる', () => {
+    it('[covers:assign.empty-label-dispatches-nonkana-helper] 空文字labelは非カナ扱いとなり前後探索でグループが決まる', () => {
       const categories = [
         { value: '678', label: '王家の神殿' },
         { value: '583', label: '赤き竜' },
@@ -172,9 +175,7 @@ describe('category-grouping', () => {
       expect(result[3].group).toEqual(['ruby_カ', 'ruby_キ', 'ruby_ク', 'ruby_ケ', 'ruby_コ', 'ruby_サ']);
     });
 
-    // [covers:nonkana.backward_search_skips_falsy_label]
-    // [covers:nonkana.only_prev_returns_prev]
-    it('後方探索で空文字labelはスキップしさらに前を調べる', () => {
+    it('[covers:nonkana.backward-search-skips-falsy-label,nonkana.only-prev-returns-prev] 後方探索で空文字labelはスキップしさらに前を調べる', () => {
       const categories = [
         { value: '678', label: '王家の神殿' },
         { value: '583', label: '赤き竜' },
@@ -189,8 +190,7 @@ describe('category-grouping', () => {
       expect(result[4].group).toEqual(['ruby_ア']);
     });
 
-    // [covers:nonkana.backward_search_skips_nonkana_char]
-    it('後方探索で漢字等の非カナlabelはbreakせず更に前を調べる', () => {
+    it('[covers:nonkana.backward-search-skips-nonkana-char] 後方探索で漢字等の非カナlabelはbreakせず更に前を調べる', () => {
       const categories = [
         { value: '678', label: '王家の神殿' },
         { value: '583', label: '赤き竜' },
@@ -205,9 +205,7 @@ describe('category-grouping', () => {
       expect(result[4].group).toEqual(['ruby_カ']);
     });
 
-    // [covers:nonkana.backward_search_exhausted_null]
-    // [covers:nonkana.only_next_returns_next]
-    it('前方に候補が無ければprevGroupはnullのままnextGroupが使われる', () => {
+    it('[covers:nonkana.backward-search-exhausted-null,nonkana.only-next-returns-next] 前方に候補が無ければprevGroupはnullのままnextGroupが使われる', () => {
       const categories = [
         { value: '678', label: '王家の神殿' },
         { value: '583', label: '赤き竜' },
@@ -221,8 +219,7 @@ describe('category-grouping', () => {
       expect(result[2].group).toEqual(['ruby_カ']);
     });
 
-    // [covers:nonkana.forward_search_mirrors_backward]
-    it('前方探索も空文字labelをスキップして更に後を調べる', () => {
+    it('[covers:nonkana.forward-search-mirrors-backward] 前方探索も空文字labelをスキップして更に後を調べる', () => {
       const categories = [
         { value: '678', label: '王家の神殿' },
         { value: '583', label: '赤き竜' },
@@ -236,8 +233,7 @@ describe('category-grouping', () => {
       expect(result[2].group).toEqual(['ruby_サ']);
     });
 
-    // [covers:nonkana.neither_returns_other]
-    it('前後どちらもカナが見つからなければ ruby_その他 になる', () => {
+    it('[covers:nonkana.neither-returns-other] 前後どちらもカナが見つからなければ ruby_その他 になる', () => {
       const categories = [
         { value: '678', label: '王家の神殿' },
         { value: '583', label: '赤き竜' },
@@ -251,8 +247,7 @@ describe('category-grouping', () => {
       expect(result[3].group).toEqual(['ruby_その他']);
     });
 
-    // [covers:groups_between.invalid_kana_fallback]
-    it('前後のグループがKANA_LISTに無い文字(小書き文字等)の場合は範囲展開されずそのまま返る', () => {
+    it('[covers:groups-between.invalid-kana-fallback] 前後のグループがKANA_LISTに無い文字(小書き文字等)の場合は範囲展開されずそのまま返る', () => {
       const categories = [
         { value: '678', label: '王家の神殿' },
         { value: '583', label: '赤き竜' },
@@ -267,8 +262,7 @@ describe('category-grouping', () => {
       expect(result[3].group).toEqual(['ruby_ッ', 'ruby_サ']);
     });
 
-    // [covers:groups_between.reversed_order_returns_empty]
-    it('前後のグループが50音順で逆転している場合は空配列になる', () => {
+    it('[covers:groups-between.reversed-order-returns-empty] 前後のグループが50音順で逆転している場合は空配列になる', () => {
       const categories = [
         { value: '678', label: '王家の神殿' },
         { value: '583', label: '赤き竜' },
