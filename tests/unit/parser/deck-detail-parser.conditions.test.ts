@@ -142,24 +142,24 @@ beforeEach(() => {
 
 describe('deck-detail-parser design conditions', () => {
   describe('validateDeckDetailPageStructure', () => {
-    it('必須コンテナの欠落を個別エラーにする [covers:validate.main980.missing] [covers:validate.article_body.missing] [covers:validate.deck_detailtext.missing] [covers:validate.detailtext_main.missing]', () => {
+    it('必須コンテナの欠落を個別エラーにする [covers:validate.main980-missing] [covers:validate.article-body-missing] [covers:validate.deck-detailtext-missing] [covers:validate.detailtext-main-missing]', () => {
       expect(() => validateDeckDetailPageStructure(doc('<html><head></head><body></body></html>'))).toThrow('#main980');
       expect(() => validateDeckDetailPageStructure(doc('<html><head></head><body><div id="main980"></div></body></html>'))).toThrow('#article_body');
       expect(() => validateDeckDetailPageStructure(doc('<html><head></head><body><div id="main980"><div id="article_body"></div></div></body></html>'))).toThrow('#deck_detailtext');
       expect(() => validateDeckDetailPageStructure(doc('<html><head></head><body><div id="main980"><div id="article_body"><div id="deck_detailtext"></div></div></div></body></html>'))).toThrow('#detailtext_main');
     });
 
-    it('カードセクションが無い場合と空行セクションはエラーにしない [covers:validate.sections.all_absent_is_not_error] [covers:validate.section.t_row_absent_is_not_error]', () => {
+    it('カードセクションが無い場合と空行セクションはエラーにしない [covers:validate.sections-all-absent-is-not-error] [covers:validate.section-t-row-absent-is-not-error]', () => {
       expect(() => validateDeckDetailPageStructure(doc(validShell()))).not.toThrow();
       expect(() => validateDeckDetailPageStructure(doc(validShell('<div class="t_body mlist_m"></div>')))).not.toThrow();
     });
 
-    it('最初の行にカード名またはlink_valueが無い場合はセクション名つきでthrowする [covers:validate.section.t_row_missing_card_name] [covers:validate.section.t_row_missing_link_value]', () => {
+    it('最初の行にカード名またはlink_valueが無い場合はセクション名つきでthrowする [covers:validate.section-t-row-missing-card-name] [covers:validate.section-t-row-missing-link-value]', () => {
       expect(() => validateDeckDetailPageStructure(doc(validShell('<div class="t_body mlist_m"><div class="t_row"><input class="link_value"></div></div>')))).toThrow('モンスターカードセクションの.t_row内に.card_name');
       expect(() => validateDeckDetailPageStructure(doc(validShell('<div class="t_body mlist_s"><div class="t_row"><span class="card_name">魔法</span></div></div>')))).toThrow('魔法カードセクションの.t_row内にinput.link_value');
     });
 
-    it('head/meta/body/h1/dnoの欠落をそれぞれthrowする [covers:validate.head.missing] [covers:validate.head_meta.missing] [covers:validate.body.missing] [covers:validate.h1.missing] [covers:validate.dno.missing]', () => {
+    it('head/meta/body/h1/dnoの欠落をそれぞれthrowする [covers:validate.head-missing] [covers:validate.head-meta-missing] [covers:validate.body-missing] [covers:validate.h1-missing] [covers:validate.dno-missing]', () => {
       const noHead = doc(validShell());
       noHead.head.remove();
       expect(() => validateDeckDetailPageStructure(noHead)).toThrow('head要素');
@@ -177,21 +177,21 @@ describe('deck-detail-parser design conditions', () => {
     });
   });
 
-  it('dno抽出はscript優先、URLフォールバック、未検出0を返す [covers:extract_dno.script_pattern] [covers:extract_dno.url_pattern_fallback] [covers:extract_dno.script_pattern_priority] [covers:extract_dno.not_found]', () => {
+  it('dno抽出はscript優先、URLフォールバック、未検出0を返す [covers:extract-dno.script-pattern] [covers:extract-dno.url-pattern-fallback] [covers:extract-dno.script-pattern-priority] [covers:extract-dno.not-found]', () => {
     expect(extractDnoFromPage(doc("<html><body><script>$('#dno').val('42')</script></body></html>"))).toBe(42);
     expect(extractDnoFromPage(doc("<html><body><a href='?dno=99'>x</a></body></html>"))).toBe(99);
     expect(extractDnoFromPage(doc("<html><body><script>$('#dno').val('7'); location='?dno=99'</script></body></html>"))).toBe(7);
     expect(extractDnoFromPage(doc('<html><body></body></html>'))).toBe(0);
   });
 
-  it('metaからデッキ名を抽出し、空ならフォールバックまたはデフォルトを返す [covers:extract_name.description_meta] [covers:extract_name.description_meta_empty_falls_through] [covers:extract_name.og_description_fallback] [covers:extract_name.default]', () => {
+  it('metaからデッキ名を抽出し、空ならフォールバックまたはデフォルトを返す [covers:extract-name.description-meta] [covers:extract-name.description-meta-empty-falls-through] [covers:extract-name.og-description-fallback] [covers:extract-name.default]', () => {
     expect(extractDeckNameFromMeta(doc('<html><head><meta name="description" content="青眼 / 説明"></head></html>'))).toBe('青眼');
     expect(extractDeckNameFromMeta(doc('<html><head><meta name="description" content="/ 説明"><meta property="og:description" content="代替 | DB"></head></html>'))).toBe('代替');
     expect(extractDeckNameFromMeta(doc('<html><head><meta property="og:description" content="OG名 | DB"></head></html>'))).toBe('OG名');
     expect(extractDeckNameFromMeta(doc('<html><head></head></html>'))).toBe('デッキ');
   });
 
-  it('h1から公開状態を判定する [covers:is_public.non_public_h1] [covers:is_public.public_h1] [covers:is_public.non_public_string_contains_public_substring] [covers:is_public.no_match_default] [covers:is_public.no_h1]', () => {
+  it('h1から公開状態を判定する [covers:is-public.non-public-h1] [covers:is-public.public-h1] [covers:is-public.non-public-string-contains-public-substring] [covers:is-public.no-match-default] [covers:is-public.no-h1]', () => {
     expect(extractIsPublicFromTitle(doc('<html><body><h1>非公開デッキ</h1></body></html>'))).toBe(false);
     expect(extractIsPublicFromTitle(doc('<html><body><h1>公開デッキ</h1></body></html>'))).toBe(true);
     expect(extractIsPublicFromTitle(doc('<html><body><h1>非公開</h1></body></html>'))).toBe(false);
@@ -199,66 +199,66 @@ describe('deck-detail-parser design conditions', () => {
     expect(extractIsPublicFromTitle(doc('<html><body></body></html>'))).toBe(false);
   });
 
-  it('cgidは小文字16進だけを抽出する [covers:extract_cgid.found] [covers:extract_cgid.uppercase_hex_not_matched] [covers:extract_cgid.mixed_case_truncated_at_uppercase] [covers:extract_cgid.not_found]', () => {
+  it('cgidは小文字16進だけを抽出する [covers:extract-cgid.found] [covers:extract-cgid.uppercase-hex-not-matched] [covers:extract-cgid.mixed-case-truncated-at-uppercase] [covers:extract-cgid.not-found]', () => {
     expect(extractCgidFromPage(doc('<html><body>?cgid=abc123def</body></html>'))).toBe('abc123def');
     expect(extractCgidFromPage(doc('<html><body>?cgid=ABC123</body></html>'))).toBeUndefined();
     expect(extractCgidFromPage(doc('<html><body>?cgid=abcDEF123</body></html>'))).toBe('abc');
     expect(extractCgidFromPage(doc('<html><body>?id=abc</body></html>'))).toBeUndefined();
   });
 
-  it('デッキタイプはdtの次のdd.text_setのspanラベルだけを変換する [covers:extract_deck_type.found] [covers:extract_deck_type.dd_wrong_class] [covers:extract_deck_type.dt_not_found] [covers:extract_deck_type.label_not_in_map]', () => {
+  it('デッキタイプはdtの次のdd.text_setのspanラベルだけを変換する [covers:extract-deck-type.found] [covers:extract-deck-type.dd-wrong-class] [covers:extract-deck-type.dt-not-found] [covers:extract-deck-type.label-not-in-map]', () => {
     expect(extractDeckType(doc('<dl><dt><span>デッキタイプ</span></dt><dd class="text_set"><span>マスターデュエル</span></dd></dl>'))).toBe('3');
     expect(extractDeckType(doc('<dl><dt>デッキタイプ</dt><dd class="wrong"><span>マスターデュエル</span></dd></dl>'))).toBeUndefined();
     expect(extractDeckType(doc('<dl><dt>別項目</dt><dd class="text_set"><span>マスターデュエル</span></dd></dl>'))).toBeUndefined();
     expect(extractDeckType(doc('<dl><dt>デッキタイプ</dt><dd class="text_set"><span>未知</span></dd></dl>'))).toBeUndefined();
   });
 
-  it('デッキスタイルはMD_deck_styleのtext_setを変換する [covers:extract_deck_style.found] [covers:extract_deck_style.dl_not_found]', () => {
+  it('デッキスタイルはMD_deck_styleのtext_setを変換する [covers:extract-deck-style.found] [covers:extract-deck-style.dl-not-found]', () => {
     expect(extractDeckStyle(doc('<dl class="MD_deck_style"><dt>デッキスタイル</dt><dd class="text_set">トーナメント</dd></dl>'))).toBe('1');
     expect(extractDeckStyle(doc('<dl><dd class="text_set">トーナメント</dd></dl>'))).toBeUndefined();
   });
 
-  it('カテゴリとタグは空spanを除外し、dd欠落時は空配列を返す [covers:extract_category.found] [covers:extract_category.empty_span_text_filtered] [covers:extract_category.dd_not_found] [covers:extract_tags.found] [covers:extract_tags.dd_not_found]', () => {
+  it('カテゴリとタグは空spanを除外し、dd欠落時は空配列を返す [covers:extract-category.found] [covers:extract-category.empty-span-text-filtered] [covers:extract-category.dd-not-found] [covers:extract-tags.found] [covers:extract-tags.dd-not-found]', () => {
     expect(extractCategory(doc('<dd class="regist_category"><span>A</span><span> </span><span>B</span></dd>'))).toEqual(['A', 'B']);
     expect(extractCategory(doc('<html></html>'))).toEqual([]);
     expect(extractTags(doc('<dd class="regist_tag"><span>X</span><span>Y</span></dd>'))).toEqual(['X', 'Y']);
     expect(extractTags(doc('<html></html>'))).toEqual([]);
   });
 
-  it('コメントはbiko spanをtrimし、空または未検出なら空文字を返す [covers:extract_comment.found] [covers:extract_comment.span_present_empty_text] [covers:extract_comment.dt_not_found]', () => {
+  it('コメントはbiko spanをtrimし、空または未検出なら空文字を返す [covers:extract-comment.found] [covers:extract-comment.span-present-empty-text] [covers:extract-comment.dt-not-found]', () => {
     expect(extractComment(doc('<dt>コメント</dt><dd class="text_set"><span class="biko"> 本文 </span></dd>'))).toBe('本文');
     expect(extractComment(doc('<dt>コメント</dt><dd class="text_set"><span class="biko"> </span></dd>'))).toBe('');
     expect(extractComment(doc('<dt>別項目</dt><dd class="text_set"><span class="biko">本文</span></dd>'))).toBe('');
   });
 
-  it('お気に入り数といいね数を抽出する [covers:extract_favorite.found] [covers:extract_favorite.non_numeric_text] [covers:extract_favorite.not_found] [covers:extract_likes.always_zero]', () => {
+  it('お気に入り数といいね数を抽出する [covers:extract-favorite.found] [covers:extract-favorite.non-numeric-text] [covers:extract-favorite.not-found] [covers:extract-likes.always-zero]', () => {
     expect(extractFavoriteCount(doc('<span id="favoriteCnt">12</span>'))).toBe(12);
     expect(extractFavoriteCount(doc('<span id="favoriteCnt">abc</span>'))).toBe(0);
     expect(extractFavoriteCount(doc('<html></html>'))).toBe(0);
     expect(extractDeckLikes(doc('<div>999</div>'))).toBe(0);
   });
 
-  it('発行済みデッキコードは汎用パターン、jQueryフォールバック、script順で抽出する [covers:extract_issued_code.generic_pattern] [covers:extract_issued_code.jquery_pattern_fallback] [covers:extract_issued_code.per_script_priority] [covers:extract_issued_code.not_found]', () => {
+  it('発行済みデッキコードは汎用パターン、jQueryフォールバック、script順で抽出する [covers:extract-issued-code.generic-pattern] [covers:extract-issued-code.jquery-pattern-fallback] [covers:extract-issued-code.per-script-priority] [covers:extract-issued-code.not-found]', () => {
     expect(extractIssuedDeckCode(doc('<script>navigator.clipboard.writeText("ABCDEFGHIJKLMNOPQRST")</script>'))).toBe('ABCDEFGHIJKLMNOPQRST');
     expect(extractIssuedDeckCode(doc("<script>$('#copy-code').click(function(){ navigator.clipboard.writeText('SHORT_CODE'); });</script>"))).toBe('SHORT_CODE');
     expect(extractIssuedDeckCode(doc("<script>$('#copy-code').click(function(){ navigator.clipboard.writeText('FIRST_SHORT'); });</script><script>navigator.clipboard.writeText('SECONDABCDEFGHIJKLMNOP')</script>"))).toBe('FIRST_SHORT');
     expect(extractIssuedDeckCode(doc('<script>console.log("none")</script>'))).toBe('');
   });
 
-  it('表示用デッキコードは発行ボタン文言を未発行扱いにする [covers:extract_deck_code.found] [covers:extract_deck_code.not_issued_yet] [covers:extract_deck_code.dt_not_found]', () => {
+  it('表示用デッキコードは発行ボタン文言を未発行扱いにする [covers:extract-deck-code.found] [covers:extract-deck-code.not-issued-yet] [covers:extract-deck-code.dt-not-found]', () => {
     expect(extractDeckCode(doc('<dt>デッキコード</dt><dd class="a_set">ABCD-1234</dd>'))).toBe('ABCD-1234');
     expect(extractDeckCode(doc('<dt>デッキコード</dt><dd class="a_set">デッキコードを発行</dd>'))).toBe('');
     expect(extractDeckCode(doc('<dt>別項目</dt><dd class="a_set">ABCD</dd>'))).toBe('');
   });
 
-  it('カテゴリ/タグラベルをメタデータでIDへ変換し、未対応ラベルは除外する [covers:convert_category_labels.metadata_missing] [covers:convert_category_labels.mapped] [covers:convert_category_labels.unmapped_filtered] [covers:convert_tag_labels.metadata_missing] [covers:convert_tag_labels.mapped] [covers:convert_tag_labels.unmapped_filtered]', () => {
+  it('カテゴリ/タグラベルをメタデータでIDへ変換し、未対応ラベルは除外する [covers:convert-category-labels.metadata-missing] [covers:convert-category-labels.mapped] [covers:convert-category-labels.unmapped-filtered] [covers:convert-tag-labels.metadata-missing] [covers:convert-tag-labels.mapped] [covers:convert-tag-labels.unmapped-filtered]', () => {
     expect(convertCategoryLabelsToIds(['カテゴリA'], null)).toEqual([]);
     expect(convertCategoryLabelsToIds(['カテゴリA', '未知'], { categories: [{ label: 'カテゴリA', value: 'cat-a' }] })).toEqual(['cat-a']);
     expect(convertTagLabelsToIds(['タグA'], undefined)).toEqual([]);
     expect(convertTagLabelsToIds(['タグA', '未知'], { tags: { 'tag-a': 'タグA' } })).toEqual(['tag-a']);
   });
 
-  it('ciid countは対象card_image種別をscriptのcid/ciid/encと照合し重複を数える [covers:extract_ciid_counts.card_types_scanned] [covers:extract_ciid_counts.basic_match] [covers:extract_ciid_counts.imghash_default_when_no_enc] [covers:extract_ciid_counts.duplicate_increments_count]', () => {
+  it('ciid countは対象card_image種別をscriptのcid/ciid/encと照合し重複を数える [covers:extract-ciid-counts.card-types-scanned] [covers:extract-ciid-counts.basic-match] [covers:extract-ciid-counts.imghash-default-when-no-enc] [covers:extract-ciid-counts.duplicate-increments-count]', () => {
     const result = extractCiidCounts(doc(`
       <img class="card_image_monster_0_11">
       <img class="card_image_spell_1_22">
@@ -282,7 +282,7 @@ describe('deck-detail-parser design conditions', () => {
     expect(result.has('500')).toBe(false);
   });
 
-  it('parseCardSectionはコンテナ/親欠落時に空結果を返す [covers:parse_card_section.container_missing] [covers:parse_card_section.section_parent_missing]', () => {
+  it('parseCardSectionはコンテナ/親欠落時に空結果を返す [covers:parse-card-section.container-missing] [covers:parse-card-section.section-parent-missing]', () => {
     expect(parseCardSection(doc('<html></html>'), new Map(), new Map(), 'main')).toMatchObject({
       cards: [],
       skippedCount: 0,
@@ -295,7 +295,7 @@ describe('deck-detail-parser design conditions', () => {
     });
   });
 
-  it('parseCardSectionは未発売カードと通常パース失敗を分けて扱う [covers:parse_card_section.unreleased_card_back_parseable] [covers:parse_card_section.unreleased_card_back_unparseable] [covers:parse_card_section.parse_failure_silently_dropped]', () => {
+  it('parseCardSectionは未発売カードと通常パース失敗を分けて扱う [covers:parse-card-section.unreleased-card-back-parseable] [covers:parse-card-section.unreleased-card-back-unparseable] [covers:parse-card-section.parse-failure-silently-dropped]', () => {
     const testDoc = doc(validShell(listWithRows(
       sectionRow('101', { cardBack: true }),
       '<div class="t_row" data-unparseable="true"><img src="/images/card_back.png"></div>',
@@ -309,7 +309,7 @@ describe('deck-detail-parser design conditions', () => {
     expect(result.skippedCards).toEqual([{ cid: '101', name: 'カード101', lang: 'ja' }]);
   });
 
-  it('parseCardSectionはciid情報が無い場合span数量またはデフォルト数量を使い、非数値はNaNのまま返す [covers:parse_card_section.no_ciid_counts_quantity_from_span] [covers:parse_card_section.no_ciid_counts_default_quantity] [covers:parse_card_section.no_ciid_counts_quantity_nan_when_non_numeric]', () => {
+  it('parseCardSectionはciid情報が無い場合span数量またはデフォルト数量を使い、非数値はNaNのまま返す [covers:parse-card-section.no-ciid-counts-quantity-from-span] [covers:parse-card-section.no-ciid-counts-default-quantity] [covers:parse-card-section.no-ciid-counts-quantity-nan-when-non-numeric]', () => {
     const result = parseCardSection(doc(validShell(listWithRows(
       sectionRow('101', { quantity: '3' }),
       sectionRow('102', { quantity: '' }),
@@ -321,7 +321,7 @@ describe('deck-detail-parser design conditions', () => {
     expect(Number.isNaN(result.cards[2]?.quantity)).toBe(true);
   });
 
-  it('parseCardSectionはciid countがある場合ciid別DeckCardRefとマージ用CardInfoを返す [covers:parse_card_section.with_ciid_counts_multiple_refs]', () => {
+  it('parseCardSectionはciid countがある場合ciid別DeckCardRefとマージ用CardInfoを返す [covers:parse-card-section.with-ciid-counts-multiple-refs]', () => {
     const ciidCounts = new Map([
       ['101', new Map([
         ['11', { count: 2, imgHash: 'hash11' }],
@@ -341,7 +341,7 @@ describe('deck-detail-parser design conditions', () => {
     ]);
   });
 
-  it('parseDeckDetailはasyncで検証を委譲し、18フィールド形状と空name/originalNameを返す [covers:parse_deck_detail.is_async] [covers:parse_deck_detail.delegates_validation] [covers:parse_deck_detail.name_field_always_empty_string] [covers:parse_deck_detail.return_shape]', async () => {
+  it('parseDeckDetailはasyncで検証を委譲し、18フィールド形状と空name/originalNameを返す [covers:parse-deck-detail.is-async] [covers:parse-deck-detail.delegates-validation] [covers:parse-deck-detail.name-field-always-empty-string] [covers:parse-deck-detail.return-shape]', async () => {
     expect(parseDeckDetail(doc(validShell()))).toBeInstanceOf(Promise);
     await expect(parseDeckDetail(doc('<html></html>'))).rejects.toThrow('#main980');
 
@@ -371,7 +371,7 @@ describe('deck-detail-parser design conditions', () => {
     expect(result.originalName).toBe('元デッキ');
   });
 
-  it('parseDeckDetailは3セクションのCardInfoをcid単位でマージしてTempCacheDB.setAsyncに保存する [covers:parse_deck_detail.persists_merged_card_info_to_temp_cache]', async () => {
+  it('parseDeckDetailは3セクションのCardInfoをcid単位でマージしてTempCacheDB.setAsyncに保存する [covers:parse-deck-detail.persists-merged-card-info-to-temp-cache]', async () => {
     const html = `
       <!doctype html>
       <html>
