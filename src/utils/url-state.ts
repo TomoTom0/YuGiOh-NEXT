@@ -1,5 +1,4 @@
 import type {
-  SortOrder,
   CardSize,
   Theme,
   Language,
@@ -77,7 +76,7 @@ export class URLStateManager {
 
     const sort = params.get('sort');
     if (sort) {
-      state.sortOrder = sort as SortOrder;
+      state.sortOrder = sort;
     }
 
     const tab = params.get('tab');

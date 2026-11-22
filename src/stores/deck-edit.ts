@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, computed, nextTick, watch, toRaw } from 'vue';
 import type { DeckInfo, DeckCardRef, DeckListItem, OperationResult } from '../types/deck';
-import type { SortOrder } from '../types/settings';
 import { DECK_FIELD_LIMITS } from '../types/deck';
 import type { CardInfo } from '../types/card';
 import { sessionManager } from '../content/session/session';
@@ -681,7 +680,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   watch([viewMode, sortOrder, activeTab, cardTab, showDetail], () => {
     URLStateManager.syncUIStateToURL({
       viewMode: viewMode.value,
-      sortOrder: sortOrder.value as SortOrder,
+      sortOrder: sortOrder.value,
       activeTab: activeTab.value,
       cardTab: cardTab.value,
       showDetail: showDetail.value,
