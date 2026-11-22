@@ -22,13 +22,13 @@
 #   dataTransferのdefineProperty付与で再現する
 
 [meta]
-verified_at = "2026-11-21"
+verified_at = "2026-11-22"
 verified_by = "claude"
 feature = "practice-slot"
 source_file = "src/components/practice/PracticeSlot.vue"
 verified = true
-test_command = "mise run test:vitest -- tests/unit/components/PracticeSlot.test.ts"
-source_hash = "be11422ad08d76e48ec0f6566942061c101d5eaf"
+test_command = "pnpm exec vitest run"
+source_hash = "8f466dc9ea8d4725316cefa2633d8cb9859ad3e5"
 note = "TASK-569（TASK-331第20号）でPractice系コンポーネント9ファイル目の条件化。12条件=ルート状態・空表示1+子props1+slot-click1+カードイベント転送1+四分円構成1+四分円active系1+faceDown通知1+stackTop通知1+dragleaveリセット1+drop転送2（practice系／deck系）+drop無視1。テストは新規作成（CardStackはカスタムstub、composable・ガードは実物）。src不変"
 
 # --- ルートの状態表示 ---
@@ -182,7 +182,7 @@ decided_at = "2026-11-21"
 decided_by = "claude"
 
 [[excluded]]
-item = "scoped SCSS定義（L253-333。オーバーレイ・四分円の静的スタイル）"
+item = "scoped SCSS定義（L243-332。オーバーレイ・四分円の静的スタイル）"
 source = "src/components/practice/PracticeSlot.vue L243-332 と tm TASK-569"
 reason = "静的スタイル定義でロジック分岐なし（第10号・deck-metadata-tags条件書のexcludedと同根拠）。クラス付与の分岐自体は対応条件でObservableに検証する"
 decided_at = "2026-11-21"
