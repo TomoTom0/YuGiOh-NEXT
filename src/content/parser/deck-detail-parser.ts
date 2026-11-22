@@ -10,7 +10,7 @@ import {
   DECK_STYLE_LABEL_TO_VALUE,
 } from '@/types/deck-metadata';
 import { parseSearchResultRow, extractImageInfo, parseCardBase } from '@/api/card-search';
-import { getDeckMetadata } from '@/utils/deck-metadata-loader';
+import { getDeckMetadata, type DeckMetadata } from '@/utils/deck-metadata-loader';
 import { mappingManager } from '@/utils/mapping-manager';
 import { OFFICIAL_SITE_SELECTORS } from '@/utils/dom-selectors';
 
@@ -28,13 +28,16 @@ interface ParseCardSectionResult {
 /**
  * カテゴリラベル（日本語）をIDに変換
  */
-export function convertCategoryLabelsToIds(labels: string[], metadata: any): string[] {
+export function convertCategoryLabelsToIds(
+  labels: string[],
+  metadata: Pick<DeckMetadata, 'categories'> | null | undefined
+): string[] {
   if (!metadata || !metadata.categories) {
     return [];
   }
   
   const labelToId: Record<string, string> = {};
-  metadata.categories.forEach((cat: any) => {
+  metadata.categories.forEach((cat) => {
     labelToId[cat.label] = cat.value;
   });
   
@@ -44,14 +47,17 @@ export function convertCategoryLabelsToIds(labels: string[], metadata: any): str
 /**
  * タグラベル（日本語）をIDに変換
  */
-export function convertTagLabelsToIds(labels: string[], metadata: any): string[] {
+export function convertTagLabelsToIds(
+  labels: string[],
+  metadata: Pick<DeckMetadata, 'tags'> | null | undefined
+): string[] {
   if (!metadata || !metadata.tags) {
     return [];
   }
   
   const labelToId: Record<string, string> = {};
   Object.entries(metadata.tags).forEach(([id, label]) => {
-    labelToId[label as string] = id;
+    labelToId[label] = id;
   });
   
   return labels.map(label => labelToId[label]).filter(id => id !== undefined);
