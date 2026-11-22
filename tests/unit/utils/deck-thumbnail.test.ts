@@ -78,8 +78,7 @@ describe('deck-thumbnail', () => {
   });
 
   describe('generateDeckThumbnailCards', () => {
-    // [covers:cards.count_allocation_without_side_head]
-    it('基本ケース: mainから3枚、extraから2枚を選択', () => {
+    it('[covers:cards.count-allocation-without-side-head] 基本ケース: mainから3枚、extraから2枚を選択', () => {
       const deckInfo: DeckInfo = {
         dno: 1,
         name: 'Test Deck',
@@ -108,9 +107,7 @@ describe('deck-thumbnail', () => {
       expect(result.filter(r => r.cid.startsWith('e'))).toHaveLength(2);
     });
 
-    // [covers:cards.count_allocation_with_side_head]
-    // [covers:cards.side_selection_skipped_when_side_count_zero]
-    it('sideに先頭配置がある場合: mainから2枚、extraから2枚、sideから1枚を選択', () => {
+    it('[covers:cards.count-allocation-with-side-head,cards.side-selection-skipped-when-side-count-zero] sideに先頭配置がある場合: mainから2枚、extraから2枚、sideから1枚を選択', () => {
       const deckInfo: DeckInfo = {
         dno: 1,
         name: 'Test Deck',
@@ -147,8 +144,7 @@ describe('deck-thumbnail', () => {
       expect(result.some(r => r.cid === 's001')).toBe(true);
     });
 
-    // [covers:cards.quantity_field_not_referenced]
-    it('重複排除: 同じcidは1枚まで（quantityフィールドは参照されない）', () => {
+    it('[covers:cards.quantity-field-not-referenced] 重複排除: 同じcidは1枚まで（quantityフィールドは参照されない）', () => {
       const deckInfo: DeckInfo = {
         dno: 1,
         name: 'Test Deck',
@@ -175,8 +171,7 @@ describe('deck-thumbnail', () => {
       ]);
     });
 
-    // [covers:select_cids.stops_when_refs_exhausted_before_max_count]
-    it('5枚に満たない場合も許容', () => {
+    it('[covers:select-cids.stops-when-refs-exhausted-before-max-count] 5枚に満たない場合も許容', () => {
       const deckInfo: DeckInfo = {
         dno: 1,
         name: 'Test Deck',
@@ -197,10 +192,7 @@ describe('deck-thumbnail', () => {
       expect(result).toEqual([{ cid: 'm001', ciid: '1' }]);
     });
 
-    // [covers:select_cids.pass1_prioritizes_head_placement_in_ref_order]
-    // [covers:select_cids.pass1_stops_at_max_count]
-    // [covers:select_cids.pass2_fills_remaining_in_ref_order_skipping_selected]
-    it('手動先頭配置を優先', () => {
+    it('[covers:select-cids.pass1-prioritizes-head-placement-in-ref-order,select-cids.pass1-stops-at-max-count,select-cids.pass2-fills-remaining-in-ref-order-skipping-selected] 手動先頭配置を優先', () => {
       const deckInfo: DeckInfo = {
         dno: 1,
         name: 'Test Deck',
@@ -235,8 +227,7 @@ describe('deck-thumbnail', () => {
       expect(mainCards).toHaveLength(3);
     });
 
-    // [covers:cards.empty_deck_returns_empty_array]
-    it('空のデッキ', () => {
+    it('[covers:cards.empty-deck-returns-empty-array] 空のデッキ', () => {
       const deckInfo: DeckInfo = {
         dno: 1,
         name: 'Empty Deck',
@@ -254,10 +245,7 @@ describe('deck-thumbnail', () => {
       expect(result).toHaveLength(0);
     });
 
-    // [covers:select_cids.pass1_skips_existing_cids]
-    // [covers:select_cids.pass2_only_runs_if_under_max_count]
-    // [covers:cards.selection_order_side_main_extra_shared_dedup_set]
-    it('side→main→extraで同じselectedCids(Set)が共有され、セクションをまたいだ重複cidは後発側でスキップされる', () => {
+    it('[covers:select-cids.pass1-skips-existing-cids,select-cids.pass2-only-runs-if-under-max-count,cards.selection-order-side-main-extra-shared-dedup-set] side→main→extraで同じselectedCids(Set)が共有され、セクションをまたいだ重複cidは後発側でスキップされる', () => {
       // 通常のデッキ構造では同じcidが複数セクションに存在することはないが、
       // selectCidsFromRefsのexistingCids Setがside/main/extraの3呼び出しで共有される
       // という実装挙動を直接検証する
@@ -338,8 +326,7 @@ describe('deck-thumbnail', () => {
       consoleWarnSpy.mockRestore();
     });
 
-    // [covers:thumb_image.empty_card_ids_returns_null]
-    it('空のデッキの場合はnullを返す（canvasは生成されない）', async () => {
+    it('[covers:thumb-image.empty-card-ids-returns-null] 空のデッキの場合はnullを返す（canvasは生成されない）', async () => {
       const deckInfo = makeDeckInfo();
 
       const result = await generateDeckThumbnailImage(deckInfo);
@@ -348,8 +335,7 @@ describe('deck-thumbnail', () => {
       expect(createElementSpy).not.toHaveBeenCalled();
     });
 
-    // [covers:thumb_image.ctx_null_returns_null]
-    it('canvas.getContext("2d")がnullを返す場合はnullを返す', async () => {
+    it('[covers:thumb-image.ctx-null-returns-null] canvas.getContext("2d")がnullを返す場合はnullを返す', async () => {
       fakeCanvas.getContext.mockReturnValue(null);
       const deckInfo = makeDeckInfo({ mainDeck: [makeRef('m001')] });
 
@@ -358,8 +344,7 @@ describe('deck-thumbnail', () => {
       expect(result).toBeNull();
     });
 
-    // [covers:thumb_image.canvas_size_based_on_card_count]
-    it('canvasのwidth/heightがカード枚数から計算される', async () => {
+    it('[covers:thumb-image.canvas-size-based-on-card-count] canvasのwidth/heightがカード枚数から計算される', async () => {
       const deckInfo = makeDeckInfo({
         mainDeck: [makeRef('m001'), makeRef('m002'), makeRef('m003')]
       });
@@ -372,9 +357,7 @@ describe('deck-thumbnail', () => {
       expect(fakeCanvas.height).toBe(95);
     });
 
-    // [covers:thumb_image.card_info_missing_skips_card]
-    // [covers:thumb_image.promise_all_concurrent_result_discarded]
-    it('getCardInfoがnullを返すカードはスキップされても、他の処理は継続し成功する', async () => {
+    it('[covers:thumb-image.card-info-missing-skips-card,thumb-image.promise-all-concurrent-result-discarded] getCardInfoがnullを返すカードはスキップされても、他の処理は継続し成功する', async () => {
       vi.mocked(cardUtils.getCardInfo).mockImplementation((cid: string) => {
         if (cid === 'm001') return null;
         return {
@@ -399,8 +382,7 @@ describe('deck-thumbnail', () => {
       expect(fakeCtx.drawImage).toHaveBeenCalledTimes(1);
     });
 
-    // [covers:thumb_image.relative_url_missing_skips_card]
-    it('getCardImageUrlがundefinedを返すカードはスキップされるが処理は継続する', async () => {
+    it('[covers:thumb-image.relative-url-missing-skips-card] getCardImageUrlがundefinedを返すカードはスキップされるが処理は継続する', async () => {
       vi.mocked(cardTypes.getCardImageUrl).mockImplementation((card: unknown) => {
         const c = card as { cardId: string };
         return c.cardId === 'm001' ? undefined : '/get_image.action?cid=1';
@@ -415,10 +397,7 @@ describe('deck-thumbnail', () => {
       expect(fakeCtx.drawImage).toHaveBeenCalledTimes(1);
     });
 
-    // [covers:thumb_image.delegates_to_load_and_draw_for_valid_card]
-    // [covers:load_draw.cross_origin_and_src_set_before_decode]
-    // [covers:load_draw.decode_success_draws_and_returns_true]
-    it('カード情報・画像URLが揃っている場合、正しい座標でctx.drawImageが呼ばれる', async () => {
+    it('[covers:thumb-image.delegates-to-load-and-draw-for-valid-card,load-draw.cross-origin-and-src-set-before-decode,load-draw.decode-success-draws-and-returns-true] カード情報・画像URLが揃っている場合、正しい座標でctx.drawImageが呼ばれる', async () => {
       const deckInfo = makeDeckInfo({
         mainDeck: [makeRef('m001'), makeRef('m002'), makeRef('m003')]
       });
@@ -451,8 +430,7 @@ describe('deck-thumbnail', () => {
       );
     });
 
-    // [covers:load_draw.decode_failure_returns_false_no_throw]
-    it('画像のdecode()が失敗しても例外は伝播せず、他のカードは描画される', async () => {
+    it('[covers:load-draw.decode-failure-returns-false-no-throw] 画像のdecode()が失敗しても例外は伝播せず、他のカードは描画される', async () => {
       const RealImage = global.Image;
       class FailingImage {
         crossOrigin = '';
@@ -485,8 +463,7 @@ describe('deck-thumbnail', () => {
       }
     });
 
-    // [covers:concurrent.task_error_caught_sets_undefined]
-    it('個別タスクが同期的に例外をthrowしても他タスクは継続し、専用のconsole.warnが出る', async () => {
+    it('[covers:concurrent.task-error-caught-sets-undefined] 個別タスクが同期的に例外をthrowしても他タスクは継続し、専用のconsole.warnが出る', async () => {
       vi.mocked(cardUtils.getCardInfo).mockImplementation((cid: string) => {
         if (cid === 'm001') {
           throw new Error('getCardInfo boom');
@@ -517,8 +494,7 @@ describe('deck-thumbnail', () => {
       );
     });
 
-    // [covers:concurrent.concurrency_limits_simultaneous_execution]
-    it('画像読み込みの同時実行数は最大2に制限される', async () => {
+    it('[covers:concurrent.concurrency-limits-simultaneous-execution] 画像読み込みの同時実行数は最大2に制限される', async () => {
       const RealImage = global.Image;
       let inFlight = 0;
       let maxInFlight = 0;
@@ -577,8 +553,7 @@ describe('deck-thumbnail', () => {
       }
     });
 
-    // [covers:concurrent.results_index_matches_task_index_regardless_of_completion_order]
-    it('タスクの完了順が入れ替わっても、各カードの描画x座標はそのカード自身のindexに対応する', async () => {
+    it('[covers:concurrent.results-index-matches-task-index-regardless-of-completion-order] タスクの完了順が入れ替わっても、各カードの描画x座標はそのカード自身のindexに対応する', async () => {
       const RealImage = global.Image;
       // src(URL)からindexを引けるようにcardごとに異なる画像URLを用意する
       const srcToIndex = new Map<string, number>([
@@ -643,9 +618,7 @@ describe('deck-thumbnail', () => {
       }
     });
 
-    // [covers:thumb_image.blob_null_returns_null]
-    // [covers:to_blob.resolves_with_canvas_toblob_callback_result]
-    it('canvas.toBlobがnullを渡す場合、nullを返す', async () => {
+    it('[covers:thumb-image.blob-null-returns-null,to-blob.resolves-with-canvas-toblob-callback-result] canvas.toBlobがnullを渡す場合、nullを返す', async () => {
       fakeCanvas.toBlob.mockImplementation((cb: (b: Blob | null) => void) => cb(null));
       const deckInfo = makeDeckInfo({ mainDeck: [makeRef('m001')] });
 
@@ -654,10 +627,7 @@ describe('deck-thumbnail', () => {
       expect(result).toBeNull();
     });
 
-    // [covers:thumb_image.success_returns_data_url]
-    // [covers:to_blob.resolves_with_canvas_toblob_callback_result]
-    // [covers:blob_to_data_url.onload_string_result_resolves]
-    it('正常系ではWebP形式のData URLを返す', async () => {
+    it('[covers:thumb-image.success-returns-data-url,to-blob.resolves-with-canvas-toblob-callback-result,blob-to-data-url.onload-string-result-resolves] 正常系ではWebP形式のData URLを返す', async () => {
       const deckInfo = makeDeckInfo({ mainDeck: [makeRef('m001')] });
 
       const result = await generateDeckThumbnailImage(deckInfo);
@@ -665,8 +635,7 @@ describe('deck-thumbnail', () => {
       expect(result).toMatch(/^data:image\/webp;base64,/);
     });
 
-    // [covers:blob_to_data_url.onload_non_string_result_resolves_null]
-    it('FileReaderのonload結果が文字列でない場合(ArrayBuffer等)、nullを返す', async () => {
+    it('[covers:blob-to-data-url.onload-non-string-result-resolves-null] FileReaderのonload結果が文字列でない場合(ArrayBuffer等)、nullを返す', async () => {
       const RealFileReader = global.FileReader;
       class NonStringResultFileReader {
         onload: ((e: { target: { result: unknown } }) => void) | null = null;
@@ -690,8 +659,7 @@ describe('deck-thumbnail', () => {
       }
     });
 
-    // [covers:blob_to_data_url.onerror_resolves_null_not_reject]
-    it('FileReaderがonerrorを発火してもrejectされず、nullで解決する', async () => {
+    it('[covers:blob-to-data-url.onerror-resolves-null-not-reject] FileReaderがonerrorを発火してもrejectされず、nullで解決する', async () => {
       const RealFileReader = global.FileReader;
       class ErroringFileReader {
         onload: ((e: { target: { result: unknown } }) => void) | null = null;
@@ -718,8 +686,7 @@ describe('deck-thumbnail', () => {
       }
     });
 
-    // [covers:thumb_image.exception_caught_returns_null]
-    it('処理中に例外が発生した場合、console.warnでログを出しnullを返す', async () => {
+    it('[covers:thumb-image.exception-caught-returns-null] 処理中に例外が発生した場合、console.warnでログを出しnullを返す', async () => {
       // getCardInfoのthrowはpromiseAllConcurrent内のexecuteTaskのtry/catchで
       // 個別に吸収されてしまい、generateDeckThumbnailImage自身の外側try/catchには
       // 到達しないため、document.createElement('canvas')自体を失敗させて
