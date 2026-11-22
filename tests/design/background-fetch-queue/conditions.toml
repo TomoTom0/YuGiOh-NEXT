@@ -27,8 +27,8 @@ source_file = "src/utils/background-fetch-queue.ts"
 verified = true
 verified_at = "2026-11-22"
 verified_by = "claude"
-test_command = "pnpm exec vitest run"
-source_hash = "d75b8452d3d3564eca219d2ca86f995e005c0c34"
+test_command = "pnpm exec vitest run tests/unit/utils/background-fetch-queue.test.ts"
+source_hash = "d787f7cffb4e2cfa3c59708ae00ede0195f8cbda"
 note = "verified=false は1件（process-queue.shift-guard-defensive-unreachable、公開APIからは到達不能な防御的分岐）"
 
 # --- BackgroundFetchQueue#enqueue(cardId, priority='normal', onComplete, onError?): void ---

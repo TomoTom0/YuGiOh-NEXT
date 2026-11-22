@@ -23,10 +23,10 @@
 feature = "drag-data"
 source_file = "src/utils/drag-data.ts"
 verified = true
-verified_at = "2026-08-28"
+verified_at = "2026-11-22"
 verified_by = "claude"
-test_command = "mise run test:vitest -- tests/unit/utils/drag-data.test.ts"
-source_hash = "5dad5a73e36ca1a15413450e1e7507886218aed8"
+test_command = "pnpm exec vitest run tests/unit/utils/drag-data.test.ts"
+source_hash = "b328d85855de42a4958608e0f4b03971c6841fdd"
 note = "is-drag-event.false-when-not-drag-event-instance の1件のみverified=false（happy-domではDragEventがEventのエイリアスのためテスト環境上検証不能。理由は当該conditionのunverifiable_reason参照）"
 
 # --- isDragEvent(event: Event): event is DragEvent ---
