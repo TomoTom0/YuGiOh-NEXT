@@ -2,13 +2,17 @@
  * 拡張機能コンテキストのエラーハンドリング
  */
 
+import { hasProperty } from './type-guards';
+
 /**
  * 拡張機能コンテキストが無効化されているかチェック
  */
-export function isExtensionContextInvalidated(error: any): boolean {
+export function isExtensionContextInvalidated(error: unknown): boolean {
   if (!error) return false;
 
-  const message = error.message || String(error);
+  const message =
+    (hasProperty(error, 'message') && typeof error.message === 'string' && error.message) ||
+    String(error);
   return message.includes('Extension context invalidated') ||
          message.includes('Cannot access') ||
          chrome.runtime?.id === undefined;
@@ -89,7 +93,7 @@ export async function safeStorageGet<T = any>(keys: string | string[]): Promise<
 /**
  * chrome.storage API呼び出しをラップしてエラーハンドリング（set版）
  */
-export async function safeStorageSet(items: Record<string, any>): Promise<void> {
+export async function safeStorageSet(items: Record<string, unknown>): Promise<void> {
   try {
     // コンテキストが既に無効化されているかチェック
     if (!chrome.runtime?.id) {
