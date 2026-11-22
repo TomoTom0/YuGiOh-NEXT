@@ -199,7 +199,7 @@ const sampleFusion: CardInfo = {
 
   // ===== カード移動テスト =====
 
-  await test('moveCardToSide: メインデッキからサイドへ移動 [covers:move_card_to_side.delegates_to_move_card]', () => {
+  await test('moveCardToSide: メインデッキからサイドへ移動 [covers:move-card-to-side.delegates-to-move-card]', () => {
     const store = useDeckEditStore();
     store.addCard(sampleMonster, 'main');
     store.moveCardToSide(sampleMonster, 'main');
@@ -209,7 +209,7 @@ const sampleFusion: CardInfo = {
     assertEquals(store.deckInfo.sideDeck[0]?.card.cardId, '4831', 'カードIDが正しいこと');
   });
 
-  await test('moveCardFromSide: サイドデッキからメイン/エクストラへ移動 [covers:move_card_from_side.extra_monster_targets_extra_otherwise_main]', () => {
+  await test('moveCardFromSide: サイドデッキからメイン/エクストラへ移動 [covers:move-card-from-side.extra-monster-targets-extra-otherwise-main]', () => {
     const store = useDeckEditStore();
     store.addCard(sampleSpell, 'side');
     store.moveCardFromSide(sampleSpell);
@@ -219,7 +219,7 @@ const sampleFusion: CardInfo = {
     assertEquals(store.deckInfo.mainDeck[0]?.card.cardId, '5851', 'カードIDが正しいこと');
   });
 
-  await test('moveCardToMainOrExtra: サイドデッキからメイン/エクストラへ移動（融合モンスター） [covers:move_card_to_main_or_extra.extra_monster_targets_extra_otherwise_main]', () => {
+  await test('moveCardToMainOrExtra: サイドデッキからメイン/エクストラへ移動（融合モンスター） [covers:move-card-to-main-or-extra.extra-monster-targets-extra-otherwise-main]', () => {
     const store = useDeckEditStore();
     store.addCard(sampleFusion, 'side');
 
@@ -272,7 +272,7 @@ const sampleFusion: CardInfo = {
 
   // ===== ソート機能テスト =====
 
-  await test('sortDisplayOrderForOfficial: モンスター→魔法→罠の順序 [covers:sort_display_order_for_official.syncs_three_sections]', () => {
+  await test('sortDisplayOrderForOfficial: モンスター→魔法→罠の順序 [covers:sort-display-order-for-official.syncs-three-sections]', () => {
     const store = useDeckEditStore();
     
     // 罠→魔法→モンスターの順で追加（逆順）

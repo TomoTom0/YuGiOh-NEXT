@@ -66,11 +66,11 @@ describe('deck-edit store: UI状態管理', () => {
       expect(store.overlayVisible).toBe(false);
     });
 
-    it('初期状態でcanUndoがfalseである [covers:undo_redo.initial_state_both_flags_false]', () => {
+    it('初期状態でcanUndoがfalseである [covers:undo-redo.initial-state-both-flags-false]', () => {
       expect(store.canUndo).toBe(false);
     });
 
-    it('初期状態でcanRedoがfalseである [covers:undo_redo.initial_state_both_flags_false]', () => {
+    it('初期状態でcanRedoがfalseである [covers:undo-redo.initial-state-both-flags-false]', () => {
       expect(store.canRedo).toBe(false);
     });
   });
@@ -286,29 +286,29 @@ describe('deck-edit store: UI状態管理', () => {
   });
 
   describe('Undo/Redo状態', () => {
-    it('初期状態ではcanUndoがfalseである [covers:undo_redo.initial_state_both_flags_false]', () => {
+    it('初期状態ではcanUndoがfalseである [covers:undo-redo.initial-state-both-flags-false]', () => {
       expect(store.canUndo).toBe(false);
     });
 
-    it('初期状態ではcanRedoがfalseである [covers:undo_redo.initial_state_both_flags_false]', () => {
+    it('初期状態ではcanRedoがfalseである [covers:undo-redo.initial-state-both-flags-false]', () => {
       expect(store.canRedo).toBe(false);
     });
 
-    it('コマンド実行後canUndoがtrueになる [covers:undo_redo.command_push_enables_undo_only]', () => {
+    it('コマンド実行後canUndoがtrueになる [covers:undo-redo.command-push-enables-undo-only]', () => {
       const card = mockCard('1001', 'カードA');
       store.addCard(card, 'main');
 
       expect(store.canUndo).toBe(true);
     });
 
-    it('undoする前はcanRedoがfalseである [covers:undo_redo.command_push_enables_undo_only]', () => {
+    it('undoする前はcanRedoがfalseである [covers:undo-redo.command-push-enables-undo-only]', () => {
       const card = mockCard('1001', 'カードA');
       store.addCard(card, 'main');
 
       expect(store.canRedo).toBe(false);
     });
 
-    it('undo実行後canRedoがtrueになる [covers:undo_redo.undo_enables_redo_then_redo_disables]', () => {
+    it('undo実行後canRedoがtrueになる [covers:undo-redo.undo-enables-redo-then-redo-disables]', () => {
       const card = mockCard('1001', 'カードA');
       store.addCard(card, 'main');
       expect(store.canUndo).toBe(true);
@@ -317,7 +317,7 @@ describe('deck-edit store: UI状態管理', () => {
       expect(store.canRedo).toBe(true);
     });
 
-    it('redo実行後canRedoがfalseに戻る [covers:undo_redo.undo_enables_redo_then_redo_disables]', () => {
+    it('redo実行後canRedoがfalseに戻る [covers:undo-redo.undo-enables-redo-then-redo-disables]', () => {
       const card = mockCard('1001', 'カードA');
       store.addCard(card, 'main');
 
@@ -328,7 +328,7 @@ describe('deck-edit store: UI状態管理', () => {
       expect(store.canRedo).toBe(false);
     });
 
-    it('複数のコマンド実行後、複数回undoできる [covers:undo_redo.stacked_commands_repeat_undo_redo]', () => {
+    it('複数のコマンド実行後、複数回undoできる [covers:undo-redo.stacked-commands-repeat-undo-redo]', () => {
       const cardA = mockCard('1001', 'カードA');
       const cardB = mockCard('1002', 'カードB');
 
@@ -349,7 +349,7 @@ describe('deck-edit store: UI状態管理', () => {
       expect(store.canRedo).toBe(true);
     });
 
-    it('複数のコマンド実行後、複数回redoできる [covers:undo_redo.stacked_commands_repeat_undo_redo]', () => {
+    it('複数のコマンド実行後、複数回redoできる [covers:undo-redo.stacked-commands-repeat-undo-redo]', () => {
       const cardA = mockCard('1001', 'カードA');
       const cardB = mockCard('1002', 'カードB');
 
@@ -459,13 +459,13 @@ describe('deck-edit store: UI状態管理', () => {
   describe('デッキ名（getDeckName/setDeckName）', () => {
     // originalNameへのフォールバックはloadDeck時点でnameフィールドに反映済みのため、
     // getDeckName自体はdeckInfo.nameをそのまま返す（フォールバックしない）
-    it('setDeckNameで設定した名前を返す [covers:set_deck_name.assigns_name] [covers:get_deck_name.name_then_original_then_empty]', () => {
+    it('setDeckNameで設定した名前を返す [covers:set-deck-name.assigns-name] [covers:get-deck-name.name-then-original-then-empty]', () => {
       store.deckInfo.originalName = '元のデッキ名';
       store.setDeckName('新しい名前');
       expect(store.getDeckName()).toBe('新しい名前');
     });
 
-    it('明示的に空文字へクリアした場合はoriginalNameへフォールバックしない [covers:get_deck_name.name_then_original_then_empty]', () => {
+    it('明示的に空文字へクリアした場合はoriginalNameへフォールバックしない [covers:get-deck-name.name-then-original-then-empty]', () => {
       store.deckInfo.originalName = '元のデッキ名';
       store.setDeckName('');
       expect(store.getDeckName()).toBe('');
@@ -473,11 +473,11 @@ describe('deck-edit store: UI状態管理', () => {
   });
 
   describe('ドラッグ状態（draggingCard）', () => {
-    it('初期状態ではdraggingCardがnullである [covers:set_dragging_card.assigns_value]', () => {
+    it('初期状態ではdraggingCardがnullである [covers:set-dragging-card.assigns-value]', () => {
       expect(store.draggingCard).toBeNull();
     });
 
-    it('ドラッグ中のカード情報を設定できる [covers:set_dragging_card.assigns_value]', () => {
+    it('ドラッグ中のカード情報を設定できる [covers:set-dragging-card.assigns-value]', () => {
       const card = mockCard('1001', 'カードA');
       store.setDraggingCard({ card, sectionType: 'main' });
 
@@ -486,7 +486,7 @@ describe('deck-edit store: UI状態管理', () => {
       expect(store.draggingCard?.sectionType).toBe('main');
     });
 
-    it('ドラッグ終了時にdraggingCardをnullにリセットできる [covers:set_dragging_card.assigns_value]', () => {
+    it('ドラッグ終了時にdraggingCardをnullにリセットできる [covers:set-dragging-card.assigns-value]', () => {
       const card = mockCard('1001', 'カードA');
       store.setDraggingCard({ card, sectionType: 'main' });
       store.setDraggingCard(null);
@@ -494,7 +494,7 @@ describe('deck-edit store: UI状態管理', () => {
       expect(store.draggingCard).toBeNull();
     });
 
-    it('異なるセクションへのドラッグ情報に更新できる [covers:set_dragging_card.assigns_value]', () => {
+    it('異なるセクションへのドラッグ情報に更新できる [covers:set-dragging-card.assigns-value]', () => {
       const cardA = mockCard('1001', 'カードA');
       const cardB = mockCard('1002', 'カードB');
 

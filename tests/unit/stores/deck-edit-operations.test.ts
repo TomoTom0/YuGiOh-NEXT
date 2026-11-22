@@ -74,6 +74,8 @@ vi.mock('@/content/session/session', () => ({
       deckCode: '',
     }])),
     createDeck: vi.fn(() => Promise.resolve(50)), // dnoを直接返す
+    getDeckLikes: vi.fn(() => Promise.resolve(0)),
+    issueDeckCode: vi.fn(() => Promise.resolve('')),
   },
 }));
 
@@ -266,7 +268,7 @@ afterEach(() => {
 // 1. デッキ保存機能のテスト
 // ============================================================
 describe('deck-edit store - saveDeck', () => {
-  it('should save deck successfully [covers:save_deck.syncs_then_delegates_and_refreshes_list]', async () => {
+  it('should save deck successfully [covers:save-deck.syncs-then-delegates-and-refreshes-list]', async () => {
     const store = useDeckEditStore();
 
     // デッキ情報を設定
@@ -280,7 +282,7 @@ describe('deck-edit store - saveDeck', () => {
     expect(result.success).toBe(true);
   });
 
-  it('should return false when save fails [covers:save_deck.syncs_then_delegates_and_refreshes_list]', async () => {
+  it('should return false when save fails [covers:save-deck.syncs-then-delegates-and-refreshes-list]', async () => {
     const store = useDeckEditStore();
 
     const { sessionManager } = await import('@/content/session/session');
@@ -291,7 +293,7 @@ describe('deck-edit store - saveDeck', () => {
     expect(result.success).toBe(false);
   });
 
-  it('should update dno after save [covers:save_deck.syncs_then_delegates_and_refreshes_list]', async () => {
+  it('should update dno after save [covers:save-deck.syncs-then-delegates-and-refreshes-list]', async () => {
     const store = useDeckEditStore();
 
     const { sessionManager } = await import('@/content/session/session');
@@ -313,7 +315,7 @@ describe('deck-edit store - saveDeckData', () => {
     vi.clearAllMocks();
   });
 
-  it('nameが空でoriginalNameがある場合、originalNameで補完して保存する [covers:save_deck_data.name_empty_falls_back_to_original_name]', async () => {
+  it('nameが空でoriginalNameがある場合、originalNameで補完して保存する [covers:save-deck-data.name-empty-falls-back-to-original-name]', async () => {
     const store = useDeckEditStore();
     const { sessionManager } = await import('@/content/session/session');
 
@@ -332,7 +334,7 @@ describe('deck-edit store - saveDeckData', () => {
     );
   });
 
-  it('nameが設定済みの場合はそのまま保存する [covers:save_deck_data.name_present_kept_as_is]', async () => {
+  it('nameが設定済みの場合はそのまま保存する [covers:save-deck-data.name-present-kept-as-is]', async () => {
     const store = useDeckEditStore();
     const { sessionManager } = await import('@/content/session/session');
 
@@ -351,7 +353,7 @@ describe('deck-edit store - saveDeckData', () => {
     );
   });
 
-  it('編集中のdeckInfo.value（P1側）は変更しない [covers:save_deck_data.does_not_mutate_editing_deck_info]', async () => {
+  it('編集中のdeckInfo.value（P1側）は変更しない [covers:save-deck-data.does-not-mutate-editing-deck-info]', async () => {
     const store = useDeckEditStore();
     store.deckInfo.name = 'P1のデッキ名';
     store.deckInfo.dno = 1;
@@ -374,7 +376,7 @@ describe('deck-edit store - saveDeckData', () => {
 // 2. デッキ読み込み機能のテスト
 // ============================================================
 describe('deck-edit store - loadDeck', () => {
-  it('should load deck from dno [covers:load_deck.success_clears_regulation_loads_head_resolves_waits_and_caches]', async () => {
+  it('should load deck from dno [covers:load-deck.success-clears-regulation-loads-head-resolves-waits-and-caches]', async () => {
     const store = useDeckEditStore();
 
     const { getDeckDetail } = await import('@/api/deck-operations');
@@ -385,7 +387,7 @@ describe('deck-edit store - loadDeck', () => {
     expect(store.deckInfo.dno).toBe(1);
   });
 
-  it('should initialize displayOrder after loading [covers:load_deck.success_initializes_display_order_from_deck_info]', async () => {
+  it('should initialize displayOrder after loading [covers:load-deck.success-initializes-display-order-from-deck-info]', async () => {
     const store = useDeckEditStore();
 
     await store.loadDeck(1);
@@ -396,7 +398,7 @@ describe('deck-edit store - loadDeck', () => {
     expect(store.displayOrder.side.length).toBeGreaterThan(0);
   });
 
-  it('should handle load failure gracefully [covers:load_deck.error_resets_loading_and_rethrows]', async () => {
+  it('should handle load failure gracefully [covers:load-deck.error-resets-loading-and-rethrows]', async () => {
     const store = useDeckEditStore();
 
     const { getDeckDetail } = await import('@/api/deck-operations');
@@ -423,7 +425,7 @@ describe('deck-edit store - loadDeck', () => {
 // 3. デッキ詳細取得機能のテスト
 // ============================================================
 describe('deck-edit store - getDeckDetail', () => {
-  it('should get deck detail and update state [covers:get_deck_detail.success_returns_api_result]', async () => {
+  it('should get deck detail and update state [covers:get-deck-detail.success-returns-api-result]', async () => {
     const store = useDeckEditStore();
 
     const result = await store.getDeckDetail(1);
@@ -433,7 +435,7 @@ describe('deck-edit store - getDeckDetail', () => {
     expect(result?.dno).toBe(1);
   });
 
-  it('should call getDeckDetail API [covers:get_deck_detail.success_returns_api_result]', async () => {
+  it('should call getDeckDetail API [covers:get-deck-detail.success-returns-api-result]', async () => {
     const store = useDeckEditStore();
 
     const { getDeckDetail } = await import('@/api/deck-operations');
@@ -448,7 +450,7 @@ describe('deck-edit store - getDeckDetail', () => {
 // 4. 新規デッキ作成のテスト
 // ============================================================
 describe('deck-edit store - createNewDeck', () => {
-  it('should create a new deck on server and load it [covers:create_new_deck.success_loads_and_refreshes]', async () => {
+  it('should create a new deck on server and load it [covers:create-new-deck.success-loads-and-refreshes]', async () => {
     const store = useDeckEditStore();
 
     // 既存のデータを設定
@@ -466,7 +468,7 @@ describe('deck-edit store - createNewDeck', () => {
     expect(store.deckInfo.dno).toBeGreaterThan(0);
   });
 
-  it('should initialize displayOrder after creating new deck [covers:load_deck.success_initializes_display_order_from_deck_info]', async () => {
+  it('should initialize displayOrder after creating new deck [covers:load-deck.success-initializes-display-order-from-deck-info]', async () => {
     const store = useDeckEditStore();
 
     // データを設定
@@ -478,7 +480,7 @@ describe('deck-edit store - createNewDeck', () => {
     expect(store.displayOrder.main.length).toBeGreaterThan(0);
   });
 
-  it('should clear command history after creating new deck [covers:load_deck.success_clears_undo_history]', async () => {
+  it('should clear command history after creating new deck [covers:load-deck.success-clears-undo-history]', async () => {
     const store = useDeckEditStore();
 
     // コマンド履歴が残っている状態を作る（直前のdisplayOrder初期化テストと同じ直接投入パターン）
@@ -500,7 +502,7 @@ describe('deck-edit store - createNewDeck', () => {
 // 5. デッキ削除のテスト
 // ============================================================
 describe('deck-edit store - deleteCurrentDeck', () => {
-  it('should delete current deck and load another [covers:delete_current_deck.loads_previous_smaller_or_max_deck]', async () => {
+  it('should delete current deck and load another [covers:delete-current-deck.loads-previous-smaller-or-max-deck]', async () => {
     const store = useDeckEditStore();
 
     store.deckInfo.dno = 1;
@@ -515,7 +517,7 @@ describe('deck-edit store - deleteCurrentDeck', () => {
     expect(store.deckInfo.dno).toBeGreaterThan(0);
   });
 
-  it('should not delete if dno is 0 [covers:delete_current_deck.no_loaded_deck_throws]', async () => {
+  it('should not delete if dno is 0 [covers:delete-current-deck.no-loaded-deck-throws]', async () => {
     const store = useDeckEditStore();
 
     store.deckInfo.dno = 0;
@@ -528,7 +530,7 @@ describe('deck-edit store - deleteCurrentDeck', () => {
     }
   });
 
-  it('should handle delete failure [covers:delete_current_deck.delete_failure_throws]', async () => {
+  it('should handle delete failure [covers:delete-current-deck.delete-failure-throws]', async () => {
     const store = useDeckEditStore();
 
     store.deckInfo.dno = 1;
@@ -544,7 +546,7 @@ describe('deck-edit store - deleteCurrentDeck', () => {
     }
   });
 
-  it('should create new deck after successful deletion when no decks remain [covers:delete_current_deck.empty_list_creates_new_deck]', async () => {
+  it('should create new deck after successful deletion when no decks remain [covers:delete-current-deck.empty-list-creates-new-deck]', async () => {
     const store = useDeckEditStore();
 
     store.deckInfo.dno = 1;
@@ -565,7 +567,7 @@ describe('deck-edit store - deleteCurrentDeck', () => {
 // 6. デッキリスト取得のテスト
 // ============================================================
 describe('deck-edit store - fetchDeckList', () => {
-  it('should fetch deck list [covers:fetch_deck_list.falls_back_to_api]', async () => {
+  it('should fetch deck list [covers:fetch-deck-list.falls-back-to-api]', async () => {
     const store = useDeckEditStore();
 
     const { sessionManager } = await import('@/content/session/session');
@@ -576,7 +578,7 @@ describe('deck-edit store - fetchDeckList', () => {
     expect(store.deckList.length).toBeGreaterThan(0);
   });
 
-  it('should update deckList state [covers:fetch_deck_list.falls_back_to_api]', async () => {
+  it('should update deckList state [covers:fetch-deck-list.falls-back-to-api]', async () => {
     const store = useDeckEditStore();
 
     const { sessionManager } = await import('@/content/session/session');
@@ -597,7 +599,7 @@ describe('deck-edit store - fetchDeckList', () => {
 // 7. ソート機能のテスト
 // ============================================================
 describe('deck-edit store - sortSection', () => {
-  it('should sort main deck [covers:sort_section.no_override_resolves_toggle_and_pushes_command]', async () => {
+  it('should sort main deck [covers:sort-section.no-override-resolves-toggle-and-pushes-command]', async () => {
     const store = useDeckEditStore();
 
     store.displayOrder.main = [
@@ -611,7 +613,7 @@ describe('deck-edit store - sortSection', () => {
     expect(store.displayOrder.main.length).toBe(2);
   });
 
-  it('should sort extra deck [covers:sort_section.no_override_resolves_toggle_and_pushes_command]', async () => {
+  it('should sort extra deck [covers:sort-section.no-override-resolves-toggle-and-pushes-command]', async () => {
     const store = useDeckEditStore();
 
     store.displayOrder.extra = [
@@ -624,7 +626,7 @@ describe('deck-edit store - sortSection', () => {
     expect(store.displayOrder.extra.length).toBe(2);
   });
 
-  it('should sort side deck [covers:sort_section.no_override_resolves_toggle_and_pushes_command]', async () => {
+  it('should sort side deck [covers:sort-section.no-override-resolves-toggle-and-pushes-command]', async () => {
     const store = useDeckEditStore();
 
     store.displayOrder.side = [
@@ -642,7 +644,7 @@ describe('deck-edit store - sortSection', () => {
 // 8. 全セクションソート機能のテスト
 // ============================================================
 describe('deck-edit store - sortAllSections', () => {
-  it('should sort all sections [covers:sort_all_sections.shared_direction_for_three_sections]', async () => {
+  it('should sort all sections [covers:sort-all-sections.shared-direction-for-three-sections]', async () => {
     const store = useDeckEditStore();
 
     store.displayOrder.main = [{ cid: 'card1', ciid: 1, uuid: 'uuid1' }];
@@ -662,7 +664,7 @@ describe('deck-edit store - sortAllSections', () => {
 // 9. デッキコピー機能のテスト
 // ============================================================
 describe('deck-edit store - copyCurrentDeck', () => {
-  it('should copy current deck [covers:copy_current_deck.loaded_deck_delegates_to_pseudo_copy]', async () => {
+  it('should copy current deck [covers:copy-current-deck.loaded-deck-delegates-to-pseudo-copy]', async () => {
     const store = useDeckEditStore();
 
     store.deckInfo.dno = 1;
@@ -681,7 +683,7 @@ describe('deck-edit store - copyCurrentDeck', () => {
 // 10. 擬似コピー機能のテスト
 // ============================================================
 describe('deck-edit store - pseudoCopyDeck', () => {
-  it('should create pseudo copy with new dno [covers:pseudo_copy_deck.success_saves_copy_loads_and_returns_new_dno]', async () => {
+  it('should create pseudo copy with new dno [covers:pseudo-copy-deck.success-saves-copy-loads-and-returns-new-dno]', async () => {
     const store = useDeckEditStore();
 
     // デッキをロードして正しい構造にする
@@ -711,7 +713,7 @@ describe('deck-edit store - pseudoCopyDeck', () => {
 // 11. デッキリロード機能のテスト
 // ============================================================
 describe('deck-edit store - reloadDeck', () => {
-  it('should reload current deck [covers:reload_deck.current_deck_loads_same_dno]', async () => {
+  it('should reload current deck [covers:reload-deck.current-deck-loads-same-dno]', async () => {
     const store = useDeckEditStore();
 
     store.deckInfo.dno = 1;
@@ -723,7 +725,7 @@ describe('deck-edit store - reloadDeck', () => {
     expect(getDeckDetail).toHaveBeenCalledWith(1, 'ja');
   });
 
-  it('should not reload if dno is 0 [covers:reload_deck.no_current_deck_throws]', async () => {
+  it('should not reload if dno is 0 [covers:reload-deck.no-current-deck-throws]', async () => {
     const store = useDeckEditStore();
 
     store.deckInfo.dno = 0;
@@ -741,7 +743,7 @@ describe('deck-edit store - reloadDeck', () => {
 // 12. 未保存変更検出のテスト
 // ============================================================
 describe('deck-edit store - hasUnsavedChanges', () => {
-  it('should detect unsaved changes [covers:has_unsaved_changes.compares_saved_snapshot]', async () => {
+  it('should detect unsaved changes [covers:has-unsaved-changes.compares-saved-snapshot]', async () => {
     const store = useDeckEditStore();
 
     // デッキをロードしてスナップショットを作成
@@ -754,5 +756,138 @@ describe('deck-edit store - hasUnsavedChanges', () => {
 
     // 変更があることを検出（nameは空文字なので変更扱い）
     expect(hasChanges).toBe(true);
+  });
+});
+
+
+// ============================================================
+// 13. TASK-489: 未cover条件（verified=false）の検証
+// ============================================================
+describe('deck-edit store - getDeckDetail error (TASK-489)', () => {
+  it('should return null when the API fails [covers:get-deck-detail.error-returns-null]', async () => {
+    const store = useDeckEditStore();
+
+    const { getDeckDetail } = await import('@/api/deck-operations');
+    vi.mocked(getDeckDetail).mockRejectedValueOnce(new Error('Load failed'));
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const result = await store.getDeckDetail(1);
+
+    expect(result).toBeNull();
+    consoleErrorSpy.mockRestore();
+  });
+});
+
+describe('deck-edit store - fetchDeckList error (TASK-489)', () => {
+  it('should return an empty list when the API fails [covers:fetch-deck-list.outer-error-returns-empty]', async () => {
+    const store = useDeckEditStore();
+
+    const { sessionManager } = await import('@/content/session/session');
+    store.deckList = [{ ...mockDeckInfo, dno: 1, name: 'Deck 1' }];
+    vi.mocked(sessionManager.getDeckList).mockRejectedValueOnce(new Error('network error'));
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const result = await store.fetchDeckList();
+
+    expect(result).toEqual([]);
+    expect(store.deckList).toEqual([]);
+    consoleErrorSpy.mockRestore();
+  });
+});
+
+describe('deck-edit store - createNewDeck invalid dno (TASK-489)', () => {
+  it('should throw when createDeck returns an invalid dno [covers:create-new-deck.invalid-dno-throws]', async () => {
+    const store = useDeckEditStore();
+
+    const { sessionManager } = await import('@/content/session/session');
+    vi.mocked(sessionManager.createDeck).mockResolvedValueOnce(0);
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(store.createNewDeck()).rejects.toThrow(
+      'Failed to create new deck: server returned invalid dno'
+    );
+    consoleErrorSpy.mockRestore();
+  });
+});
+
+describe('deck-edit store - pseudoCopyDeck invalid dno (TASK-489)', () => {
+  it('should throw when createDeck returns an invalid dno [covers:pseudo-copy-deck.invalid-dno-throws]', async () => {
+    const store = useDeckEditStore();
+
+    const { sessionManager } = await import('@/content/session/session');
+    vi.mocked(sessionManager.createDeck).mockResolvedValueOnce(0);
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(store.pseudoCopyDeck(mockDeckInfo)).rejects.toThrow(
+      'Failed to create new deck for copy'
+    );
+    consoleErrorSpy.mockRestore();
+  });
+});
+
+describe('deck-edit store - getDeckLikes (TASK-489)', () => {
+  it('should return the API like count on success [covers:get-deck-likes.success-or-zero-on-error]', async () => {
+    const store = useDeckEditStore();
+
+    const { sessionManager } = await import('@/content/session/session');
+    vi.mocked(sessionManager.getDeckLikes).mockResolvedValueOnce(42);
+
+    await expect(store.getDeckLikes(1)).resolves.toBe(42);
+  });
+
+  it('should return 0 when the API fails [covers:get-deck-likes.success-or-zero-on-error]', async () => {
+    const store = useDeckEditStore();
+
+    const { sessionManager } = await import('@/content/session/session');
+    vi.mocked(sessionManager.getDeckLikes).mockRejectedValueOnce(new Error('network error'));
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(store.getDeckLikes(1)).resolves.toBe(0);
+    consoleErrorSpy.mockRestore();
+  });
+});
+
+describe('deck-edit store - issueDeckCode (TASK-489)', () => {
+  it('should return the issued deck code on success [covers:issue-deck-code.success-or-empty-on-error]', async () => {
+    const store = useDeckEditStore();
+
+    const { sessionManager } = await import('@/content/session/session');
+    vi.mocked(sessionManager.issueDeckCode).mockResolvedValueOnce('CODE-123');
+
+    await expect(store.issueDeckCode(1)).resolves.toBe('CODE-123');
+  });
+
+  it('should return an empty string when the API fails [covers:issue-deck-code.success-or-empty-on-error]', async () => {
+    const store = useDeckEditStore();
+
+    const { sessionManager } = await import('@/content/session/session');
+    vi.mocked(sessionManager.issueDeckCode).mockRejectedValueOnce(new Error('network error'));
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(store.issueDeckCode(1)).resolves.toBe('');
+    consoleErrorSpy.mockRestore();
+  });
+});
+
+describe('deck-edit store - hasOnlySortOrderChanges (TASK-489)', () => {
+  it('should delegate to the snapshot logic when a snapshot exists [covers:has-only-sort-order-changes.delegates-when-snapshot-exists]', async () => {
+    const store = useDeckEditStore();
+
+    // デッキをロードしてスナップショットを作成
+    await store.loadDeck(1);
+
+    // 変更が無ければ「順序のみの変更」として扱われる
+    expect(store.hasOnlySortOrderChanges()).toBe(true);
+
+    // 並び替えだけでは true のまま
+    store.deckInfo.mainDeck = [...store.deckInfo.mainDeck].reverse();
+    expect(store.hasOnlySortOrderChanges()).toBe(true);
+
+    // 内容（構成カード）が変われば false
+    store.deckInfo.mainDeck = [
+      ...store.deckInfo.mainDeck,
+      { cid: 'cardX', ciid: '1', lang: 'ja', quantity: 1 },
+    ];
+    expect(store.hasOnlySortOrderChanges()).toBe(false);
   });
 });

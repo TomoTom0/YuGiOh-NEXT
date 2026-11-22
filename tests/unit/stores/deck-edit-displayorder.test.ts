@@ -55,7 +55,7 @@ describe('deck-edit store: displayOrder操作', () => {
   });
 
   describe('addCard - displayOrder初期化', () => {
-    it('カード追加時にdisplayOrderが初期化される [covers:add_card.success_adds_display_order_and_command]', () => {
+    it('カード追加時にdisplayOrderが初期化される [covers:add-card.success-adds-display-order-and-command]', () => {
       const card = mockCard('1001', 'カードA');
 
       store.addCard(card, 'main');
@@ -65,7 +65,7 @@ describe('deck-edit store: displayOrder操作', () => {
       expect(store.displayOrder.main[0].cid).toBe('1001');
     });
 
-    it('複数のカードがdisplayOrderに順序付きで追加される [covers:add_card.success_adds_display_order_and_command]', () => {
+    it('複数のカードがdisplayOrderに順序付きで追加される [covers:add-card.success-adds-display-order-and-command]', () => {
       const cardA = mockCard('1001', 'カードA');
       const cardB = mockCard('1002', 'カードB');
 
@@ -77,7 +77,7 @@ describe('deck-edit store: displayOrder操作', () => {
       expect(store.displayOrder.main[1].cid).toBe('1002');
     });
 
-    it('同じカードを複数枚追加した場合、displayOrderに各々が入る [covers:add_card.generates_new_uuid_per_call_via_deck_uuid_generator] [covers:add_card.success_adds_display_order_and_command]', () => {
+    it('同じカードを複数枚追加した場合、displayOrderに各々が入る [covers:add-card.generates-new-uuid-per-call-via-deck-uuid-generator] [covers:add-card.success-adds-display-order-and-command]', () => {
       const card = mockCard('1001', 'カードA');
 
       store.addCard(card, 'main');
@@ -88,7 +88,7 @@ describe('deck-edit store: displayOrder操作', () => {
       expect(store.displayOrder.main[1].cid).toBe('1001');
     });
 
-    it('異なるセクション間でdisplayOrderが独立している [covers:add_card.success_adds_display_order_and_command]', () => {
+    it('異なるセクション間でdisplayOrderが独立している [covers:add-card.success-adds-display-order-and-command]', () => {
       const card = mockCard('1001', 'カードA');
 
       store.addCard(card, 'main');
@@ -101,7 +101,7 @@ describe('deck-edit store: displayOrder操作', () => {
   });
 
   describe('removeCard - displayOrder削除', () => {
-    it('カード削除時にdisplayOrderからも削除される [covers:remove_card.delegates_remove_records_move_and_updates_category]', () => {
+    it('カード削除時にdisplayOrderからも削除される [covers:remove-card.delegates-remove-records-move-and-updates-category]', () => {
       const card = mockCard('1001', 'カードA');
       store.addCard(card, 'main');
 
@@ -113,7 +113,7 @@ describe('deck-edit store: displayOrder操作', () => {
       expect(store.deckInfo.mainDeck).toHaveLength(0);
     });
 
-    it('複数枚の同じカードから1枚だけ削除できる [covers:remove_card.delegates_remove_records_move_and_updates_category]', () => {
+    it('複数枚の同じカードから1枚だけ削除できる [covers:remove-card.delegates-remove-records-move-and-updates-category]', () => {
       const card = mockCard('1001', 'カードA');
       store.addCard(card, 'main');
       store.addCard(card, 'main');
@@ -127,7 +127,7 @@ describe('deck-edit store: displayOrder操作', () => {
       expect(store.displayOrder.main.every(dc => dc.cid === '1001')).toBe(true);
     });
 
-    it('異なるカードの削除は他のカードに影響しない [covers:remove_card.delegates_remove_records_move_and_updates_category]', () => {
+    it('異なるカードの削除は他のカードに影響しない [covers:remove-card.delegates-remove-records-move-and-updates-category]', () => {
       const cardA = mockCard('1001', 'カードA');
       const cardB = mockCard('1002', 'カードB');
 
@@ -142,7 +142,7 @@ describe('deck-edit store: displayOrder操作', () => {
   });
 
   describe('reorderWithinSection - displayOrder並び替え', () => {
-    it('同じセクション内でカードを並び替える [covers:reorder_within_section.success_pushes_reorder_command]', () => {
+    it('同じセクション内でカードを並び替える [covers:reorder-within-section.success-pushes-reorder-command]', () => {
       const cardA = mockCard('1001', 'カードA');
       const cardB = mockCard('1002', 'カードB');
       const cardC = mockCard('1003', 'カードC');
@@ -166,7 +166,7 @@ describe('deck-edit store: displayOrder操作', () => {
       expect(store.displayOrder.main[2].cid).toBe('1001'); // A
     });
 
-    it('targetUuidがnullの場合、末尾に移動する [covers:reorder_within_section.success_pushes_reorder_command]', () => {
+    it('targetUuidがnullの場合、末尾に移動する [covers:reorder-within-section.success-pushes-reorder-command]', () => {
       const cardA = mockCard('1001', 'カードA');
       const cardB = mockCard('1002', 'カードB');
 
@@ -183,7 +183,7 @@ describe('deck-edit store: displayOrder操作', () => {
       expect(store.displayOrder.main).toHaveLength(2);
     });
 
-    it('存在しないUUIDでの並び替えは失敗する [covers:reorder_within_section.validation_error_returns_failure]', () => {
+    it('存在しないUUIDでの並び替えは失敗する [covers:reorder-within-section.validation-error-returns-failure]', () => {
       const card = mockCard('1001', 'カードA');
       store.addCard(card, 'main');
 
@@ -195,7 +195,7 @@ describe('deck-edit store: displayOrder操作', () => {
   });
 
   describe('displayOrder と deckInfo の同期', () => {
-    it('複数のカード操作後、displayOrderとdeckInfoの長さが一致 [covers:add_card.success_adds_display_order_and_command] [covers:remove_card.delegates_remove_records_move_and_updates_category]', () => {
+    it('複数のカード操作後、displayOrderとdeckInfoの長さが一致 [covers:add-card.success-adds-display-order-and-command] [covers:remove-card.delegates-remove-records-move-and-updates-category]', () => {
       const cardA = mockCard('1001', 'カードA');
       const cardB = mockCard('1002', 'カードB');
       const cardC = mockCard('1003', 'カードC');
@@ -214,7 +214,7 @@ describe('deck-edit store: displayOrder操作', () => {
       expect(store.displayOrder.main).toHaveLength(2);
     });
 
-    it('addCard後のdeckInfoとdisplayOrderの長さが一致 [covers:add_card.success_adds_display_order_and_command]', () => {
+    it('addCard後のdeckInfoとdisplayOrderの長さが一致 [covers:add-card.success-adds-display-order-and-command]', () => {
       const cards = [
         mockCard('1001', 'A'),
         mockCard('1002', 'B'),
@@ -229,7 +229,7 @@ describe('deck-edit store: displayOrder操作', () => {
   });
 
   describe('displayOrder UUIDs', () => {
-    it('各displayCardはユニークなUUIDを持つ [covers:add_card.generates_new_uuid_per_call_via_deck_uuid_generator]', () => {
+    it('各displayCardはユニークなUUIDを持つ [covers:add-card.generates-new-uuid-per-call-via-deck-uuid-generator]', () => {
       const card = mockCard('1001', 'カードA');
 
       store.addCard(card, 'main');
@@ -241,7 +241,7 @@ describe('deck-edit store: displayOrder操作', () => {
       expect(uniqueUuids.size).toBe(2); // 2つの異なるUUID
     });
 
-    it('同じカードでもciidが異なればUUIDが異なる [covers:add_card.generates_new_uuid_per_call_via_deck_uuid_generator]', () => {
+    it('同じカードでもciidが異なればUUIDが異なる [covers:add-card.generates-new-uuid-per-call-via-deck-uuid-generator]', () => {
       const cardCiid1: CardInfo = { ...mockCard('1001', 'カードA'), ciid: '1' };
       const cardCiid2: CardInfo = { ...mockCard('1001', 'カードA'), ciid: '2' };
 
@@ -256,7 +256,7 @@ describe('deck-edit store: displayOrder操作', () => {
   });
 
   describe('displayOrder Undo/Redo', () => {
-    it('addCard後のundo/redoでdisplayOrderが復元される [covers:add_card.undo_redo_round_trip_restores_display_order]', () => {
+    it('addCard後のundo/redoでdisplayOrderが復元される [covers:add-card.undo-redo-round-trip-restores-display-order]', () => {
       const card = mockCard('1001', 'カードA');
 
       store.addCard(card, 'main');
@@ -269,7 +269,7 @@ describe('deck-edit store: displayOrder操作', () => {
       expect(store.displayOrder.main).toHaveLength(1);
     });
 
-    it('removeCard後のundoで削除したカードが復元される [covers:remove_card.undo_restores_removed_card]', () => {
+    it('removeCard後のundoで削除したカードが復元される [covers:remove-card.undo-restores-removed-card]', () => {
       const cardA = mockCard('1001', 'カードA');
       const cardB = mockCard('1002', 'カードB');
 
@@ -288,7 +288,7 @@ describe('deck-edit store: displayOrder操作', () => {
       expect(store.displayOrder.main.some(dc => dc.cid === '1001')).toBe(true);
     });
 
-    it('【TASK-355】同(cid,ciid)の2枚目追加をundoすると、1枚目ではなく追加した2枚目が削除される [covers:add_card.duplicate_add_undo_removes_the_just_added_copy]', () => {
+    it('【TASK-355】同(cid,ciid)の2枚目追加をundoすると、1枚目ではなく追加した2枚目が削除される [covers:add-card.duplicate-add-undo-removes-the-just-added-copy]', () => {
       const card = mockCard('1001', 'カードA');
 
       // 1枚目追加
@@ -339,7 +339,7 @@ describe('deck-edit store: displayOrder操作', () => {
       store.deckInfo.extraDeck = [];
     });
 
-    it('イラスト違いカード(ciid=2)を移動してもciidが代表値(1)に化けない [covers:move_card_with_position.preserves_actual_ciid_not_representative_value] [covers:move_card_with_position.success_inserts_at_target_or_end]', () => {
+    it('イラスト違いカード(ciid=2)を移動してもciidが代表値(1)に化けない [covers:move-card-with-position.preserves-actual-ciid-not-representative-value] [covers:move-card-with-position.success-inserts-at-target-or-end]', () => {
       // ciid=2 のカード（displayOrderの2枚目）をsideへ移動
       const sourceUuid = store.displayOrder.main[1].uuid;
       const result = store.moveCardWithPosition('2001', 'main', 'side', sourceUuid, null);
@@ -361,7 +361,7 @@ describe('deck-edit store: displayOrder操作', () => {
       expect(store.displayOrder.side[0].ciid).toBe(2);
     });
 
-    it('イラスト違いカード移動後のundoでciid=2が元に戻る [covers:move_card_with_position.success_inserts_at_target_or_end] [covers:move_card_with_position.preserves_actual_ciid_not_representative_value]', () => {
+    it('イラスト違いカード移動後のundoでciid=2が元に戻る [covers:move-card-with-position.success-inserts-at-target-or-end] [covers:move-card-with-position.preserves-actual-ciid-not-representative-value]', () => {
       const sourceUuid = store.displayOrder.main[1].uuid;
       store.moveCardWithPosition('2001', 'main', 'side', sourceUuid, null);
 
@@ -374,7 +374,7 @@ describe('deck-edit store: displayOrder操作', () => {
       expect(store.deckInfo.sideDeck).toHaveLength(0);
     });
 
-    it('イラスト違いカード移動後のredoで再度sideへ移動する [covers:move_card_with_position.success_inserts_at_target_or_end]', () => {
+    it('イラスト違いカード移動後のredoで再度sideへ移動する [covers:move-card-with-position.success-inserts-at-target-or-end]', () => {
       const sourceUuid = store.displayOrder.main[1].uuid;
       store.moveCardWithPosition('2001', 'main', 'side', sourceUuid, null);
       store.undo();
