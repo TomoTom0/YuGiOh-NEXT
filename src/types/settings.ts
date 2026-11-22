@@ -291,8 +291,12 @@ export interface AppSettings {
 export interface DeckEditUIState {
   /** 表示モード */
   viewMode: DisplayMode;
-  /** ソート順 */
-  sortOrder: SortOrder;
+  /**
+   * ソート順
+   * デッキ編集画面のソート語彙は検索用の SortOrder より広い（CardList が
+   * code_asc / recipe_desc / actual_asc / fa-br_desc 等を発行する）ため string とする
+   */
+  sortOrder: string;
   /** アクティブタブ */
   activeTab: ActiveTab;
   /** カード詳細タブ */

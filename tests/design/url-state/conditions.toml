@@ -11,7 +11,7 @@ verified = true
 verified_at = "2026-08-05"
 verified_by = "claude"
 test_command = "mise run test:vitest -- tests/unit/utils/url-state.test.ts"
-source_hash = "fe4314db721b5eaa101906d0e9cabfc07579a8ca"
+source_hash = "91336f68945cb9eac3799b6b3f0917cd021a3de5"
 
 # --- URLStateManager.getParams(): URLSearchParams ---
 
