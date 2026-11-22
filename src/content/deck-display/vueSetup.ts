@@ -167,7 +167,7 @@ async function setupCardImageHoverUI(): Promise<void> {
 
       // カード詳細を表示
       if (result?.detail?.card) {
-        cardDetailStore.setSelectedCard(result.detail.card as any)
+        cardDetailStore.setSelectedCard(result.detail.card)
       } else {
         console.warn('[DeckDisplay] No card data in result')
       }

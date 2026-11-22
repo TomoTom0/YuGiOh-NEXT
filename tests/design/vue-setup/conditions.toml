@@ -25,10 +25,10 @@
 feature = "vue-setup"
 source_file = "src/content/deck-display/vueSetup.ts"
 verified = true
-verified_at = "2026-08-29"
+verified_at = "2026-11-22"
 verified_by = "claude"
-test_command = "mise run test:vitest -- tests/unit/content/vue-setup.test.ts"
-source_hash = "923d784579d64e822ef9cf8f20825ab367147f01"
+test_command = "pnpm exec vitest run"
+source_hash = "5b50d93d28a780aa7b4bf473b6257529cda72e56"
 note = "verified=falseは0件"
 
 # --- setupVueApp() ---
