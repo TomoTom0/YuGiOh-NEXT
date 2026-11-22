@@ -140,7 +140,7 @@
           :selected-mydeck-index="selectedMydeckIndex"
           :show-mydeck-dropdown="showMydeckDropdown"
           :is-bottom-position="isBottomPosition"
-          @select-command="selectCommand"
+          @select-command="s => selectCommand({ command: s.value, description: s.label })"
           @select-suggestion="selectSuggestion"
           @select-mydeck="selectMydeck"
           @close-mydeck="showMydeckDropdown = false"
@@ -553,7 +553,8 @@ export default defineComponent({
         }
         // 候補が1つだけの場合はそれを選択
         if (mydeckSuggestions.value.length === 1) {
-          loadMydeckCards(mydeckSuggestions.value[0].dno)
+          const onlyDeck = mydeckSuggestions.value[0]
+          if (onlyDeck) loadMydeckCards(onlyDeck.dno)
           return
         }
         return
@@ -595,7 +596,7 @@ export default defineComponent({
       // /ai コマンド: chat tabに切り替えてメッセージ送信
       const aiMatch = searchStore.searchQuery.match(/^\/ai\s+(.+)/)
       if (aiMatch) {
-        const message = aiMatch[1].trim()
+        const message = aiMatch[1]?.trim()
         if (message) {
           deckStore.pendingChatMessage = message
           deckStore.activeTab = 'chat'
@@ -653,7 +654,7 @@ export default defineComponent({
             if (min !== undefined && !isNaN(min)) f.atk.min = min
             if (max !== undefined && !isNaN(max)) f.atk.max = max
           } else if (parts.length === 1) {
-            const val = parseInt(parts[0], 10)
+            const val = parseInt(parts[0] ?? '', 10)
             if (!isNaN(val)) {
               f.atk.exact = true
               f.atk.min = val
@@ -670,7 +671,7 @@ export default defineComponent({
             if (min !== undefined && !isNaN(min)) f.def.min = min
             if (max !== undefined && !isNaN(max)) f.def.max = max
           } else if (parts.length === 1) {
-            const val = parseInt(parts[0], 10)
+            const val = parseInt(parts[0] ?? '', 10)
             if (!isNaN(val)) {
               f.def.exact = true
               f.def.min = val
