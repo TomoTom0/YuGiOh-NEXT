@@ -11,6 +11,7 @@ import {
   DEFAULT_APP_SETTINGS,
 } from '@/types/settings';
 import type { FeatureSettings, AppSettings } from '@/types/settings';
+import { isSortOrder, SORT_ORDERS } from '@/types/settings';
 
 // chrome.storage.local のモック
 const mockChromeStorage = {
@@ -313,5 +314,23 @@ describe('settings', () => {
 
       consoleErrorSpy.mockRestore();
     });
+  });
+});
+
+describe('isSortOrder（types/settings）', () => {
+  it('SortOrderの全値をtrueと判定する', () => {
+    for (const order of SORT_ORDERS) {
+      expect(isSortOrder(order)).toBe(true);
+    }
+  });
+
+  it('SortOrder外の文字列・非文字列をfalseと判定する', () => {
+    expect(isSortOrder('code_asc')).toBe(false);
+    expect(isSortOrder('actual_asc')).toBe(false);
+    expect(isSortOrder('')).toBe(false);
+    expect(isSortOrder('RELEASE_DESC')).toBe(false);
+    expect(isSortOrder(undefined)).toBe(false);
+    expect(isSortOrder(null)).toBe(false);
+    expect(isSortOrder(42)).toBe(false);
   });
 });

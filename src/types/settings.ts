@@ -106,6 +106,28 @@ export type SortOrder =
   | 'def_asc'       // 守備力昇順
   | 'def_desc';     // 守備力降順
 
+/** SortOrder の全値（実行時検証用） */
+export const SORT_ORDERS: readonly SortOrder[] = [
+  'official',
+  'release_desc',
+  'release_asc',
+  'name_asc',
+  'name_desc',
+  'level_asc',
+  'level_desc',
+  'atk_asc',
+  'atk_desc',
+  'def_asc',
+  'def_desc',
+];
+
+const SORT_ORDER_SET: ReadonlySet<string> = new Set(SORT_ORDERS);
+
+/** 値が SortOrder かどうかを実行時に検証する型ガード */
+export function isSortOrder(value: unknown): value is SortOrder {
+  return typeof value === 'string' && SORT_ORDER_SET.has(value);
+}
+
 /**
  * カードタブ
  */
