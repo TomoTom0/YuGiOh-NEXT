@@ -104,7 +104,7 @@ describe('useDeckDisplayOrder', () => {
   });
 
   describe('removeFromDisplayOrder', () => {
-      it('[covers:remove.display_without_uuid_removes_last_cid] メインデッキからカードを削除できる', () => {
+      it('[covers:remove.display-without-uuid-removes-last-cid] メインデッキからカードを削除できる', () => {
       const displayOrder: DisplayOrderState = {
         main: [{ cid: '12345', ciid: 1, uuid: '12345-1-uuid' }],
         extra: [],
@@ -125,7 +125,7 @@ describe('useDeckDisplayOrder', () => {
       expect(displayOrder.main).toHaveLength(0);
     });
 
-      it('[covers:remove.deck_quantity_decrements] 複数枚のカードから1枚だけ削除できる', () => {
+      it('[covers:remove.deck-quantity-decrements] 複数枚のカードから1枚だけ削除できる', () => {
       const displayOrder: DisplayOrderState = {
         main: [
           { cid: '12345', ciid: 1, uuid: '12345-1-uuid-1' },
@@ -693,7 +693,7 @@ describe('useDeckDisplayOrder', () => {
         expect(shuffled.sort((a, b) => a - b)).toEqual(array);
       });
 
-      it('[covers:shuffle.returns_new_array_same_members] シャッフル後も元の配列が変更されない', () => {
+      it('[covers:shuffle.returns-new-array-same-members] シャッフル後も元の配列が変更されない', () => {
         const original = [1, 2, 3, 4, 5];
         const copy = [...original];
         const shuffled = fisherYatesShuffle(copy);
@@ -754,7 +754,7 @@ describe('useDeckDisplayOrder', () => {
         expect(shuffled).toHaveLength(5);
       });
 
-      it('[covers:shuffle.returns_new_array_same_members] 同じ配列を複数回シャッフルしても要素集合と元配列は保たれる', () => {
+      it('[covers:shuffle.returns-new-array-same-members] 同じ配列を複数回シャッフルしても要素集合と元配列は保たれる', () => {
         const array = Array.from({ length: 100 }, (_, i) => i);
         const shuffled1 = fisherYatesShuffle([...array]);
         const shuffled2 = fisherYatesShuffle([...array]);
