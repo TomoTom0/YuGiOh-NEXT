@@ -28,13 +28,13 @@
 #   use-practice-actions条件書・use-practice-drop-handler条件書へ委譲
 
 [meta]
-verified_at = "2026-11-21"
+verified_at = "2026-11-22"
 verified_by = "claude"
 feature = "practice-shared-emz-row"
 source_file = "src/components/practice/PracticeSharedEMZRow.vue"
 verified = true
-test_command = "mise run test:vitest -- tests/unit/components/PracticeSharedEMZRow.test.ts"
-source_hash = "4610d63701614ff269df931ab73472eb0d1dc1b1"
+test_command = "pnpm exec vitest run"
+source_hash = "d66684e7849c5a7b2a56d90532065d3e2a73417f"
 note = "TASK-560（TASK-331第14号）でPractice系コンポーネント3ファイル目の条件化。props/emitsなし。5条件=EMZスロット2件の描画・props束縛1+根源要素のCSS変数とカードサイズ1+card-action転送1+card-drop転送1+deck-card-drop転送1。転送はいずれもfieldIndex=0・targetZone=extraMonster。テストは新規作成（PracticeSlotはカスタムstub、転送先composableはmodule mock）。src不変"
 
 # --- EMZスロットの描画・props束縛 ---

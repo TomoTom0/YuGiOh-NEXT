@@ -15,10 +15,10 @@
 feature = "deck-parser"
 source_file = "src/content/parser/deck-parser.ts"
 verified = true
-verified_at = "2026-08-06"
-verified_by = "codex"
-test_command = "mise run test:vitest -- tests/unit/parser/deck-parser.test.ts"
-source_hash = "c2c175096784abd646308329015e77e15c7b892c"
+verified_at = "2026-11-22"
+verified_by = "claude"
+test_command = "pnpm exec vitest run"
+source_hash = "dbf327b51200a09b278c757df1105b1854eb3540"
 note = "verified=falseは0件。TASK-478でsrc/content/parser/__tests__/deck-parser.test.tsと一本化した。src側8テスト（monster/spell/trap行のcid・ciid・quantity・lang検証、imgs欠落時ciidデフォルト'1'、情報欠落時null、ページ全体パースのdno/name/isPublic/deckType/comment・main/extra/side、dno欠落0・name欠落''）はいずれもunit側の既存テスト（monster/spell/trapのキャッシュ形状検証・imgs_absent_defaults・card_type_missing・基本フィールド読み取り・deck_sections・省略時デフォルト値）と同趣旨のため移植0件。旧ファイルは削除済み"
 
 # --- parseCardRow(row: HTMLElement): DeckCardRef | null ---
@@ -212,7 +212,7 @@ expect_return_shape = "順にisPublic=true、false、false"
 [[condition]]
 id = "parse_deck_page.deck_type_value_or_undefined"
 target_function = "parseDeckPage"
-source_lines = "206-207"
+source_lines = "206-208"
 description = "select[name=deck_type]があればvalueをdeckTypeにし、無ければundefinedにする"
 given = "deck_type value='1'、またはselect無し"
 expect_return_shape = "前者はdeckType='1'、後者はdeckType=undefined"
@@ -220,7 +220,7 @@ expect_return_shape = "前者はdeckType='1'、後者はdeckType=undefined"
 [[condition]]
 id = "parse_deck_page.comment_value_or_empty"
 target_function = "parseDeckPage"
-source_lines = "210-211"
+source_lines = "211-212"
 description = "textarea[name=comment]があればvalueをcommentにし、無ければ空文字列にする"
 given = "comment textareaの本文が'テストコメント'、またはtextarea無し"
 expect_return_shape = "前者はcomment='テストコメント'、後者はcomment=''"
@@ -228,7 +228,7 @@ expect_return_shape = "前者はcomment='テストコメント'、後者はcomme
 [[condition]]
 id = "parse_deck_page.unimplemented_metadata_empty"
 target_function = "parseDeckPage"
-source_lines = "213-229"
+source_lines = "214-230"
 description = "category/tags/deckCodeはDOM内容に関係なく常に空配列・空文字列で返る"
 given = "任意のdoc"
 expect_return_shape = "category=[]、tags=[]、deckCode=''"
