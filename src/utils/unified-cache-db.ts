@@ -528,20 +528,19 @@ export class UnifiedCacheDB {
     this.cardTableB.set(card.cardId, tableB);
 
     // TableB2 (langsText, langsPendText)
-    const cardAny = card as any;
-    if (cardAny.text || cardAny.pendulumText) {
+    if (card.text || card.pendulumText) {
       const existingB2 = this.cardTableB2.get(card.cardId);
 
       // 既存のlangsTextを取得
       let langsText = existingB2?.langsText || {};
-      if (cardAny.text) {
-        langsText = { ...langsText, [lang]: cardAny.text };
+      if (card.text) {
+        langsText = { ...langsText, [lang]: card.text };
       }
 
       // 既存のlangsPendTextを取得
       let langsPendText = existingB2?.langsPendText || {};
-      if (cardAny.pendulumText) {
-        langsPendText = { ...langsPendText, [lang]: cardAny.pendulumText };
+      if (card.pendulumText) {
+        langsPendText = { ...langsPendText, [lang]: card.pendulumText };
       } else {
         // ペンデュラムテキストがない場合、このlangの既存エントリを削除して誤ったデータをクリア
         if (langsPendText[lang]) {
