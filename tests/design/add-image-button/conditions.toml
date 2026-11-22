@@ -15,50 +15,50 @@ source_file = "src/content/deck-recipe/addImageButton.ts"
 verified = true
 verified_at = "2026-11-22"
 verified_by = "claude"
-test_command = "pnpm exec vitest run"
+test_command = "pnpm exec vitest run tests/unit/content/add-image-button.test.ts"
 source_hash = "35b9449f17b48bd29fd68e75a7dc2b20243ddefc"
 note = "verified=falseは0件"
 
 # --- addDeckImageButton() ---
 
 [[condition]]
-id = "add_deck_image_button.no_bottom_btn_set_returns_null"
+id = "add-deck-image-button.no-bottom-btn-set-returns-null"
 target_function = "addDeckImageButton"
-source_lines = "28-33"
+source_lines = "tests/unit/content/add-image-button.test.ts:72"
 description = "#bottom_btn_setが見つからない場合、console.warnしnullを返す"
 given = "#bottom_btn_setがDOMに存在しない"
 expect_return = "null"
 
 [[condition]]
-id = "add_deck_image_button.already_added_returns_null"
+id = "add-deck-image-button.already-added-returns-null"
 target_function = "addDeckImageButton"
-source_lines = "36-38"
+source_lines = "tests/unit/content/add-image-button.test.ts:81"
 description = "EXTENSION_IDS.deckImage.deckImageButtonが既にDOMに存在する場合、重複追加せずnullを返す"
 given = "id=EXTENSION_IDS.deckImage.deckImageButtonの要素が既にDOM内にある"
 expect_return = "null"
 
 [[condition]]
-id = "add_deck_image_button.success_adds_button_and_next_edit_button"
+id = "add-deck-image-button.success-adds-button-and-next-edit-button"
 target_function = "addDeckImageButton"
-source_lines = "40-73"
+source_lines = "tests/unit/content/add-image-button.test.ts:92"
 description = "正常時、カメラアイコンボタンを#bottom_btn_setに追加し、addNextEditButtonも呼び、preloadDeckInfoを実行した上で作成したボタンを返す"
 given = "#bottom_btn_setが存在しボタン未追加の状態"
 expect_return_shape = "作成されたHTMLAnchorElement。#bottom_btn_set配下にdeckImageButtonとeditButtonの両方が追加される"
 
 [[condition]]
-id = "add_deck_image_button.click_opens_image_dialog"
+id = "add-deck-image-button.click-opens-image-dialog"
 target_function = "addDeckImageButton"
-source_lines = "55-62"
+source_lines = "tests/unit/content/add-image-button.test.ts:105"
 description = "作成したボタンをクリックするとpreventDefaultしshowImageDialog()を呼ぶ。失敗してもconsole.errorのみでthrowしない"
 given = "作成されたボタンをクリックする"
-expect_side_effect = "showImageDialogが呼ばれる"
+expect_return_shape = "showImageDialogが呼ばれる"
 
 # --- preloadDeckInfo() [非export] ---
 
 [[condition]]
-id = "preload_deck_info.failure_logged_as_debug_only"
+id = "preload-deck-info.failure-logged-as-debug-only"
 target_function = "preloadDeckInfo"
-source_lines = "81-86"
+source_lines = "tests/unit/content/add-image-button.test.ts:116"
 description = "ensureParsedDeckInfoが失敗してもconsole.debugのみでthrowしない（ボタン追加処理自体をブロックしない）"
 given = "ensureParsedDeckInfoがrejectする"
 expect_no_throw = true
@@ -66,99 +66,99 @@ expect_no_throw = true
 # --- addNextEditButton(bottomBtnSet) [非export] ---
 
 [[condition]]
-id = "add_next_edit_button.already_added_returns_null"
+id = "add-next-edit-button.already-added-returns-null"
 target_function = "addNextEditButton"
-source_lines = "94-96"
+source_lines = "tests/unit/content/add-image-button.test.ts:131"
 description = "EXTENSION_IDS.deckEdit.editButtonが既にDOMに存在する場合、追加せずnullを返す"
 given = "id=EXTENSION_IDS.deckEdit.editButtonの要素が既にDOM内にある"
 expect_return = "null"
 
 [[condition]]
-id = "add_next_edit_button.no_dno_in_url_returns_null"
+id = "add-next-edit-button.no-dno-in-url-returns-null"
 target_function = "addNextEditButton"
-source_lines = "99-105"
+source_lines = "tests/unit/content/add-image-button.test.ts:144"
 description = "URLクエリにdnoが無い場合、console.warnしnullを返す"
 given = "window.location.searchにdnoパラメータが無い"
 expect_return = "null"
 
 [[condition]]
-id = "add_next_edit_button.own_deck_shows_edit_label"
+id = "add-next-edit-button.own-deck-shows-edit-label"
 target_function = "addNextEditButton"
-source_lines = "108-109"
+source_lines = "tests/unit/content/add-image-button.test.ts:92"
 description = "isOwnDeck()がtrueの場合、ボタンラベルは「NEXT編集」になる"
 given = "isOwnDeck() === true"
 expect_return_shape = "span.textContentが'NEXT編集'のボタン"
 
 [[condition]]
-id = "add_next_edit_button.other_deck_shows_copy_label"
+id = "add-next-edit-button.other-deck-shows-copy-label"
 target_function = "addNextEditButton"
-source_lines = "108-109"
+source_lines = "tests/unit/content/add-image-button.test.ts:158"
 description = "isOwnDeck()がfalseの場合、ボタンラベルは「NEXTコピー編集」になる"
 given = "isOwnDeck() === false"
 expect_return_shape = "span.textContentが'NEXTコピー編集'のボタン"
 
 [[condition]]
-id = "add_next_edit_button.click_own_deck_navigates_to_edit_url"
+id = "add-next-edit-button.click-own-deck-navigates-to-edit-url"
 target_function = "addNextEditButton"
-source_lines = "130-133"
+source_lines = "tests/unit/content/add-image-button.test.ts:167"
 description = "自分のデッキの場合、クリック時にgetVueEditUrlで生成したURLへ直接遷移する（コピー処理は行わない）"
 given = "isOwnDeckFlag=trueの状態でボタンをクリック"
-expect_side_effect = "window.location.hrefがgetVueEditUrlの戻り値になる"
+expect_return_shape = "window.location.hrefがgetVueEditUrlの戻り値になる"
 
 [[condition]]
-id = "add_next_edit_button.click_other_deck_no_cgid_warns_only"
+id = "add-next-edit-button.click-other-deck-no-cgid-warns-only"
 target_function = "addNextEditButton"
-source_lines = "198-200"
+source_lines = "tests/unit/content/add-image-button.test.ts:181"
 description = "他人のデッキでgetDeckCgid()がfalsyを返す場合、console.warnのみでコピー処理を開始しない"
 given = "isOwnDeckFlag=false、getDeckCgid()がnullを返す"
 expect_no_throw = true
 
 [[condition]]
-id = "add_next_edit_button.click_other_deck_parsed_deck_null_stays_loading_silently"
+id = "add-next-edit-button.click-other-deck-parsed-deck-null-stays-loading-silently"
 target_function = "addNextEditButton"
-source_lines = "147-150"
+source_lines = "tests/unit/content/add-image-button.test.ts:197"
 description = "他人のデッキでensureParsedDeckInfo()がnullを返す場合、if(parsedDeckInfo)ブロックに入らず、ボタンはloading状態のまま何も起こらない（catchにも入らずボタンリセットもされない）"
 given = "ensureParsedDeckInfo()がnullを返す"
 expect_no_throw = true
 
 [[condition]]
-id = "add_next_edit_button.click_other_deck_create_deck_fails_resets_button"
+id = "add-next-edit-button.click-other-deck-create-deck-fails-resets-button"
 target_function = "addNextEditButton"
-source_lines = "151-190"
+source_lines = "tests/unit/content/add-image-button.test.ts:213"
 description = "sessionManager.createDeck()が0以下を返す場合、console.warnしボタンのloading/loading2クラスとテキストを元に戻す"
 given = "sessionManager.createDeck()が0を返す"
-expect_side_effect = "ボタンのclassListからloading/loading2が除去され、textContentが元のラベルに戻る"
+expect_return_shape = "ボタンのclassListからloading/loading2が除去され、textContentが元のラベルに戻る"
 
 [[condition]]
-id = "add_next_edit_button.click_other_deck_save_fails_resets_button"
+id = "add-next-edit-button.click-other-deck-save-fails-resets-button"
 target_function = "addNextEditButton"
-source_lines = "173-184"
+source_lines = "tests/unit/content/add-image-button.test.ts:232"
 description = "新規デッキ作成には成功したがsessionManager.saveDeck()が失敗(success:false)した場合、console.warnしボタンをリセットする（画面遷移しない）"
 given = "createDeckが正のdnoを返すがsaveDeckがsuccess:falseを返す"
-expect_side_effect = "ボタンのclassListからloading/loading2が除去され、window.location.hrefは変化しない"
+expect_return_shape = "ボタンのclassListからloading/loading2が除去され、window.location.hrefは変化しない"
 
 [[condition]]
-id = "add_next_edit_button.click_other_deck_success_navigates_with_new_dno"
+id = "add-next-edit-button.click-other-deck-success-navigates-with-new-dno"
 target_function = "addNextEditButton"
-source_lines = "173-178"
+source_lines = "tests/unit/content/add-image-button.test.ts:254"
 description = "新規デッキ作成・保存の両方に成功した場合、新しいdnoを使ったgetVueEditUrlへ遷移する"
 given = "createDeckが新dno、saveDeckがsuccess:trueを返す"
-expect_side_effect = "window.location.hrefが新dnoを使ったgetVueEditUrlの戻り値になる"
+expect_return_shape = "window.location.hrefが新dnoを使ったgetVueEditUrlの戻り値になる"
 
 [[condition]]
-id = "add_next_edit_button.click_other_deck_exception_resets_button"
+id = "add-next-edit-button.click-other-deck-exception-resets-button"
 target_function = "addNextEditButton"
-source_lines = "192-197"
+source_lines = "tests/unit/content/add-image-button.test.ts:273"
 description = "コピー処理中に例外が発生した場合、console.warnしボタンをリセットする"
 given = "sessionManager.createDeck()がrejectする"
-expect_side_effect = "ボタンのclassListからloading/loading2が除去され、textContentが元のラベルに戻る"
+expect_return_shape = "ボタンのclassListからloading/loading2が除去され、textContentが元のラベルに戻る"
 
 # --- isDeckPage() ---
 
 [[condition]]
-id = "is_deck_page.delegates_to_is_deck_display_page"
+id = "is-deck-page.delegates-to-is-deck-display-page"
 target_function = "isDeckPage"
-source_lines = "214-216"
+source_lines = "tests/unit/content/add-image-button.test.ts:294"
 description = "isDeckDisplayPage()の結果をそのまま返す（後方互換ラッパー）"
 given = "isDeckDisplayPage()がtrue/falseそれぞれの場合"
 expect_return_shape = "isDeckDisplayPage()と同じboolean"
@@ -166,25 +166,25 @@ expect_return_shape = "isDeckDisplayPage()と同じboolean"
 # --- initDeckImageButton() ---
 
 [[condition]]
-id = "init_deck_image_button.not_deck_display_page_does_nothing"
+id = "init-deck-image-button.not-deck-display-page-does-nothing"
 target_function = "initDeckImageButton"
-source_lines = "225"
+source_lines = "tests/unit/content/add-image-button.test.ts:304"
 description = "isDeckDisplayPage(gameType)がfalseの場合、addDeckImageButtonの予約すら行わない"
 given = "isDeckDisplayPage() === false"
 expect_no_throw = true
 
 [[condition]]
-id = "init_deck_image_button.loading_waits_dom_content_loaded"
+id = "init-deck-image-button.loading-waits-dom-content-loaded"
 target_function = "initDeckImageButton"
-source_lines = "227-230"
+source_lines = "tests/unit/content/add-image-button.test.ts:327"
 description = "デッキ表示ページでdocument.readyState==='loading'の場合、DOMContentLoadedを待ってからsetTimeout(addDeckImageButton, 100)を予約する"
 given = "isDeckDisplayPage()=true、document.readyState='loading'"
-expect_side_effect = "DOMContentLoadedイベント発火後にaddDeckImageButton相当の処理が実行される"
+expect_return_shape = "DOMContentLoadedイベント発火後にaddDeckImageButton相当の処理が実行される"
 
 [[condition]]
-id = "init_deck_image_button.ready_schedules_timeout_immediately"
+id = "init-deck-image-button.ready-schedules-timeout-immediately"
 target_function = "initDeckImageButton"
-source_lines = "231-233"
+source_lines = "tests/unit/content/add-image-button.test.ts:315"
 description = "デッキ表示ページでdocument.readyStateが'loading'以外の場合、即座にsetTimeout(addDeckImageButton, 100)を予約する"
 given = "isDeckDisplayPage()=true、document.readyState='complete'"
-expect_side_effect = "100ms後にaddDeckImageButton相当の処理が実行される"
+expect_return_shape = "100ms後にaddDeckImageButton相当の処理が実行される"
