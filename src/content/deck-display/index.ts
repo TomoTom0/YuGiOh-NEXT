@@ -3,6 +3,7 @@
  */
 
 import { CHROME_STORAGE_KEY_APP_SETTINGS } from '@/constants/storage-keys';
+import type { AppSettings, DeckDisplayCardImageSize, Theme } from '@/types/settings';
 
 // デッキ表示ページのモジュールを事前インポート（編集画面と同様の最適化）
 const deckDisplayModulesPromise = Promise.all([
@@ -16,18 +17,19 @@ const deckDisplayModulesPromise = Promise.all([
  */
 export async function initDeckDisplay(): Promise<void> {
   // メモリキャッシュから設定を取得（編集画面と同様の最適化）
-  let appSettings: Record<string, any> = window.ygoNextCurrentSettings || {};
+  let appSettings: Partial<AppSettings> = window.ygoNextCurrentSettings || {};
 
   // メモリにない場合のみ chrome.storage から読み込み
   if (!window.ygoNextCurrentSettings) {
-    appSettings = await new Promise<Record<string, any>>((resolve) => {
+    appSettings = await new Promise<Partial<AppSettings>>((resolve) => {
       chrome.storage.local.get([CHROME_STORAGE_KEY_APP_SETTINGS], (result) => {
-        resolve((result[CHROME_STORAGE_KEY_APP_SETTINGS] as Record<string, any>) || {})
+        resolve((result[CHROME_STORAGE_KEY_APP_SETTINGS] as Partial<AppSettings> | undefined) || {})
       })
     });
 
     // 読み込み後、メモリキャッシュに保存
-    window.ygoNextCurrentSettings = appSettings as any;
+    // （storage の appSettings は AppSettings として保存されている前提でキャッシュする）
+    window.ygoNextCurrentSettings = appSettings as AppSettings;
   }
 
   // 事前インポート済みのモジュールを使用
@@ -37,9 +39,9 @@ export async function initDeckDisplay(): Promise<void> {
     vueSetupModule
   ] = await deckDisplayModulesPromise;
 
-  const cardImageSize = (appSettings.deckDisplayCardImageSize ?? 'medium') as 'small' | 'medium' | 'large' | 'xlarge'
+  const cardImageSize: DeckDisplayCardImageSize = appSettings.deckDisplayCardImageSize ?? 'medium'
   const showCardDetail = appSettings.showCardDetailInDeckDisplay ?? false
-  const theme = appSettings.theme ?? 'system'
+  const theme: Theme = appSettings.theme ?? 'system'
 
   // テーマを適用（ダークモード対応）
   applyTheme(theme)
@@ -99,7 +101,7 @@ function setupImageLoadedEffect(): void {
 /**
  * テーマをDOMに適用
  */
-function applyTheme(theme: string): void {
+function applyTheme(theme: Theme): void {
   let effectiveTheme: 'light' | 'dark' = 'light'
 
   if (theme === 'system') {
@@ -108,7 +110,7 @@ function applyTheme(theme: string): void {
       effectiveTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
     }
   } else {
-    effectiveTheme = (theme as any) ?? 'light'
+    effectiveTheme = theme
   }
 
   document.documentElement.setAttribute('data-ygo-next-theme', effectiveTheme)
