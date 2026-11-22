@@ -93,23 +93,28 @@ export const useSettingsStore = defineStore('settings', () => {
    * 配列の場合: 保存された配列が空でなければそれを使用、空なら対象の配列を使用
    * オブジェクトの場合: 再帰的にマージ
    */
-  function deepMerge<T extends Record<string, any>>(target: T, source: Partial<T>): T {
-    const result = { ...target };
-    for (const key in source) {
-      if (source[key] !== undefined && source[key] !== null) {
-        if (Array.isArray(source[key])) {
+  function deepMerge<T extends object>(target: T, source: Partial<T>): T {
+    const targetRecord = target as Record<string, unknown>;
+    const sourceRecord = source as Record<string, unknown>;
+    const result: Record<string, unknown> = { ...targetRecord };
+    for (const key in sourceRecord) {
+      const sourceValue: unknown = sourceRecord[key];
+      if (sourceValue !== undefined && sourceValue !== null) {
+        if (Array.isArray(sourceValue)) {
           // 配列の場合: 保存された配列が空でなければそれを使用、空ならターゲットの配列を使用
-          const sourceArray = source[key] as any[];
-          result[key] = (sourceArray.length > 0 ? sourceArray : (target[key] || sourceArray)) as any;
-        } else if (typeof source[key] === 'object') {
+          result[key] = sourceValue.length > 0 ? sourceValue : (targetRecord[key] || sourceValue);
+        } else if (typeof sourceValue === 'object') {
           // オブジェクトの場合: 再帰的にマージ
-          result[key] = deepMerge((target[key] || {}) as any, source[key] as any) as any;
+          result[key] = deepMerge(
+            (targetRecord[key] || {}) as Record<string, unknown>,
+            sourceValue as Record<string, unknown>
+          );
         } else {
-          result[key] = source[key] as any;
+          result[key] = sourceValue;
         }
       }
     }
-    return result;
+    return result as T;
   }
 
   /**
@@ -117,17 +122,21 @@ export const useSettingsStore = defineStore('settings', () => {
    * 旧形式：トップレベルに searchInputPosition, defaultSearchMode などのプロパティ
    * 新形式：ux オブジェクト内にこれらのプロパティを含む
    */
-  function migrateOldSettingsFormat(oldSettings: any): AppSettings {
+  function migrateOldSettingsFormat(oldSettings: AppSettings): AppSettings {
     let settings = { ...oldSettings };
 
     // deckLevelSortOrder: 'toggle' → 'toggle-desc' (v0.6.9)
-    if (settings.deckLevelSortOrder === 'toggle') {
+    // 保存データには現行の型（union）に無い旧値が残りうるため、string として比較する
+    const storedSortOrder: string = settings.deckLevelSortOrder;
+    if (storedSortOrder === 'toggle') {
       settings.deckLevelSortOrder = 'toggle-desc';
     }
 
     // aiTextLinksEnabled: 削除 (v0.6.9)
-    if ('aiTextLinksEnabled' in settings) {
-      delete settings.aiTextLinksEnabled;
+    // 現行の AppSettings には無いキーのため、レコードとして扱って削除する
+    const settingsRecord = settings as Record<string, unknown>;
+    if ('aiTextLinksEnabled' in settingsRecord) {
+      delete settingsRecord.aiTextLinksEnabled;
     }
 
     // 旧形式の UX 設定を新しい ux オブジェクトに移行
