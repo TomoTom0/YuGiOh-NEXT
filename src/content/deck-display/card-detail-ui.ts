@@ -11,6 +11,7 @@
 import { useCardDetailStore } from '@/stores/card-detail'
 import { parseDeckDetail } from '../parser/deck-detail-parser'
 import { DeckInfo } from '@/types/deck'
+import type { CardInfo } from '@/types/card'
 import { getTempCacheDB } from '@/utils/temp-cache-db'
 import { safeQuery, safeQueryAll } from '@/utils/safe-dom-query'
 import { escapeHtml, setSafeInnerHTML } from '@/utils/safe-html-renderer'
@@ -19,7 +20,10 @@ import { EXTENSION_IDS, OFFICIAL_SITE_SELECTORS, getExtensionIdSelector } from '
 interface SelectedCard {
   cardId?: number;
   name?: string;
-  [key: string]: any;
+  type?: string;
+  attribute?: string;
+  race?: string;
+  [key: string]: unknown;
 }
 
 interface CardFAQList {
@@ -280,7 +284,7 @@ function setupCardClickListeners(): void {
  * パースされたデッキ情報からcidに基づいてカード情報を検索
  * TempCacheDBからカード詳細を取得（parseCardSection()で既に保存済み）
  */
-function findCardInParsedDeck(cid: string): any | null {
+function findCardInParsedDeck(cid: string): CardInfo | null {
   if (!parsedDeckInfo) {
     return null;
   }
@@ -386,7 +390,7 @@ function attachCardClickHandlers(): void {
  * カードを選択
  * TempCacheDBから取得したカード情報をcardDetailStoreに設定
  */
-async function selectCard(cardInfo: any): Promise<void> {
+async function selectCard(cardInfo: CardInfo): Promise<void> {
   const cardDetailStore = useCardDetailStore();
 
   if (!cardInfo || !cardInfo.cardId) {
