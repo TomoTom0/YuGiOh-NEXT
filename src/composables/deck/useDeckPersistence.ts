@@ -133,7 +133,7 @@ export function useDeckPersistence(options: {
           const bodyLines: string[] = [];
           if (skippedCards.length > 0) {
             const displayCards = skippedCards.slice(0, 3);
-            displayCards.forEach((card: any) => {
+            displayCards.forEach((card) => {
               bodyLines.push(card.name);
             });
 
