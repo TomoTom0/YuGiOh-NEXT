@@ -10,9 +10,8 @@ import { hasProperty } from './type-guards';
 export function isExtensionContextInvalidated(error: unknown): boolean {
   if (!error) return false;
 
-  const message =
-    (hasProperty(error, 'message') && typeof error.message === 'string' && error.message) ||
-    String(error);
+  const rawMessage = hasProperty(error, 'message') ? error.message : undefined;
+  const message = (typeof rawMessage === 'string' && rawMessage) || String(error);
   return message.includes('Extension context invalidated') ||
          message.includes('Cannot access') ||
          chrome.runtime?.id === undefined;
