@@ -11,7 +11,6 @@
 import { getCardDetail } from '../api/card-search';
 import type { CardDetail } from '../types/card';
 
-
 /** キューの優先度 */
 export type QueuePriority = 'high' | 'normal' | 'low';
 
