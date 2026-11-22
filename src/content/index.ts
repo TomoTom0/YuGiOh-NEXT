@@ -52,6 +52,7 @@ import { withTimeout, TimeoutError } from '../utils/promise-timeout';
 
 // Chrome Storage ユーティリティ
 import { setToStorageLocal, getFromStorageLocal } from '../utils/chrome-storage-utils';
+import type { AppSettings } from '../types/settings';
 
 // localStorage キー定数
 import {
@@ -133,7 +134,7 @@ async function preloadEditPageData(): Promise<void> {
   }
 
   // cgid取得
-  const cgid = await getFromStorageLocal(CHROME_STORAGE_KEY_USER_CGID);
+  const cgid = await getFromStorageLocal<string>(CHROME_STORAGE_KEY_USER_CGID);
 
   if (!cgid) {
     console.warn('[Preload] cgid not found, skipping preload');
@@ -340,7 +341,7 @@ async function loadEditUIIfNeeded(): Promise<void> {
  */
 async function cacheSettingsGlobally(): Promise<void> {
   try {
-    const appSettings = await getFromStorageLocal(CHROME_STORAGE_KEY_APP_SETTINGS);
+    const appSettings = await getFromStorageLocal<AppSettings>(CHROME_STORAGE_KEY_APP_SETTINGS);
     if (appSettings) {
       localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(appSettings));
       window.ygoNextCurrentSettings = appSettings;
