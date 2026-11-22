@@ -30,9 +30,7 @@ describe('useSearchHistory', () => {
   });
 
   describe('基本機能', () => {
-    // [covers:add_to_history.new_item_always_not_favorite_with_derived_count_and_timestamp]
-    // [covers:add_to_history.unshifts_new_item_to_front]
-    it('検索履歴を追加できる', async () => {
+    it('[covers:add-to-history.new-item-always-not-favorite-with-derived-count-and-timestamp, add-to-history.unshifts-new-item-to-front] 検索履歴を追加できる', async () => {
       const { useSearchHistory } = await import('@/composables/useSearchHistory');
       const { addToHistory, historyItems } = useSearchHistory();
       const filters = createDefaultFilters();
@@ -51,9 +49,7 @@ describe('useSearchHistory', () => {
       });
     });
 
-    // [covers:load_from_storage.parses_stored_json_when_present]
-    // [covers:use_search_history.loads_once_via_module_level_flag]
-    it('LocalStorageから履歴を読み込める', async () => {
+    it('[covers:load-from-storage.parses-stored-json-when-present, use-search-history.loads-once-via-module-level-flag] LocalStorageから履歴を読み込める', async () => {
       const mockHistory = [
         {
           query: 'test query',
@@ -81,16 +77,14 @@ describe('useSearchHistory', () => {
       expect(second.historyItems.value[0]?.query).toBe('test query');
     });
 
-    // [covers:load_from_storage.no_data_keeps_default_empty_array]
-    it('LocalStorageに未保存の場合は空配列のまま初期化される', async () => {
+    it('[covers:load-from-storage.no-data-keeps-default-empty-array] LocalStorageに未保存の場合は空配列のまま初期化される', async () => {
       const { useSearchHistory } = await import('@/composables/useSearchHistory');
       const { historyItems } = useSearchHistory();
 
       expect(historyItems.value).toEqual([]);
     });
 
-    // [covers:load_from_storage.catch_swallows_error_and_preserves_previous_state]
-    it('LocalStorageの内容が不正なJSONの場合はエラーを投げず空配列のままになる', async () => {
+    it('[covers:load-from-storage.catch-swallows-error-and-preserves-previous-state] LocalStorageの内容が不正なJSONの場合はエラーを投げず空配列のままになる', async () => {
       localStorage.setItem(STORAGE_KEY, '{invalid json');
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -102,8 +96,7 @@ describe('useSearchHistory', () => {
       consoleErrorSpy.mockRestore();
     });
 
-    // [covers:save_to_storage.catch_swallows_error_without_rethrow]
-    it('LocalStorageへの保存が失敗してもaddToHistoryは例外を投げない', async () => {
+    it('[covers:save-to-storage.catch-swallows-error-without-rethrow] LocalStorageへの保存が失敗してもaddToHistoryは例外を投げない', async () => {
       const { useSearchHistory } = await import('@/composables/useSearchHistory');
       const { addToHistory, historyItems } = useSearchHistory();
       const filters = createDefaultFilters();
@@ -120,8 +113,7 @@ describe('useSearchHistory', () => {
       consoleErrorSpy.mockRestore();
     });
 
-    // [covers:toggle_favorite.in_range_toggles_and_saves]
-    it('お気に入りを追加できる', async () => {
+    it('[covers:toggle-favorite.in-range-toggles-and-saves] お気に入りを追加できる', async () => {
       const { useSearchHistory } = await import('@/composables/useSearchHistory');
       const { addToHistory, toggleFavorite, historyItems } = useSearchHistory();
       const filters = createDefaultFilters();
@@ -132,8 +124,7 @@ describe('useSearchHistory', () => {
       expect(historyItems.value[0]?.isFavorite).toBe(true);
     });
 
-    // [covers:toggle_favorite.out_of_range_index_is_noop]
-    it('範囲外indexでtoggleFavoriteを呼んでも何も変化しない', async () => {
+    it('[covers:toggle-favorite.out-of-range-index-is-noop] 範囲外indexでtoggleFavoriteを呼んでも何も変化しない', async () => {
       const { useSearchHistory } = await import('@/composables/useSearchHistory');
       const { addToHistory, toggleFavorite, historyItems } = useSearchHistory();
       const filters = createDefaultFilters();
@@ -146,8 +137,7 @@ describe('useSearchHistory', () => {
       expect(historyItems.value[0]?.isFavorite).toBe(false);
     });
 
-    // [covers:remove_from_history.in_range_splices_and_saves]
-    it('履歴を削除できる', async () => {
+    it('[covers:remove-from-history.in-range-splices-and-saves] 履歴を削除できる', async () => {
       const { useSearchHistory } = await import('@/composables/useSearchHistory');
       const { addToHistory, removeFromHistory, historyItems } = useSearchHistory();
       const filters = createDefaultFilters();
@@ -158,8 +148,7 @@ describe('useSearchHistory', () => {
       expect(historyItems.value).toHaveLength(0);
     });
 
-    // [covers:remove_from_history.out_of_range_index_is_noop]
-    it('範囲外indexでremoveFromHistoryを呼んでも何も削除されない', async () => {
+    it('[covers:remove-from-history.out-of-range-index-is-noop] 範囲外indexでremoveFromHistoryを呼んでも何も削除されない', async () => {
       const { useSearchHistory } = await import('@/composables/useSearchHistory');
       const { addToHistory, removeFromHistory, historyItems } = useSearchHistory();
       const filters = createDefaultFilters();
@@ -170,8 +159,7 @@ describe('useSearchHistory', () => {
       expect(historyItems.value).toHaveLength(1);
     });
 
-    // [covers:favorite_items.filters_is_favorite_true]
-    it('お気に入りのみを取得できる', async () => {
+    it('[covers:favorite-items.filters-is-favorite-true] お気に入りのみを取得できる', async () => {
       const { useSearchHistory } = await import('@/composables/useSearchHistory');
       const { addToHistory, toggleFavorite, favoriteItems } = useSearchHistory();
       const filters = createDefaultFilters();
@@ -184,8 +172,7 @@ describe('useSearchHistory', () => {
       expect(favoriteItems.value[0]?.query).toBe('ブラック・マジシャン');
     });
 
-    // [covers:regular_items.filters_is_favorite_false]
-    it('お気に入り以外の通常履歴のみを取得できる', async () => {
+    it('[covers:regular-items.filters-is-favorite-false] お気に入り以外の通常履歴のみを取得できる', async () => {
       const { useSearchHistory } = await import('@/composables/useSearchHistory');
       const { addToHistory, toggleFavorite, regularItems } = useSearchHistory();
       const filters = createDefaultFilters();
@@ -198,8 +185,7 @@ describe('useSearchHistory', () => {
       expect(regularItems.value[0]?.query).toBe('青眼の白龍');
     });
 
-    // [covers:clear_history.keeps_only_favorites_and_saves]
-    it('通常の履歴をクリアできる', async () => {
+    it('[covers:clear-history.keeps-only-favorites-and-saves] 通常の履歴をクリアできる', async () => {
       const { useSearchHistory } = await import('@/composables/useSearchHistory');
       const { addToHistory, toggleFavorite, clearHistory, historyItems } = useSearchHistory();
       const filters = createDefaultFilters();
@@ -214,8 +200,7 @@ describe('useSearchHistory', () => {
       expect(historyItems.value[0]?.isFavorite).toBe(true);
     });
 
-    // [covers:update_results.different_date_updates_and_returns_true]
-    it('検索結果を更新できる（日付が異なる場合）', async () => {
+    it('[covers:update-results.different-date-updates-and-returns-true] 検索結果を更新できる（日付が異なる場合）', async () => {
       const { useSearchHistory } = await import('@/composables/useSearchHistory');
       const { addToHistory, updateResults, historyItems } = useSearchHistory();
       const filters = createDefaultFilters();
@@ -232,8 +217,7 @@ describe('useSearchHistory', () => {
       expect(historyItems.value[0]?.resultCount).toBe(2);
     });
 
-    // [covers:update_results.same_date_returns_false_without_update]
-    it('検索結果は更新されない（日付が同じ場合）', async () => {
+    it('[covers:update-results.same-date-returns-false-without-update] 検索結果は更新されない（日付が同じ場合）', async () => {
       const { useSearchHistory } = await import('@/composables/useSearchHistory');
       const { addToHistory, updateResults, historyItems } = useSearchHistory();
       const filters = createDefaultFilters();
@@ -246,8 +230,7 @@ describe('useSearchHistory', () => {
       expect(historyItems.value[0]?.resultCids).toEqual(['4007']);
     });
 
-    // [covers:update_results.out_of_range_returns_false_without_save]
-    it('範囲外indexでupdateResultsを呼ぶとfalseを返し更新されない', async () => {
+    it('[covers:update-results.out-of-range-returns-false-without-save] 範囲外indexでupdateResultsを呼ぶとfalseを返し更新されない', async () => {
       const { useSearchHistory } = await import('@/composables/useSearchHistory');
       const { addToHistory, updateResults, historyItems } = useSearchHistory();
       const filters = createDefaultFilters();
@@ -260,9 +243,7 @@ describe('useSearchHistory', () => {
       expect(historyItems.value[0]?.resultCids).toEqual(['4007']);
     });
 
-    // [covers:save_to_storage.persists_current_history_as_json]
-    // [covers:add_to_history.always_saves_to_storage]
-    it('履歴がLocalStorageに保存される', async () => {
+    it('[covers:save-to-storage.persists-current-history-as-json, add-to-history.always-saves-to-storage] 履歴がLocalStorageに保存される', async () => {
       const { useSearchHistory } = await import('@/composables/useSearchHistory');
       const { addToHistory } = useSearchHistory();
       const filters = createDefaultFilters();
@@ -280,8 +261,7 @@ describe('useSearchHistory', () => {
   });
 
   describe('重複排除・上限トリム', () => {
-    // [covers:add_to_history.dedup_removes_matching_non_favorite_entries]
-    it('同一query+searchMode+filtersの非お気に入り項目は追加時に除去される', async () => {
+    it('[covers:add-to-history.dedup-removes-matching-non-favorite-entries] 同一query+searchMode+filtersの非お気に入り項目は追加時に除去される', async () => {
       const { useSearchHistory } = await import('@/composables/useSearchHistory');
       const { addToHistory, historyItems } = useSearchHistory();
       const filters = createDefaultFilters();
@@ -293,8 +273,7 @@ describe('useSearchHistory', () => {
       expect(historyItems.value[0]?.resultCids).toEqual(['4007', '4008']);
     });
 
-    // [covers:add_to_history.dedup_keeps_favorites_even_if_matching]
-    it('同一条件でもお気に入り項目は除去されず新規項目と共存する', async () => {
+    it('[covers:add-to-history.dedup-keeps-favorites-even-if-matching] 同一条件でもお気に入り項目は除去されず新規項目と共存する', async () => {
       const { useSearchHistory } = await import('@/composables/useSearchHistory');
       const { addToHistory, toggleFavorite, historyItems } = useSearchHistory();
       const filters = createDefaultFilters();
@@ -307,8 +286,7 @@ describe('useSearchHistory', () => {
       expect(historyItems.value.filter(item => item.query === '青眼の白龍')).toHaveLength(2);
     });
 
-    // [covers:add_to_history.trims_regulars_to_max_size_when_exceeded]
-    it('非お気に入りが50件を超えると直近50件のみ残りお気に入りが前方に集約される', async () => {
+    it('[covers:add-to-history.trims-regulars-to-max-size-when-exceeded] 非お気に入りが50件を超えると直近50件のみ残りお気に入りが前方に集約される', async () => {
       const { useSearchHistory } = await import('@/composables/useSearchHistory');
       const { addToHistory, toggleFavorite, historyItems } = useSearchHistory();
       const filters = createDefaultFilters();
@@ -330,8 +308,7 @@ describe('useSearchHistory', () => {
       expect(historyItems.value.some(item => item.query === 'query-49')).toBe(true);
     });
 
-    // [covers:add_to_history.no_trim_when_regulars_within_limit]
-    it('非お気に入りが50件以下ならお気に入りの位置は前方集約されず維持される', async () => {
+    it('[covers:add-to-history.no-trim-when-regulars-within-limit] 非お気に入りが50件以下ならお気に入りの位置は前方集約されず維持される', async () => {
       const { useSearchHistory } = await import('@/composables/useSearchHistory');
       const { addToHistory, toggleFavorite, historyItems } = useSearchHistory();
       const filters = createDefaultFilters();
@@ -348,8 +325,7 @@ describe('useSearchHistory', () => {
   });
 
   describe('コピーの独立性', () => {
-    // [covers:add_to_history.filters_shallow_copy_shares_nested_references]
-    it('filtersはトップレベルのみのシャローコピーでネスト配列は参照を共有する', async () => {
+    it('[covers:add-to-history.filters-shallow-copy-shares-nested-references] filtersはトップレベルのみのシャローコピーでネスト配列は参照を共有する', async () => {
       const { useSearchHistory } = await import('@/composables/useSearchHistory');
       const { addToHistory, historyItems } = useSearchHistory();
       const filters = createDefaultFilters();
@@ -361,8 +337,7 @@ describe('useSearchHistory', () => {
       expect(historyItems.value[0]?.filters.attributes).toEqual(['DARK', 'LIGHT']);
     });
 
-    // [covers:add_to_history.result_cids_deep_enough_copy_protects_from_external_mutation]
-    it('resultCidsは複製されるため呼び出し後の元配列変更の影響を受けない', async () => {
+    it('[covers:add-to-history.result-cids-deep-enough-copy-protects-from-external-mutation] resultCidsは複製されるため呼び出し後の元配列変更の影響を受けない', async () => {
       const { useSearchHistory } = await import('@/composables/useSearchHistory');
       const { addToHistory, historyItems } = useSearchHistory();
       const filters = createDefaultFilters();
