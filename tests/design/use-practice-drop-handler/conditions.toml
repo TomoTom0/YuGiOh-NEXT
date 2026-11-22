@@ -52,7 +52,7 @@
 feature = "use-practice-drop-handler"
 source_file = "src/composables/practice/usePracticeDropHandler.ts"
 verified = true
-verified_at = "2026-08-07"
+verified_at = "2026-11-22"
 verified_by = "claude"
 test_command = "mise run test:vitest -- tests/unit/composables/usePracticeDropHandler.test.ts"
 source_hash = "9b0abcfd560d8330268d86a0fa75b368afb9da0c"
@@ -61,233 +61,233 @@ note = "verified=falseは0件。target_function を usePracticeDropHandler#<meth
 # --- usePracticeDropHandler#handleCardDrop (orientation 決定) ---
 
 [[condition]]
-id = "handle_card_drop.orientation_from_dragging_rotated"
+id = "handle-card-drop.orientation-from-dragging-rotated"
+source_lines = "tests/unit/composables/usePracticeDropHandler.test.ts:32"
 target_function = "usePracticeDropHandler#handleCardDrop"
-source_lines = "21"
 description = "ドラッグ中の draggingRotated フラグにより move/add時の向きを切り替える。draggingRotated=true なら 'horizontal'、false なら 'vertical'。全ゾーン共通で orientation 引数に渡す値として決定される"
 given = "usePracticeDragState().draggingRotated.value が true / false のそれぞれ"
-expect_side_effect = "practiceStore.moveCard（または該当zoneのAPI）の options.orientation に 'horizontal' / 'vertical' が渡される"
+expect_return_shape = "practiceStore.moveCard（または該当zoneのAPI）の options.orientation に 'horizontal' / 'vertical' が渡される"
 
 # --- usePracticeDropHandler#handleCardDrop (deck zone) ---
 
 [[condition]]
-id = "handle_card_drop.deck_not_top_shuffles"
+id = "handle-card-drop.deck-not-top-shuffles"
+source_lines = "tests/unit/composables/usePracticeDropHandler.test.ts:47"
 target_function = "usePracticeDropHandler#handleCardDrop"
-source_lines = "24-25"
 description = "targetZone='deck' かつ dropPos.isTop=false のとき、moveCardではなく moveCardToDeckAndShuffle を呼ぶ（デッキへ戻してシャッフル）。face/orientation の指定無し（ストア側で強制的にface='down' orientation='vertical'へリセットされる）"
 given = "targetZone='deck', dropPos.isTop=false"
-expect_side_effect = "practiceStore.moveCardToDeckAndShuffle(cardId, fieldIndex) が呼ばれる。practiceStore.moveCard は呼ばれない"
+expect_return_shape = "practiceStore.moveCardToDeckAndShuffle(cardId, fieldIndex) が呼ばれる。practiceStore.moveCard は呼ばれない"
 
 [[condition]]
-id = "handle_card_drop.deck_top_right_inserts_face_down_at_top"
+id = "handle-card-drop.deck-top-right-inserts-face-down-at-top"
+source_lines = "tests/unit/composables/usePracticeDropHandler.test.ts:59"
 target_function = "usePracticeDropHandler#handleCardDrop"
-source_lines = "26-27"
 description = "targetZone='deck' かつ dropPos.isTop=true かつ dropPos.isRight=true のとき、position:'top' face:'down' で moveCard を呼ぶ。isRightフラグが実質的な top/bottom 判定に流用される（直感と異なる挙動）"
 given = "targetZone='deck', dropPos.isTop=true, dropPos.isRight=true"
-expect_side_effect = "practiceStore.moveCard(cardId, 'deck', undefined, { position: 'top', face: 'down', orientation }, fieldIndex) が呼ばれる"
+expect_return_shape = "practiceStore.moveCard(cardId, 'deck', undefined, { position: 'top', face: 'down', orientation }, fieldIndex) が呼ばれる"
 
 [[condition]]
-id = "handle_card_drop.deck_top_left_inserts_face_down_at_bottom"
+id = "handle-card-drop.deck-top-left-inserts-face-down-at-bottom"
+source_lines = "tests/unit/composables/usePracticeDropHandler.test.ts:69"
 target_function = "usePracticeDropHandler#handleCardDrop"
-source_lines = "28-29"
 description = "targetZone='deck' かつ dropPos.isTop=true かつ dropPos.isRight=false のとき、position:'bottom' face:'down' で moveCard を呼ぶ"
 given = "targetZone='deck', dropPos.isTop=true, dropPos.isRight=false"
-expect_side_effect = "practiceStore.moveCard(cardId, 'deck', undefined, { position: 'bottom', face: 'down', orientation }, fieldIndex) が呼ばれる"
+expect_return_shape = "practiceStore.moveCard(cardId, 'deck', undefined, { position: 'bottom', face: 'down', orientation }, fieldIndex) が呼ばれる"
 
 # --- usePracticeDropHandler#handleCardDrop (gy zone) ---
 
 [[condition]]
-id = "handle_card_drop.gy_ignores_drop_position"
+id = "handle-card-drop.gy-ignores-drop-position"
+source_lines = "tests/unit/composables/usePracticeDropHandler.test.ts:79"
 target_function = "usePracticeDropHandler#handleCardDrop"
-source_lines = "34-37"
 description = "targetZone='gy' のとき DropPosition（isTop/isRight）を完全に無視し position:'top' face:'up' で固定して moveCard を呼ぶ。早期return"
 given = "targetZone='gy'、任意の dropPos（isTop/isRight の全組合せ）"
-expect_side_effect = "practiceStore.moveCard(cardId, 'gy', undefined, { position: 'top', face: 'up', orientation }, fieldIndex) が呼ばれる"
+expect_return_shape = "practiceStore.moveCard(cardId, 'gy', undefined, { position: 'top', face: 'up', orientation }, fieldIndex) が呼ばれる"
 
 # --- usePracticeDropHandler#handleCardDrop (extra zone) ---
 
 [[condition]]
-id = "handle_card_drop.extra_face_from_is_top_position_always_top"
+id = "handle-card-drop.extra-face-from-is-top-position-always-top"
+source_lines = "tests/unit/composables/usePracticeDropHandler.test.ts:95"
 target_function = "usePracticeDropHandler#handleCardDrop"
-source_lines = "39-43"
 description = "targetZone='extra' のとき position は常に'top'で isRight を無視。face のみ dropPos.isTop で切り替える（isTop=true なら 'up'、false なら 'down'）"
 given = "targetZone='extra', dropPos.isTop=true"
-expect_side_effect = "practiceStore.moveCard(cardId, 'extra', undefined, { position: 'top', face: 'up', orientation }, fieldIndex) が呼ばれる（isTop=false なら face:'down'）"
+expect_return_shape = "practiceStore.moveCard(cardId, 'extra', undefined, { position: 'top', face: 'up', orientation }, fieldIndex) が呼ばれる（isTop=false なら face:'down'）"
 
 # --- usePracticeDropHandler#handleCardDrop (banish zone) ---
 
 [[condition]]
-id = "handle_card_drop.banish_face_from_is_top"
+id = "handle-card-drop.banish-face-from-is-top"
+source_lines = "tests/unit/composables/usePracticeDropHandler.test.ts:107"
 target_function = "usePracticeDropHandler#handleCardDrop"
-source_lines = "46"
 description = "targetZone='banish' のとき face は dropPos.isTop で切り替わる（true→'up'、false→'down'）"
 given = "targetZone='banish' で dropPos.isTop=true"
-expect_side_effect = "practiceStore.moveCard の options.face に 'up' が渡される（isTop=false なら 'down'）"
+expect_return_shape = "practiceStore.moveCard の options.face に 'up' が渡される（isTop=false なら 'down'）"
 
 [[condition]]
-id = "handle_card_drop.banish_empty_zone_forces_top"
+id = "handle-card-drop.banish-empty-zone-forces-top"
+source_lines = "tests/unit/composables/usePracticeDropHandler.test.ts:119"
 target_function = "usePracticeDropHandler#handleCardDrop"
-source_lines = "47-50"
 description = "targetZone='banish' で既存カード枚数が0のとき、isRight の値に関わらず position:'top' になる（空ゾーンへのドロップは強制的にトップ）"
 given = "targetZone='banish' で getCards('banish', undefined, fieldIndex).length === 0、dropPos.isRight の真偽にかかわらず"
-expect_side_effect = "practiceStore.moveCard の options.position に 'top' が渡される"
+expect_return_shape = "practiceStore.moveCard の options.position に 'top' が渡される"
 
 [[condition]]
-id = "handle_card_drop.banish_non_empty_position_from_is_right"
+id = "handle-card-drop.banish-non-empty-position-from-is-right"
+source_lines = "tests/unit/composables/usePracticeDropHandler.test.ts:132"
 target_function = "usePracticeDropHandler#handleCardDrop"
-source_lines = "48-49"
 description = "targetZone='banish' で既存カードが1枚以上あるとき、dropPos.isRight=true なら position:'bottom'、isRight=false なら position:'top'"
 given = "targetZone='banish' で getCards('banish', undefined, fieldIndex).length > 0、dropPos.isRight=true"
-expect_side_effect = "practiceStore.moveCard の options.position に 'bottom' が渡される（isRight=false なら 'top'）"
+expect_return_shape = "practiceStore.moveCard の options.position に 'bottom' が渡される（isRight=false なら 'top'）"
 
 # --- usePracticeDropHandler#handleCardDrop (hand zone) ---
 
 [[condition]]
-id = "handle_card_drop.hand_insert_index_decremented_when_source_before_target"
+id = "handle-card-drop.hand-insert-index-decremented-when-source-before-target"
+source_lines = "tests/unit/composables/usePracticeDropHandler.test.ts:144"
 target_function = "usePracticeDropHandler#handleCardDrop"
-source_lines = "55-64"
 description = "targetZone='hand' かつ dropPos.insertIndex が定義済みのとき、移動元が同一handで cardIndex < idx の場合は idx を1減らす（spliceで要素が減る分の事前補正）"
 given = "targetZone='hand', dropPos.insertIndex=3、findCard(cardId) が {zone:'hand', cardIndex:1} を返す（同一handで移動元が移動先より前）"
-expect_side_effect = "practiceStore.moveCard の options.position に 2（=3-1）が渡される"
+expect_return_shape = "practiceStore.moveCard の options.position に 2（=3-1）が渡される"
 
 [[condition]]
-id = "handle_card_drop.hand_insert_index_not_decremented_when_source_after_target"
+id = "handle-card-drop.hand-insert-index-not-decremented-when-source-after-target"
+source_lines = "tests/unit/composables/usePracticeDropHandler.test.ts:158"
 target_function = "usePracticeDropHandler#handleCardDrop"
-source_lines = "55-64"
 description = "targetZone='hand' かつ dropPos.insertIndex 定義済みで、移動元がhand以外、または cardIndex >= idx のときは idx を減らさない"
 given = "targetZone='hand', dropPos.insertIndex=1、findCard(cardId) が {zone:'deck', cardIndex:5} を返す（移動元がhand以外）"
-expect_side_effect = "practiceStore.moveCard の options.position に 1（そのまま）が渡される"
+expect_return_shape = "practiceStore.moveCard の options.position に 1（そのまま）が渡される"
 
 [[condition]]
-id = "handle_card_drop.hand_insert_index_clamped"
+id = "handle-card-drop.hand-insert-index-clamped"
+source_lines = "tests/unit/composables/usePracticeDropHandler.test.ts:171"
 target_function = "usePracticeDropHandler#handleCardDrop"
-source_lines = "61"
 description = "targetZone='hand' のとき insertIndex を Math.max(0, Math.min(idx, handLength)) でクランプする。負の idx は0、handLength超はhandLengthになる"
 given = "targetZone='hand', dropPos.insertIndex=999 で hand length が3"
-expect_side_effect = "practiceStore.moveCard の options.position に 3（=handLength）が渡される"
+expect_return_shape = "practiceStore.moveCard の options.position に 3（=handLength）が渡される"
 
 [[condition]]
-id = "handle_card_drop.hand_face_up_fixed"
+id = "handle-card-drop.hand-face-up-fixed"
+source_lines = "tests/unit/composables/usePracticeDropHandler.test.ts:189"
 target_function = "usePracticeDropHandler#handleCardDrop"
-source_lines = "62"
 description = "targetZone='hand' へのドロップは face を常に'up'で固定（isTop/isRight無関係）"
 given = "targetZone='hand', dropPos.insertIndex 定義済み、dropPos.isTop=false"
-expect_side_effect = "practiceStore.moveCard の options.face に 'up' が渡される"
+expect_return_shape = "practiceStore.moveCard の options.face に 'up' が渡される"
 
 # --- usePracticeDropHandler#handleCardDrop (default zone) ---
 
 [[condition]]
-id = "handle_card_drop.default_face_from_is_top"
+id = "handle-card-drop.default-face-from-is-top"
+source_lines = "tests/unit/composables/usePracticeDropHandler.test.ts:202"
 target_function = "usePracticeDropHandler#handleCardDrop"
-source_lines = "66"
 description = "明示列挙されたzone(deck/gy/extra/banish/hand)以外のzone（field/monster/spellTrap/extraMonster/temp）へはdefault分岐。face は dropPos.isTop で切り替わる（true→'up'、false→'down'）"
 given = "targetZone='monster', dropPos.isTop=true（targetSlotIndex=2）"
-expect_side_effect = "practiceStore.moveCard の options.face に 'up' が渡される（isTop=false なら 'down'）"
+expect_return_shape = "practiceStore.moveCard の options.face に 'up' が渡される（isTop=false なら 'down'）"
 
 [[condition]]
-id = "handle_card_drop.default_empty_zone_forces_top"
+id = "handle-card-drop.default-empty-zone-forces-top"
+source_lines = "tests/unit/composables/usePracticeDropHandler.test.ts:214"
 target_function = "usePracticeDropHandler#handleCardDrop"
-source_lines = "67-70"
 description = "default zone で既存カード枚数が0のとき、isRight の値に関わらず position:'top' になる（banish zone と同じ挙動）"
 given = "targetZone='monster'（slotIndex=2）で getCards('monster', 2, fieldIndex).length === 0"
-expect_side_effect = "practiceStore.moveCard の options.position に 'top' が渡される"
+expect_return_shape = "practiceStore.moveCard の options.position に 'top' が渡される"
 
 [[condition]]
-id = "handle_card_drop.default_non_empty_position_from_is_right"
+id = "handle-card-drop.default-non-empty-position-from-is-right"
+source_lines = "tests/unit/composables/usePracticeDropHandler.test.ts:226"
 target_function = "usePracticeDropHandler#handleCardDrop"
-source_lines = "68-69"
 description = "default zone で既存カードが1枚以上あるとき、dropPos.isRight=true なら position:'bottom'、isRight=false なら position:'top'"
 given = "targetZone='monster'（slotIndex=2）で getCards('monster', 2, fieldIndex).length > 0、dropPos.isRight=true"
-expect_side_effect = "practiceStore.moveCard の options.position に 'bottom' が渡される（isRight=false なら 'top'）"
+expect_return_shape = "practiceStore.moveCard の options.position に 'bottom' が渡される（isRight=false なら 'top'）"
 
 [[condition]]
-id = "handle_card_drop.default_passes_target_slot_index"
+id = "handle-card-drop.default-passes-target-slot-index"
+source_lines = "tests/unit/composables/usePracticeDropHandler.test.ts:238"
 target_function = "usePracticeDropHandler#handleCardDrop"
-source_lines = "71"
 description = "default zone では context.targetSlotIndex を moveCard の第3引数にそのまま渡す（hand/gy等の early return 群は undefined を渡すのとは異なる）"
 given = "targetZone='monster', targetSlotIndex=2"
-expect_side_effect = "practiceStore.moveCard(cardId, 'monster', 2, {...}, fieldIndex) のように第3引数に2が渡される"
+expect_return_shape = "practiceStore.moveCard(cardId, 'monster', 2, {...}, fieldIndex) のように第3引数に2が渡される"
 
 # --- usePracticeDropHandler#handleExternalCardDrop (face 決定) ---
 
 [[condition]]
-id = "handle_external_card_drop.face_deck_always_down"
+id = "handle-external-card-drop.face-deck-always-down"
+source_lines = "tests/unit/composables/usePracticeDropHandler.test.ts:253"
 target_function = "usePracticeDropHandler#handleExternalCardDrop"
-source_lines = "82"
 description = "targetZone='deck' のとき face を dropPos に関わらず常に'down'で固定"
 given = "targetZone='deck'、任意の dropPos（isTop=true/false/undefined）"
-expect_side_effect = "practiceStore.addExternalCard の face 引数に 'down' が渡される"
+expect_return_shape = "practiceStore.addExternalCard の face 引数に 'down' が渡される"
 
 [[condition]]
-id = "handle_external_card_drop.face_extra_undefined_drop_pos_is_down"
+id = "handle-external-card-drop.face-extra-undefined-drop-pos-is-down"
+source_lines = "tests/unit/composables/usePracticeDropHandler.test.ts:273"
 target_function = "usePracticeDropHandler#handleExternalCardDrop"
-source_lines = "83"
 description = "targetZone='extra' のとき face は dropPos?.isTop ? 'up' : 'down'。dropPos undefined または isTop falsy のとき 'down' になる（else 節とは非対称）"
 given = "targetZone='extra' で dropPos が undefined"
-expect_side_effect = "practiceStore.addExternalCard の face 引数に 'down' が渡される"
+expect_return_shape = "practiceStore.addExternalCard の face 引数に 'down' が渡される"
 
 [[condition]]
-id = "handle_external_card_drop.face_banish_undefined_drop_pos_is_down"
+id = "handle-external-card-drop.face-banish-undefined-drop-pos-is-down"
+source_lines = "tests/unit/composables/usePracticeDropHandler.test.ts:286"
 target_function = "usePracticeDropHandler#handleExternalCardDrop"
-source_lines = "84"
 description = "targetZone='banish' のとき face は dropPos?.isTop ? 'up' : 'down'。dropPos undefined または isTop falsy のとき 'down'"
 given = "targetZone='banish' で dropPos.isTop=true"
-expect_side_effect = "practiceStore.addExternalCard の face 引数に 'up' が渡される"
+expect_return_shape = "practiceStore.addExternalCard の face 引数に 'up' が渡される"
 
 [[condition]]
-id = "handle_external_card_drop.face_gy_always_up"
+id = "handle-external-card-drop.face-gy-always-up"
+source_lines = "tests/unit/composables/usePracticeDropHandler.test.ts:298"
 target_function = "usePracticeDropHandler#handleExternalCardDrop"
-source_lines = "85"
 description = "targetZone='gy' のとき face を dropPos に関わらず常に'up'で固定"
 given = "targetZone='gy'、任意の dropPos"
-expect_side_effect = "practiceStore.addExternalCard の face 引数に 'up' が渡される"
+expect_return_shape = "practiceStore.addExternalCard の face 引数に 'up' が渡される"
 
 [[condition]]
-id = "handle_external_card_drop.face_default_undefined_drop_pos_is_up"
+id = "handle-external-card-drop.face-default-undefined-drop-pos-is-up"
+source_lines = "tests/unit/composables/usePracticeDropHandler.test.ts:316"
 target_function = "usePracticeDropHandler#handleExternalCardDrop"
-source_lines = "86"
 description = "明示列挙zone(deck/extra/banish/gy)以外のzoneでは face = dropPos?.isTop !== false ? 'up' : 'down'。dropPos undefined または isTop=true なら 'up'、明示的に isTop=false のときのみ 'down'。extra/banishとは異なりundefined時は'up'になる（非対称）"
 given = "targetZone='hand'（または field/monster 等）で dropPos が undefined"
-expect_side_effect = "practiceStore.addExternalCard の face 引数に 'up' が渡される"
+expect_return_shape = "practiceStore.addExternalCard の face 引数に 'up' が渡される"
 
 [[condition]]
-id = "handle_external_card_drop.face_default_explicit_false_is_down"
+id = "handle-external-card-drop.face-default-explicit-false-is-down"
+source_lines = "tests/unit/composables/usePracticeDropHandler.test.ts:327"
 target_function = "usePracticeDropHandler#handleExternalCardDrop"
-source_lines = "86"
 description = "default zone で dropPos.isTop が明示的に false のときのみ face='down' になる"
 given = "targetZone='hand' で dropPos.isTop=false"
-expect_side_effect = "practiceStore.addExternalCard の face 引数に 'down' が渡される"
+expect_return_shape = "practiceStore.addExternalCard の face 引数に 'down' が渡される"
 
 # --- usePracticeDropHandler#handleExternalCardDrop (hand insert / default) ---
 
 [[condition]]
-id = "handle_external_card_drop.hand_insert_index_clamped"
+id = "handle-external-card-drop.hand-insert-index-clamped"
+source_lines = "tests/unit/composables/usePracticeDropHandler.test.ts:336"
 target_function = "usePracticeDropHandler#handleExternalCardDrop"
-source_lines = "88-92"
 description = "targetZone='hand' かつ dropPos.insertIndex が定義済みのとき、insertIndex を Math.max(0, Math.min(insertIndex, handLength)) でクランプし、addExternalCard の position 引数に渡して早期return"
 given = "targetZone='hand', dropPos.insertIndex=999 で hand length が3"
-expect_side_effect = "practiceStore.addExternalCard(cid, ciid, 'hand', undefined, fieldIndex, face, 3) のように position=3 で呼ばれる"
+expect_return_shape = "practiceStore.addExternalCard(cid, ciid, 'hand', undefined, fieldIndex, face, 3) のように position=3 で呼ばれる"
 
 [[condition]]
-id = "handle_external_card_drop.hand_insert_uses_undefined_slot"
+id = "handle-external-card-drop.hand-insert-uses-undefined-slot"
+source_lines = "tests/unit/composables/usePracticeDropHandler.test.ts:351"
 target_function = "usePracticeDropHandler#handleExternalCardDrop"
-source_lines = "88-90"
 description = "hand zone の insert分岐では slotIndex に undefined を渡す（context.targetSlotIndex ではなく）"
 given = "targetZone='hand', dropPos.insertIndex=1, context.targetSlotIndex=99"
-expect_side_effect = "practiceStore.addExternalCard の第4引数(slotIndex)に undefined が渡される（99ではない）"
+expect_return_shape = "practiceStore.addExternalCard の第4引数(slotIndex)に undefined が渡される（99ではない）"
 
 [[condition]]
-id = "handle_external_card_drop.default_adds_without_position"
+id = "handle-external-card-drop.default-adds-without-position"
+source_lines = "tests/unit/composables/usePracticeDropHandler.test.ts:364"
 target_function = "usePracticeDropHandler#handleExternalCardDrop"
-source_lines = "93"
 description = "handのinsert分岐（insertIndex定義済み）に該当しない場合は default で addExternalCard(cid, ciid, targetZone, targetSlotIndex, fieldIndex, face) を呼ぶ。position引数省略＝ストア側デフォルト('bottom')で追加される"
 given = "targetZone='monster', targetSlotIndex=2, dropPos.insertIndex=undefined"
-expect_side_effect = "practiceStore.addExternalCard(cid, ciid, 'monster', 2, fieldIndex, face) が呼ばれる（position引数なし）"
+expect_return_shape = "practiceStore.addExternalCard(cid, ciid, 'monster', 2, fieldIndex, face) が呼ばれる（position引数なし）"
 
 [[condition]]
-id = "handle_external_card_drop.drop_pos_undefined_falls_to_default"
+id = "handle-external-card-drop.drop-pos-undefined-falls-to-default"
+source_lines = "tests/unit/composables/usePracticeDropHandler.test.ts:375"
 target_function = "usePracticeDropHandler#handleExternalCardDrop"
-source_lines = "88-93"
 description = "dropPos 引数全体が undefined のときは hand の insert分岐（dropPos?.insertIndex !== undefined）を抜けて default の addExternalCard へ落ちる。face は各zone判定で undefined を 'up'/'down' 扱いした結果になる"
 given = "targetZone='hand' で dropPos が undefined"
-expect_side_effect = "practiceStore.addExternalCard(cid, ciid, 'hand', undefined, fieldIndex, 'up') が呼ばれる（position引数なし）"
+expect_return_shape = "practiceStore.addExternalCard(cid, ciid, 'hand', undefined, fieldIndex, 'up') が呼ばれる（position引数なし）"
