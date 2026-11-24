@@ -41,7 +41,7 @@ describe('deck-list-parser', () => {
   `;
 
   describe('parseDeckList', () => {
-    it('デッキ一覧コンテナがない場合はwarningを出して空配列を返す [covers:parse_list.container_missing]', () => {
+    it('デッキ一覧コンテナがない場合はwarningを出して空配列を返す [covers:parse-list.container-missing]', () => {
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       setBody('<div id="deck_list" class="list"></div>');
 
@@ -52,7 +52,7 @@ describe('deck-list-parser', () => {
       warnSpy.mockRestore();
     });
 
-    it('コンテナ内にt_rowがない場合は空配列を返す [covers:parse_list.no_rows]', () => {
+    it('コンテナ内にt_rowがない場合は空配列を返す [covers:parse-list.no-rows]', () => {
       setBody(deckList('<div class="not_row"></div>'));
 
       const result = parseDeckList(doc);
@@ -60,7 +60,7 @@ describe('deck-list-parser', () => {
       expect(result).toEqual([]);
     });
 
-    it('複数の有効行をDOM順に抽出する [covers:parse_list.multiple_valid_rows]', () => {
+    it('複数の有効行をDOM順に抽出する [covers:parse-list.multiple-valid-rows]', () => {
       setBody(
         deckList(`
           ${validRow({ name: 'デッキ1', dno: '1' })}
@@ -78,7 +78,7 @@ describe('deck-list-parser', () => {
       ]);
     });
 
-    it('parseDeckListRowがnullを返す行だけを除外する [covers:parse_list.push_only_truthy_items]', () => {
+    it('parseDeckListRowがnullを返す行だけを除外する [covers:parse-list.push-only-truthy-items]', () => {
       setBody(
         deckList(`
           ${validRow({ name: 'Valid A', dno: '1' })}
@@ -96,7 +96,7 @@ describe('deck-list-parser', () => {
       expect(result.map((item) => item.dno)).toEqual([1, 2]);
     });
 
-    it('名前要素がない行はスキップされる [covers:parse_row.name_element_missing]', () => {
+    it('名前要素がない行はスキップされる [covers:parse-row.name-element-missing]', () => {
       setBody(
         deckList(`
           <div class="t_row">
@@ -109,7 +109,7 @@ describe('deck-list-parser', () => {
       expect(parseDeckList(doc)).toEqual([]);
     });
 
-    it('名前要素のtextContentが空文字列の行はスキップされる [covers:parse_row.name_text_missing]', () => {
+    it('名前要素のtextContentが空文字列の行はスキップされる [covers:parse-row.name-text-missing]', () => {
       setBody(
         deckList(`
           <div class="t_row">
@@ -122,7 +122,7 @@ describe('deck-list-parser', () => {
       expect(parseDeckList(doc)).toEqual([]);
     });
 
-    it('名前はtrimされ、trim後が空でもtrim前textContentがtruthyなら行は返る [covers:parse_row.name_trimmed]', () => {
+    it('名前はtrimされ、trim後が空でもtrim前textContentがtruthyなら行は返る [covers:parse-row.name-trimmed]', () => {
       setBody(
         deckList(`
           ${validRow({ name: '  テスト デッキ  ', dno: '10' })}
@@ -138,7 +138,7 @@ describe('deck-list-parser', () => {
       ]);
     });
 
-    it('input.link_valueがない行はスキップされる [covers:parse_row.link_input_missing]', () => {
+    it('input.link_valueがない行はスキップされる [covers:parse-row.link-input-missing]', () => {
       setBody(
         deckList(`
           <div class="t_row">
@@ -150,7 +150,7 @@ describe('deck-list-parser', () => {
       expect(parseDeckList(doc)).toEqual([]);
     });
 
-    it('input.link_valueのvalueが空文字列の行はスキップされる [covers:parse_row.link_value_missing]', () => {
+    it('input.link_valueのvalueが空文字列の行はスキップされる [covers:parse-row.link-value-missing]', () => {
       setBody(
         deckList(`
           <div class="t_row">
@@ -163,7 +163,7 @@ describe('deck-list-parser', () => {
       expect(parseDeckList(doc)).toEqual([]);
     });
 
-    it('link_valueにdnoの数字列がない行はスキップされる [covers:parse_row.dno_missing]', () => {
+    it('link_valueにdnoの数字列がない行はスキップされる [covers:parse-row.dno-missing]', () => {
       setBody(
         deckList(`
           ${validRow({ name: 'No dno', linkValue: '/yugiohdb/member_deck.action?ope=1' })}
@@ -177,7 +177,7 @@ describe('deck-list-parser', () => {
       expect(result).toEqual([{ dno: 12, name: 'Valid', deckType: undefined }]);
     });
 
-    it('dnoは最初にマッチした数字列を10進数として返す [covers:parse_row.dno_digits_parsed]', () => {
+    it('dnoは最初にマッチした数字列を10進数として返す [covers:parse-row.dno-digits-parsed]', () => {
       setBody(
         deckList(`
           ${validRow({ name: 'Leading zero', linkValue: '/yugiohdb/member_deck.action?dno=0042' })}
@@ -193,7 +193,7 @@ describe('deck-list-parser', () => {
       ]);
     });
 
-    it('既知のデッキタイプ表示名はvalue値に変換される [covers:parse_row.deck_type_known_label]', () => {
+    it('既知のデッキタイプ表示名はvalue値に変換される [covers:parse-row.deck-type-known-label]', () => {
       setBody(deckList(validRow({ deckTypeLabel: ' OCG（マスタールール） ' })));
 
       const result = parseDeckList(doc);
@@ -201,7 +201,7 @@ describe('deck-list-parser', () => {
       expect(result[0].deckType).toBe('0');
     });
 
-    it('デッキタイプ要素がない、またはtextContentが空文字列ならundefinedになる [covers:parse_row.deck_type_absent_or_empty]', () => {
+    it('デッキタイプ要素がない、またはtextContentが空文字列ならundefinedになる [covers:parse-row.deck-type-absent-or-empty]', () => {
       setBody(
         deckList(`
           ${validRow({ name: 'Absent', dno: '1' })}
@@ -218,7 +218,7 @@ describe('deck-list-parser', () => {
       expect(result.map((item) => item.deckType)).toEqual([undefined, undefined]);
     });
 
-    it('未知のデッキタイプ表示名、またはtrim後が空文字列の表示名はundefinedになる [covers:parse_row.deck_type_unknown_label]', () => {
+    it('未知のデッキタイプ表示名、またはtrim後が空文字列の表示名はundefinedになる [covers:parse-row.deck-type-unknown-label]', () => {
       setBody(
         deckList(`
           ${validRow({ name: 'Unknown', dno: '1', deckTypeLabel: '未定義タイプ' })}
