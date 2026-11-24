@@ -18,11 +18,11 @@ import {
  */
 describe('card-search-mapper', () => {
   describe('SORT_ORDER_TO_API_VALUE', () => {
-    it('[covers:sort_order.name_orders_map_to_api_1] should map name_asc to API value 1', () => {
+    it('[covers:sort-order.name-orders-map-to-api-1] should map name_asc to API value 1', () => {
       expect(SORT_ORDER_TO_API_VALUE['name_asc']).toBe(1);
     });
 
-    it('[covers:sort_order.name_orders_map_to_api_1] should map name_desc to API value 1', () => {
+    it('[covers:sort-order.name-orders-map-to-api-1] should map name_desc to API value 1', () => {
       // APIは50音順のみ、descはクライアント側で反転
       expect(SORT_ORDER_TO_API_VALUE['name_desc']).toBe(1);
     });
@@ -30,57 +30,57 @@ describe('card-search-mapper', () => {
     // TASK-373: 実サーバーへ直接fetchして検証した結果、sort=20は最古のカード、
     // sort=21は最新のカードを返すことが判明した（名称の意味と逆）。
     // release_desc(新しい順)/release_asc(古い順)の割り当てをこの検証結果に合わせて修正。
-    it('[covers:sort_order.release_desc_maps_to_21] should map release_desc to API value 21 (newest first, verified against real server)', () => {
+    it('[covers:sort-order.release-desc-maps-to-21] should map release_desc to API value 21 (newest first, verified against real server)', () => {
       expect(SORT_ORDER_TO_API_VALUE['release_desc']).toBe(21);
     });
 
-    it('[covers:sort_order.release_asc_maps_to_20] should map release_asc to API value 20 (oldest first, verified against real server)', () => {
+    it('[covers:sort-order.release-asc-maps-to-20] should map release_asc to API value 20 (oldest first, verified against real server)', () => {
       expect(SORT_ORDER_TO_API_VALUE['release_asc']).toBe(20);
     });
 
-    it('[covers:sort_order.level_orders_map_to_2_and_3] should map level_desc to API value 2', () => {
+    it('[covers:sort-order.level-orders-map-to-2-and-3] should map level_desc to API value 2', () => {
       expect(SORT_ORDER_TO_API_VALUE['level_desc']).toBe(2);
     });
 
-    it('[covers:sort_order.level_orders_map_to_2_and_3] should map level_asc to API value 3', () => {
+    it('[covers:sort-order.level-orders-map-to-2-and-3] should map level_asc to API value 3', () => {
       expect(SORT_ORDER_TO_API_VALUE['level_asc']).toBe(3);
     });
 
-    it('[covers:sort_order.atk_orders_map_to_4_and_5] should map atk_desc to API value 4', () => {
+    it('[covers:sort-order.atk-orders-map-to-4-and-5] should map atk_desc to API value 4', () => {
       expect(SORT_ORDER_TO_API_VALUE['atk_desc']).toBe(4);
     });
 
-    it('[covers:sort_order.atk_orders_map_to_4_and_5] should map atk_asc to API value 5', () => {
+    it('[covers:sort-order.atk-orders-map-to-4-and-5] should map atk_asc to API value 5', () => {
       expect(SORT_ORDER_TO_API_VALUE['atk_asc']).toBe(5);
     });
 
-    it('[covers:sort_order.def_orders_map_to_6_and_7] should map def_desc to API value 6', () => {
+    it('[covers:sort-order.def-orders-map-to-6-and-7] should map def_desc to API value 6', () => {
       expect(SORT_ORDER_TO_API_VALUE['def_desc']).toBe(6);
     });
 
-    it('[covers:sort_order.def_orders_map_to_6_and_7] should map def_asc to API value 7', () => {
+    it('[covers:sort-order.def-orders-map-to-6-and-7] should map def_asc to API value 7', () => {
       expect(SORT_ORDER_TO_API_VALUE['def_asc']).toBe(7);
     });
 
-    it('[covers:sort_order.unsupported_sorts_fallback_to_name] should map attribute_asc to API value 1', () => {
+    it('[covers:sort-order.unsupported-sorts-fallback-to-name] should map attribute_asc to API value 1', () => {
       // APIに属性ソートなし、50音順で代用
       expect(SORT_ORDER_TO_API_VALUE['attribute_asc']).toBe(1);
     });
 
-    it('[covers:sort_order.unsupported_sorts_fallback_to_name] should map attribute_desc to API value 1', () => {
+    it('[covers:sort-order.unsupported-sorts-fallback-to-name] should map attribute_desc to API value 1', () => {
       expect(SORT_ORDER_TO_API_VALUE['attribute_desc']).toBe(1);
     });
 
-    it('[covers:sort_order.unsupported_sorts_fallback_to_name] should map race_asc to API value 1', () => {
+    it('[covers:sort-order.unsupported-sorts-fallback-to-name] should map race_asc to API value 1', () => {
       // APIに種族ソートなし、50音順で代用
       expect(SORT_ORDER_TO_API_VALUE['race_asc']).toBe(1);
     });
 
-    it('[covers:sort_order.unsupported_sorts_fallback_to_name] should map race_desc to API value 1', () => {
+    it('[covers:sort-order.unsupported-sorts-fallback-to-name] should map race_desc to API value 1', () => {
       expect(SORT_ORDER_TO_API_VALUE['race_desc']).toBe(1);
     });
 
-    it('[covers:sort_order.all_sort_keys_defined_numeric] should have all sort order keys defined', () => {
+    it('[covers:sort-order.all-sort-keys-defined-numeric] should have all sort order keys defined', () => {
       const expectedKeys = [
         'name_asc', 'name_desc',
         'release_desc', 'release_asc',
@@ -99,7 +99,7 @@ describe('card-search-mapper', () => {
   });
 
   describe('Card Maps Integrity', () => {
-    it('[covers:card_maps.attribute_keys_positive_unique] should have ATTRIBUTE_ID_TO_INT mapping', () => {
+    it('[covers:card-maps.attribute-keys-positive-unique] should have ATTRIBUTE_ID_TO_INT mapping', () => {
       expect(ATTRIBUTE_ID_TO_INT).toBeDefined();
       expect(typeof ATTRIBUTE_ID_TO_INT).toBe('object');
 
@@ -110,7 +110,7 @@ describe('card-search-mapper', () => {
       });
     });
 
-    it('[covers:card_maps.race_keys_positive_unique] should have RACE_ID_TO_INT mapping', () => {
+    it('[covers:card-maps.race-keys-positive-unique] should have RACE_ID_TO_INT mapping', () => {
       expect(RACE_ID_TO_INT).toBeDefined();
       expect(typeof RACE_ID_TO_INT).toBe('object');
 
@@ -121,7 +121,7 @@ describe('card-search-mapper', () => {
       });
     });
 
-    it('[covers:card_maps.monster_type_keys_unique_zero_allowed] should have MONSTER_TYPE_ID_TO_INT mapping', () => {
+    it('[covers:card-maps.monster-type-keys-unique-zero-allowed] should have MONSTER_TYPE_ID_TO_INT mapping', () => {
       expect(MONSTER_TYPE_ID_TO_INT).toBeDefined();
       expect(typeof MONSTER_TYPE_ID_TO_INT).toBe('object');
 
@@ -132,7 +132,7 @@ describe('card-search-mapper', () => {
       });
     });
 
-    it('[covers:card_maps.spell_effect_type_keys_defined] should have SPELL_EFFECT_TYPE_ID_TO_INT mapping', () => {
+    it('[covers:card-maps.spell-effect-type-keys-defined] should have SPELL_EFFECT_TYPE_ID_TO_INT mapping', () => {
       expect(SPELL_EFFECT_TYPE_ID_TO_INT).toBeDefined();
       expect(typeof SPELL_EFFECT_TYPE_ID_TO_INT).toBe('object');
 
@@ -143,7 +143,7 @@ describe('card-search-mapper', () => {
       });
     });
 
-    it('[covers:card_maps.trap_effect_type_keys_defined] should have TRAP_EFFECT_TYPE_ID_TO_INT mapping', () => {
+    it('[covers:card-maps.trap-effect-type-keys-defined] should have TRAP_EFFECT_TYPE_ID_TO_INT mapping', () => {
       expect(TRAP_EFFECT_TYPE_ID_TO_INT).toBeDefined();
       expect(typeof TRAP_EFFECT_TYPE_ID_TO_INT).toBe('object');
 
@@ -156,7 +156,7 @@ describe('card-search-mapper', () => {
   });
 
   describe('Mapping Values', () => {
-    it('[covers:card_maps.attribute_keys_positive_unique] should have consistent attribute ID to INT values', () => {
+    it('[covers:card-maps.attribute-keys-positive-unique] should have consistent attribute ID to INT values', () => {
       // 属性のマッピング値が数値であることを確認
       Object.values(ATTRIBUTE_ID_TO_INT).forEach(value => {
         expect(typeof value).toBe('number');
@@ -164,7 +164,7 @@ describe('card-search-mapper', () => {
       });
     });
 
-    it('[covers:card_maps.race_keys_positive_unique] should have consistent race ID to INT values', () => {
+    it('[covers:card-maps.race-keys-positive-unique] should have consistent race ID to INT values', () => {
       // 種族のマッピング値が数値であることを確認
       Object.values(RACE_ID_TO_INT).forEach(value => {
         expect(typeof value).toBe('number');
@@ -172,7 +172,7 @@ describe('card-search-mapper', () => {
       });
     });
 
-    it('[covers:card_maps.monster_type_keys_unique_zero_allowed] should have consistent monster type ID to INT values', () => {
+    it('[covers:card-maps.monster-type-keys-unique-zero-allowed] should have consistent monster type ID to INT values', () => {
       // モンスタータイプのマッピング値が数値であることを確認
       Object.values(MONSTER_TYPE_ID_TO_INT).forEach(value => {
         expect(typeof value).toBe('number');
@@ -180,21 +180,21 @@ describe('card-search-mapper', () => {
       });
     });
 
-    it('[covers:card_maps.attribute_keys_positive_unique] should have unique attribute INT values', () => {
+    it('[covers:card-maps.attribute-keys-positive-unique] should have unique attribute INT values', () => {
       // 属性のマッピング値が一意であることを確認
       const values = Object.values(ATTRIBUTE_ID_TO_INT);
       const uniqueValues = new Set(values);
       expect(uniqueValues.size).toBe(values.length);
     });
 
-    it('[covers:card_maps.race_keys_positive_unique] should have unique race INT values', () => {
+    it('[covers:card-maps.race-keys-positive-unique] should have unique race INT values', () => {
       // 種族のマッピング値が一意であることを確認
       const values = Object.values(RACE_ID_TO_INT);
       const uniqueValues = new Set(values);
       expect(uniqueValues.size).toBe(values.length);
     });
 
-    it('[covers:card_maps.monster_type_keys_unique_zero_allowed] should have unique monster type INT values', () => {
+    it('[covers:card-maps.monster-type-keys-unique-zero-allowed] should have unique monster type INT values', () => {
       // モンスタータイプのマッピング値が一意であることを確認
       const values = Object.values(MONSTER_TYPE_ID_TO_INT);
       const uniqueValues = new Set(values);
@@ -203,7 +203,7 @@ describe('card-search-mapper', () => {
   });
 
   describe('API Parameter Mapping', () => {
-    it('[covers:sort_order.api_values_within_valid_range] should map all sort orders to valid API values', () => {
+    it('[covers:sort-order.api-values-within-valid-range] should map all sort orders to valid API values', () => {
       // 全てのソート順序が有効なAPI値（1-21）にマッピングされていることを確認
       Object.values(SORT_ORDER_TO_API_VALUE).forEach(value => {
         expect(value).toBeGreaterThanOrEqual(1);
@@ -211,7 +211,7 @@ describe('card-search-mapper', () => {
       });
     });
 
-    it('[covers:sort_order.unsupported_sorts_fallback_to_name] should have fallback to name sort for unsupported sorts', () => {
+    it('[covers:sort-order.unsupported-sorts-fallback-to-name] should have fallback to name sort for unsupported sorts', () => {
       // 属性・種族ソートはAPIサポートなしで50音順（1）にフォールバック
       expect(SORT_ORDER_TO_API_VALUE['attribute_asc']).toBe(1);
       expect(SORT_ORDER_TO_API_VALUE['attribute_desc']).toBe(1);
