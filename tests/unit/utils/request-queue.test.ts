@@ -26,7 +26,7 @@ describe('request-queue', () => {
   });
 
   describe('constructor', () => {
-    it('[covers:constructor.defaults_applied_when_options_omitted] optionsを省略した場合デフォルト値が適用される', () => {
+    it('[covers:constructor.defaults-applied-when-options-omitted] optionsを省略した場合デフォルト値が適用される', () => {
       const queue = new RequestQueue();
 
       expect((queue as any).options).toEqual({
@@ -38,7 +38,7 @@ describe('request-queue', () => {
       });
     });
 
-    it('[covers:constructor.custom_options_override_defaults] optionsを指定した場合その値が使われる', () => {
+    it('[covers:constructor.custom-options-override-defaults] optionsを指定した場合その値が使われる', () => {
       const queue = new RequestQueue({
         concurrentLimit: 1,
         initialRetryDelay: 10,
@@ -58,7 +58,7 @@ describe('request-queue', () => {
   });
 
   describe('enqueue', () => {
-    it('[covers:enqueue.wraps_fn_in_request_and_starts_processing] fnの結果でPromiseがresolveする', async () => {
+    it('[covers:enqueue.wraps-fn-in-request-and-starts-processing] fnの結果でPromiseがresolveする', async () => {
       const queue = new RequestQueue();
       const fn = vi.fn().mockResolvedValue('ok');
 
@@ -67,7 +67,7 @@ describe('request-queue', () => {
   });
 
   describe('process (private)', () => {
-    it('[covers:process.skip_when_concurrent_limit_reached] activeCountがconcurrentLimit以上なら何もしない', async () => {
+    it('[covers:process.skip-when-concurrent-limit-reached] activeCountがconcurrentLimit以上なら何もしない', async () => {
       const queue = new RequestQueue({ concurrentLimit: 1 });
       const request = { fn: vi.fn(), resolve: vi.fn(), reject: vi.fn(), retries: 0 };
       (queue as any).activeCount = 1;
@@ -80,7 +80,7 @@ describe('request-queue', () => {
       expect(request.fn).not.toHaveBeenCalled();
     });
 
-    it('[covers:process.skip_when_queue_empty] queueが空なら何もしない', async () => {
+    it('[covers:process.skip-when-queue-empty] queueが空なら何もしない', async () => {
       const queue = new RequestQueue();
       (queue as any).activeCount = 0;
       (queue as any).queue = [];
@@ -90,7 +90,7 @@ describe('request-queue', () => {
       expect((queue as any).activeCount).toBe(0);
     });
 
-    it('[covers:process.shift_undefined_defensive_guard] shift()がundefinedを返す場合activeCountを相殺してreturnする', async () => {
+    it('[covers:process.shift-undefined-defensive-guard] shift()がundefinedを返す場合activeCountを相殺してreturnする', async () => {
       const queue = new RequestQueue();
       (queue as any).activeCount = 0;
       (queue as any).queue = { length: 1, shift: () => undefined };
@@ -100,7 +100,7 @@ describe('request-queue', () => {
       expect((queue as any).activeCount).toBe(0);
     });
 
-    it('[covers:process.success_resolves_request] executeWithRetryが成功したらresolveを呼ぶ', async () => {
+    it('[covers:process.success-resolves-request] executeWithRetryが成功したらresolveを呼ぶ', async () => {
       const queue = new RequestQueue();
       const resolve = vi.fn();
       const reject = vi.fn();
@@ -114,7 +114,7 @@ describe('request-queue', () => {
       expect(reject).not.toHaveBeenCalled();
     });
 
-    it('[covers:process.failure_rejects_request] executeWithRetryが失敗したらrejectを呼ぶ', async () => {
+    it('[covers:process.failure-rejects-request] executeWithRetryが失敗したらrejectを呼ぶ', async () => {
       const queue = new RequestQueue();
       const resolve = vi.fn();
       const reject = vi.fn();
@@ -129,7 +129,7 @@ describe('request-queue', () => {
       expect(resolve).not.toHaveBeenCalled();
     });
 
-    it('[covers:process.finally_decrements_and_continues_next] concurrentLimit到達中は次を処理せず、空いたら続けて処理する', async () => {
+    it('[covers:process.finally-decrements-and-continues-next] concurrentLimit到達中は次を処理せず、空いたら続けて処理する', async () => {
       const queue = new RequestQueue({ concurrentLimit: 1 });
       let resolveFirst: (value: string) => void = () => {};
       const firstPromise = new Promise<string>((resolve) => {
@@ -155,7 +155,7 @@ describe('request-queue', () => {
   });
 
   describe('executeWithRetry (private)', () => {
-    it('[covers:execute_with_retry.first_attempt_success] 1回目で成功したら即returnしリトライしない', async () => {
+    it('[covers:execute-with-retry.first-attempt-success] 1回目で成功したら即returnしリトライしない', async () => {
       const queue = new RequestQueue();
       const fn = vi.fn().mockResolvedValue('ok');
       const request = { fn, resolve: vi.fn(), reject: vi.fn(), retries: 0 };
@@ -164,7 +164,7 @@ describe('request-queue', () => {
       expect(fn).toHaveBeenCalledTimes(1);
     });
 
-    it('[covers:execute_with_retry.retryable_error_retries_then_succeeds] リトライ可能エラー後にバックオフ待機してリトライし成功する', async () => {
+    it('[covers:execute-with-retry.retryable-error-retries-then-succeeds] リトライ可能エラー後にバックオフ待機してリトライし成功する', async () => {
       const queue = new RequestQueue({ maxRetries: 3, initialRetryDelay: 50 });
       const response = new Response(null, { status: 429 });
       const fn = vi
@@ -187,7 +187,7 @@ describe('request-queue', () => {
       expect(request.retries).toBe(1);
     });
 
-    it('[covers:execute_with_retry.exhausted_retries_throws_last_error] retries===maxRetriesならリトライせず即throwする', async () => {
+    it('[covers:execute-with-retry.exhausted-retries-throws-last-error] retries===maxRetriesならリトライせず即throwする', async () => {
       const queue = new RequestQueue({ maxRetries: 3 });
       const response = new Response(null, { status: 503 });
       const fn = vi.fn().mockRejectedValue(response);
@@ -197,7 +197,7 @@ describe('request-queue', () => {
       expect(fn).toHaveBeenCalledTimes(1);
     });
 
-    it('[covers:execute_with_retry.non_retryable_error_throws_immediately] リトライ対象外のエラーは即throwする', async () => {
+    it('[covers:execute-with-retry.non-retryable-error-throws-immediately] リトライ対象外のエラーは即throwする', async () => {
       const queue = new RequestQueue({ maxRetries: 3 });
       const error = new Error('boom');
       const fn = vi.fn().mockRejectedValue(error);
@@ -207,7 +207,7 @@ describe('request-queue', () => {
       expect(fn).toHaveBeenCalledTimes(1);
     });
 
-    it('[covers:execute_with_retry.negative_max_retries_throws_max_exceeded] maxRetriesが負数ならfnを呼ばずMax retries exceededをthrowする', async () => {
+    it('[covers:execute-with-retry.negative-max-retries-throws-max-exceeded] maxRetriesが負数ならfnを呼ばずMax retries exceededをthrowする', async () => {
       const queue = new RequestQueue({ maxRetries: -1 });
       const fn = vi.fn();
       const request = { fn, resolve: vi.fn(), reject: vi.fn(), retries: 0 };
@@ -220,14 +220,14 @@ describe('request-queue', () => {
   });
 
   describe('executeWithTimeout (private)', () => {
-    it('[covers:execute_with_timeout.fn_resolves_before_timeout] timeoutMs以内にresolveすればその値を返す', async () => {
+    it('[covers:execute-with-timeout.fn-resolves-before-timeout] timeoutMs以内にresolveすればその値を返す', async () => {
       const queue = new RequestQueue({ timeoutMs: 500 });
       const fn = vi.fn().mockResolvedValue('value');
 
       await expect((queue as any).executeWithTimeout(fn)).resolves.toBe('value');
     });
 
-    it('[covers:execute_with_timeout.fn_rejects_before_timeout] timeoutMs以内にrejectすればその理由を返す', async () => {
+    it('[covers:execute-with-timeout.fn-rejects-before-timeout] timeoutMs以内にrejectすればその理由を返す', async () => {
       const queue = new RequestQueue({ timeoutMs: 500 });
       const error = new Error('fail');
       const fn = vi.fn().mockRejectedValue(error);
@@ -235,7 +235,7 @@ describe('request-queue', () => {
       await expect((queue as any).executeWithTimeout(fn)).rejects.toBe(error);
     });
 
-    it('[covers:execute_with_timeout.timeout_rejects_with_message] timeoutMs経過後にRequest timeoutメッセージでrejectする', async () => {
+    it('[covers:execute-with-timeout.timeout-rejects-with-message] timeoutMs経過後にRequest timeoutメッセージでrejectする', async () => {
       const queue = new RequestQueue({ timeoutMs: 500 });
       const fn = vi.fn(() => new Promise(() => {}));
 
@@ -250,45 +250,45 @@ describe('request-queue', () => {
   });
 
   describe('isRetryableError (private)', () => {
-    it("[covers:is_retryable_error.typeerror_fetch_message_true] TypeErrorかつmessageに'fetch'を含めばtrue", () => {
+    it("[covers:is-retryable-error.typeerror-fetch-message-true] TypeErrorかつmessageに'fetch'を含めばtrue", () => {
       const queue = new RequestQueue();
       expect((queue as any).isRetryableError(new TypeError('Failed to fetch'))).toBe(true);
     });
 
-    it("[covers:is_retryable_error.typeerror_non_fetch_message_false] TypeErrorでもmessageに'fetch'を含まなければfalse", () => {
+    it("[covers:is-retryable-error.typeerror-non-fetch-message-false] TypeErrorでもmessageに'fetch'を含まなければfalse", () => {
       const queue = new RequestQueue();
       expect((queue as any).isRetryableError(new TypeError('other error'))).toBe(false);
     });
 
-    it('[covers:is_retryable_error.response_status_429_or_503_true] Responseでstatus 429/503ならtrue', () => {
+    it('[covers:is-retryable-error.response-status-429-or-503-true] Responseでstatus 429/503ならtrue', () => {
       const queue = new RequestQueue();
       expect((queue as any).isRetryableError(new Response(null, { status: 429 }))).toBe(true);
       expect((queue as any).isRetryableError(new Response(null, { status: 503 }))).toBe(true);
     });
 
-    it('[covers:is_retryable_error.response_status_other_false] Responseでもstatusが429/503以外ならfalse', () => {
+    it('[covers:is-retryable-error.response-status-other-false] Responseでもstatusが429/503以外ならfalse', () => {
       const queue = new RequestQueue();
       expect((queue as any).isRetryableError(new Response(null, { status: 500 }))).toBe(false);
     });
 
-    it('[covers:is_retryable_error.custom_status_object_429_or_503_true] statusプロパティを持つオブジェクトで429/503ならtrue', () => {
+    it('[covers:is-retryable-error.custom-status-object-429-or-503-true] statusプロパティを持つオブジェクトで429/503ならtrue', () => {
       const queue = new RequestQueue();
       expect((queue as any).isRetryableError({ status: 503 })).toBe(true);
     });
 
-    it('[covers:is_retryable_error.custom_status_object_other_false] statusプロパティを持つオブジェクトでも429/503以外ならfalse', () => {
+    it('[covers:is-retryable-error.custom-status-object-other-false] statusプロパティを持つオブジェクトでも429/503以外ならfalse', () => {
       const queue = new RequestQueue();
       expect((queue as any).isRetryableError({ status: 400 })).toBe(false);
     });
 
-    it('[covers:is_retryable_error.default_false] いずれにも該当しなければfalse', () => {
+    it('[covers:is-retryable-error.default-false] いずれにも該当しなければfalse', () => {
       const queue = new RequestQueue();
       expect((queue as any).isRetryableError(new Error('generic failure'))).toBe(false);
     });
   });
 
   describe('calculateBackoffDelay (private)', () => {
-    it('[covers:calculate_backoff_delay.exponential_with_jitter] 指数バックオフにジッターを掛けた値を返す', () => {
+    it('[covers:calculate-backoff-delay.exponential-with-jitter] 指数バックオフにジッターを掛けた値を返す', () => {
       const queue = new RequestQueue({ initialRetryDelay: 100 });
       vi.spyOn(Math, 'random').mockReturnValue(0.5);
 
@@ -296,7 +296,7 @@ describe('request-queue', () => {
       expect((queue as any).calculateBackoffDelay(1)).toBe(200);
     });
 
-    it('[covers:calculate_backoff_delay.capped_at_max_retry_delay] maxRetryDelayを超える場合は切り詰められる', () => {
+    it('[covers:calculate-backoff-delay.capped-at-max-retry-delay] maxRetryDelayを超える場合は切り詰められる', () => {
       const queue = new RequestQueue({ initialRetryDelay: 1000, maxRetryDelay: 200 });
       vi.spyOn(Math, 'random').mockReturnValue(1);
 
@@ -306,7 +306,7 @@ describe('request-queue', () => {
   });
 
   describe('fetchWithQueue', () => {
-    it('[covers:fetch_with_queue.delegates_to_global_queue] globalRequestQueue.enqueueに委譲する', async () => {
+    it('[covers:fetch-with-queue.delegates-to-global-queue] globalRequestQueue.enqueueに委譲する', async () => {
       const fn = vi.fn().mockResolvedValue('queued-value');
 
       await expect(fetchWithQueue(fn)).resolves.toBe('queued-value');
@@ -365,7 +365,7 @@ describe('request-queue', () => {
   });
 
   describe('queuedFetch', () => {
-    it('[covers:queued_fetch.delegates_to_fetch_with_queue] fetch(url, init)をキュー経由で実行する', async () => {
+    it('[covers:queued-fetch.delegates-to-fetch-with-queue] fetch(url, init)をキュー経由で実行する', async () => {
       const mockResponse = new Response('body');
       const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(mockResponse);
 
