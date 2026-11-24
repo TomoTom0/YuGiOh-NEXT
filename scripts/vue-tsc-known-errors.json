@@ -1,0 +1,77 @@
+{
+  "description": "vue-tsc 導入時 (TASK-543) に明示的に対象外とした既知の型エラー一覧。各エントリは連動タスクの決着と一体のエラーであり、当該タスクが解消されたらこの一覧から外すこと。scripts/type-check.mjs が vue-tsc の出力とこの一覧を照合し、一覧に無い新規エラーと、一覧にあるのに発生しなくなった陳腐化エントリの両方を失敗として報告する。全エントリが無くなったら type-check を素の vue-tsc --noEmit へ戻す (type-check:strict で現在の生出力を確認できる)。",
+  "errors": [
+    {
+      "file": "src/components/DeckSection.vue",
+      "code": "TS2345",
+      "messageIncludes": "Argument of type '\"info\" | \"main\" | \"extra\" | \"side\" | \"trash\"' is not assignable to parameter of type '\"main\" | \"extra\" | \"side\" | \"trash\"'",
+      "count": 1,
+      "task": "TASK-639",
+      "reason": "info セクションからのドロップの意味論 (moveCard の from に 'info' を許すか) が未決着であり、エラーの解消は意味論の決定そのものであるため対象外"
+    },
+    {
+      "file": "src/components/practice/PracticeZoneInfoPanel.vue",
+      "code": "TS6133",
+      "messageIncludes": "'mdiClose' is declared but its value is never read",
+      "count": 1,
+      "task": "TASK-565",
+      "reason": "選択中カードのアクション経路の UI 復活か除去かが未決着であり、当該ファイルは判断と一体で扱うため対象外"
+    },
+    {
+      "file": "src/components/practice/PracticeZoneInfoPanel.vue",
+      "code": "TS6133",
+      "messageIncludes": "'executeAction' is declared but its value is never read",
+      "count": 1,
+      "task": "TASK-565",
+      "reason": "選択中カードのアクション経路の UI 復活か除去かが未決着であり、当該ファイルは判断と一体で扱うため対象外"
+    },
+    {
+      "file": "src/components/practice/PracticeZoneInfoPanel.vue",
+      "code": "TS6133",
+      "messageIncludes": "'handleAction' is declared but its value is never read",
+      "count": 1,
+      "task": "TASK-565",
+      "reason": "選択中カードのアクション経路の UI 復活か除去かが未決着であり、当該ファイルは判断と一体で扱うため対象外"
+    },
+    {
+      "file": "src/components/practice/PracticeZoneInfoPanel.vue",
+      "code": "TS2769",
+      "messageIncludes": "No overload matches this call",
+      "count": 1,
+      "task": "TASK-565",
+      "reason": "未使用の handleAction 内の emit 呼び出しであり、アクション経路の復活/除去の判断と一体であるため対象外"
+    },
+    {
+      "file": "src/components/practice/PracticeZoneInfoPanel.vue",
+      "code": "TS6133",
+      "messageIncludes": "'getCardActions' is declared but its value is never read",
+      "count": 1,
+      "task": "TASK-565",
+      "reason": "選択中カードのアクション経路の UI 復活か除去かが未決着であり、当該ファイルは判断と一体で扱うため対象外"
+    },
+    {
+      "file": "src/content/edit-ui/DeckEditLayout.vue",
+      "code": "TS2339",
+      "messageIncludes": "Property 'practice-tab' does not exist on type '{}'",
+      "count": 1,
+      "task": "TASK-641",
+      "reason": "RightArea.vue のスロット型付け (plain-JS の Options API SFC の TS 化) が独立した作業単位として未実施のため対象外"
+    },
+    {
+      "file": "src/content/edit-ui/DeckEditLayout.vue",
+      "code": "TS2339",
+      "messageIncludes": "Property 'deck-tab' does not exist on type '{}'",
+      "count": 1,
+      "task": "TASK-641",
+      "reason": "RightArea.vue のスロット型付け (plain-JS の Options API SFC の TS 化) が独立した作業単位として未実施のため対象外"
+    },
+    {
+      "file": "src/content/edit-ui/DeckEditLayout.vue",
+      "code": "TS2339",
+      "messageIncludes": "Property 'card' does not exist on type '{ cid: string; ciid: string; lang: string; quantity: number; }'",
+      "count": 4,
+      "task": "TASK-642",
+      "reason": "deckInfo の要素形状 (DeckCardRef と DeckCard の混在) の正本が未決着であり、解消は store の格納形状と消費側の設計判断を伴うため対象外"
+    }
+  ]
+}
