@@ -15,42 +15,42 @@
 feature = "deck-list-parser"
 source_file = "src/content/parser/deck-list-parser.ts"
 verified = true
-verified_at = "2026-08-06"
-verified_by = "codex"
+verified_at = "2026-11-24"
+verified_by = "claude"
 test_command = "mise run test:vitest -- tests/unit/parser/deck-list-parser.test.ts"
 source_hash = "fbc69719d0c58c493b9a9b6f679c3899fb88d313"
-note = "verified=falseは0件。TASK-478でsrc/content/parser/__tests__/deck-list-parser.test.tsと一本化した。src側18テスト（空配列・単複デッキ抽出・名前trim・1桁/複数桁dno・クエリパラメータ順序・dno欠落スキップ・deckType抽出/undefined/空文字・名前/link_value欠落スキップ・日本語/特殊文字/長いデッキ名）はいずれもunit側の既存テストと同趣旨（dno抽出は無アンカーregex /dno=(\\d+)/ のためパラメータ順序は独立分岐ではなくparse_row.dno_digits_parsedと同一条件、特殊文字・200文字名はtextContent.trim()のpassthroughで切り詰め分岐が存在しないためparse_row.name_trimmedと同趣旨）のため移植0件。旧ファイルは削除済み"
+note = "verified=falseは0件。TASK-478でsrc/content/parser/__tests__/deck-list-parser.test.tsと一本化した。src側18テスト（空配列・単複デッキ抽出・名前trim・1桁/複数桁dno・クエリパラメータ順序・dno欠落スキップ・deckType抽出/undefined/空文字・名前/link_value欠落スキップ・日本語/特殊文字/長いデッキ名）はいずれもunit側の既存テストと同趣旨（dno抽出は無アンカーregex /dno=(\\d+)/ のためパラメータ順序は独立分岐ではなくparse-row.dno-digits-parsedと同一条件、特殊文字・200文字名はtextContent.trim()のpassthroughで切り詰め分岐が存在しないためparse-row.name-trimmedと同趣旨）のため移植0件。旧ファイルは削除済み【2026-11-24 TASK-489】corpus移行単位として形式違反idの再発行を実施: snake_caseのparse_list.*/parse_row.* 14条件をkebabのparse-list.*/parse-row.*へ変更し、coversタグ14個を張り替え、source_linesをlegacy実装行参照からテスト側tag行参照へ書き換え"
 
 # --- parseDeckList(doc: Document): DeckListItem[] ---
 
 [[condition]]
-id = "parse_list.container_missing"
+id = "parse-list.container-missing"
 target_function = "parseDeckList"
-source_lines = "14-18"
+source_lines = "tests/unit/parser/deck-list-parser.test.ts:44"
 description = "#deck_list.list.Choose に一致する要素が存在しない場合、warningを出して空配列を返す"
 given = "doc に id='deck_list' かつ class に list と Choose を持つ要素が存在しない"
 expect_return = "[]"
 
 [[condition]]
-id = "parse_list.no_rows"
+id = "parse-list.no-rows"
 target_function = "parseDeckList"
-source_lines = "20-29"
+source_lines = "tests/unit/parser/deck-list-parser.test.ts:55"
 description = "コンテナは存在するが .t_row が0件の場合、空配列を返す"
 given = "#deck_list.list.Choose は存在するが、その配下に .t_row が存在しない"
 expect_return = "[]"
 
 [[condition]]
-id = "parse_list.push_only_truthy_items"
+id = "parse-list.push-only-truthy-items"
 target_function = "parseDeckList"
-source_lines = "22-27"
+source_lines = "tests/unit/parser/deck-list-parser.test.ts:81"
 description = "各 .t_row を parseDeckListRow に渡し、戻り値がtruthyの行だけを結果配列にpushする"
 given = "有効な .t_row と parseDeckListRow が null を返す無効な .t_row が混在する"
 expect_return_shape = "有効行由来の DeckListItem のみを入力順で含む"
 
 [[condition]]
-id = "parse_list.multiple_valid_rows"
+id = "parse-list.multiple-valid-rows"
 target_function = "parseDeckList"
-source_lines = "22-29"
+source_lines = "tests/unit/parser/deck-list-parser.test.ts:63"
 description = "複数の有効な .t_row がある場合、各行から抽出した DeckListItem を入力順で返す"
 given = "有効な .t_row が3件存在する"
 expect_return_shape = "3件の DeckListItem 配列（順序はDOM順）"
@@ -58,81 +58,81 @@ expect_return_shape = "3件の DeckListItem 配列（順序はDOM順）"
 # --- parseDeckListRow(row: HTMLElement): DeckListItem | null ---
 
 [[condition]]
-id = "parse_row.name_element_missing"
+id = "parse-row.name-element-missing"
 target_function = "parseDeckListRow"
-source_lines = "40-43"
+source_lines = "tests/unit/parser/deck-list-parser.test.ts:99"
 description = ".name.flex_1 > .name に一致する要素が無い場合、nullを返す"
 given = ".t_row 内に .name.flex_1 > .name が存在しない"
 expect_return = "null"
 
 [[condition]]
-id = "parse_row.name_text_missing"
+id = "parse-row.name-text-missing"
 target_function = "parseDeckListRow"
-source_lines = "40-43"
+source_lines = "tests/unit/parser/deck-list-parser.test.ts:112"
 description = "名前要素は存在するが textContent がfalsy（空文字列等）の場合、nullを返す"
 given = ".name.flex_1 > .name が存在し、textContent が空文字列"
 expect_return = "null"
 
 [[condition]]
-id = "parse_row.name_trimmed"
+id = "parse-row.name-trimmed"
 target_function = "parseDeckListRow"
-source_lines = "44,68-72"
+source_lines = "tests/unit/parser/deck-list-parser.test.ts:125"
 description = "名前要素の textContent は trim() した文字列として返る。trim後が空文字列でも、trim前textContentがtruthyなら行は無効化されない"
 given = ".name.flex_1 > .name の textContent が '  テスト デッキ  ' または空白のみで、他の必須条件は満たす"
 expect_return_shape = "name は trim() 後の文字列（空白のみなら ''）"
 
 [[condition]]
-id = "parse_row.link_input_missing"
+id = "parse-row.link-input-missing"
 target_function = "parseDeckListRow"
-source_lines = "47-50"
+source_lines = "tests/unit/parser/deck-list-parser.test.ts:141"
 description = "input.link_value が存在しない場合、nullを返す"
 given = "名前要素は有効だが .t_row 内に input.link_value が存在しない"
 expect_return = "null"
 
 [[condition]]
-id = "parse_row.link_value_missing"
+id = "parse-row.link-value-missing"
 target_function = "parseDeckListRow"
-source_lines = "47-50"
+source_lines = "tests/unit/parser/deck-list-parser.test.ts:153"
 description = "input.link_value は存在するが value がfalsy（空文字列等）の場合、nullを返す"
 given = "名前要素は有効だが input.link_value.value が空文字列"
 expect_return = "null"
 
 [[condition]]
-id = "parse_row.dno_missing"
+id = "parse-row.dno-missing"
 target_function = "parseDeckListRow"
-source_lines = "53-56"
+source_lines = "tests/unit/parser/deck-list-parser.test.ts:166"
 description = "link_value.value に /dno=(\\d+)/ がマッチしない場合、nullを返す"
 given = "input.link_value.value = '/yugiohdb/member_deck.action?ope=1' または 'dno=abc'"
 expect_return = "null"
 
 [[condition]]
-id = "parse_row.dno_digits_parsed"
+id = "parse-row.dno-digits-parsed"
 target_function = "parseDeckListRow"
-source_lines = "53-57,68-72"
+source_lines = "tests/unit/parser/deck-list-parser.test.ts:180"
 description = "link_value.value の最初の dno=(数字列) にマッチした数字列を parseInt(..., 10) した値を dno として返す"
 given = "input.link_value.value に 'dno=0042' または 'dno=12abc' を含む"
 expect_return_shape = "前者の dno は42、後者の dno は12"
 
 [[condition]]
-id = "parse_row.deck_type_known_label"
+id = "parse-row.deck-type-known-label"
 target_function = "parseDeckListRow"
-source_lines = "60-66,68-72"
+source_lines = "tests/unit/parser/deck-list-parser.test.ts:196"
 description = ".lr_icon span が存在し textContent がtruthyの場合、trim後の表示名を DECK_TYPE_LABEL_TO_VALUE で変換した値を deckType に設定する"
 given = ".lr_icon span の textContent が ' OCG（マスタールール） '"
 expect_return_shape = "deckType は '0'"
 
 [[condition]]
-id = "parse_row.deck_type_absent_or_empty"
+id = "parse-row.deck-type-absent-or-empty"
 target_function = "parseDeckListRow"
-source_lines = "60-66,68-72"
+source_lines = "tests/unit/parser/deck-list-parser.test.ts:204"
 description = ".lr_icon span が存在しない、または textContent がfalsyの場合、deckType は undefined のまま返る"
 given = ".lr_icon span が存在しない、または空文字列"
 expect_return_shape = "deckType は undefined"
 
 [[condition]]
-id = "parse_row.deck_type_unknown_label"
+id = "parse-row.deck-type-unknown-label"
 target_function = "parseDeckListRow"
-source_lines = "62-66,68-72"
+source_lines = "tests/unit/parser/deck-list-parser.test.ts:221"
 description = ".lr_icon span の trim後ラベルが DECK_TYPE_LABEL_TO_VALUE に存在しない場合、deckType は undefined になる"
 given = ".lr_icon span の textContent が '未定義タイプ' または空白のみ"
 expect_return_shape = "deckType は undefined"
