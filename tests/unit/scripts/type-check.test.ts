@@ -38,6 +38,15 @@ describe('parseVueTscErrors', () => {
     expect(errors[1].code).toBe('TS6133');
   });
 
+  it('位置情報の無い診断 (error TS2688 等) は file: null で拾う', () => {
+    const errors = parseVueTscErrors(
+      `error TS2688: Cannot find type definition file for 'missing'.`,
+    );
+    expect(errors).toHaveLength(1);
+    expect(errors[0].file).toBeNull();
+    expect(errors[0].code).toBe('TS2688');
+  });
+
   it('エラーが無い出力では空配列を返す', () => {
     expect(parseVueTscErrors('')).toEqual([]);
     expect(parseVueTscErrors('no errors here')).toEqual([]);
@@ -82,6 +91,19 @@ describe('matchKnownErrors', () => {
     const { unexpected } = matchKnownErrors(errors, known);
     expect(unexpected).toHaveLength(1);
     expect(unexpected[0].file).toBe('src/other.ts');
+  });
+
+  it('位置情報の無い診断は既知エントリと照合されず unexpected になる', () => {
+    const errors = parseVueTscErrors(
+      [
+        `src/components/DeckSection.vue(191,58): error TS2345: Argument of type '"info" | "main"' is not assignable to parameter of type '"main"'.`,
+        `error TS2688: Cannot find type definition file for 'missing'.`,
+      ].join('\n'),
+    );
+    const { suppressed, unexpected } = matchKnownErrors(errors, [known[0]]);
+    expect(suppressed).toHaveLength(1);
+    expect(unexpected).toHaveLength(1);
+    expect(unexpected[0].code).toBe('TS2688');
   });
 
   it('発生しなかった既知エントリは stale として報告される', () => {

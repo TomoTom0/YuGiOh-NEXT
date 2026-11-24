@@ -11,6 +11,10 @@
  *   連動タスクが解消された合図なので、該当エントリを一覧から除去すること
  * - vue-tsc 自体がエラー行を出さずに異常終了した場合は、その出力をそのまま
  *   表示して vue-tsc の終了コードで終了する (ツールの失敗を隠さない)
+ * - 位置情報の無い診断 (error TS2688 等) は既知一覧と照合できないため、
+ *   常に新規エラーとして失敗させる
+ * - エラーが 0 件でも一覧との照合は行い、残存エントリは陳腐化として
+ *   失敗させる (全件解消時に一覧と本スクリプトの廃止を促すため)
  *
  * 素の vue-tsc 出力は `pnpm run type-check:strict` で確認できる。
  * 既知エラーが全て解消されたら、一覧を空にせず本スクリプトごと廃止し、
@@ -22,6 +26,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ERROR_LINE = /^(.+?)\((\d+),(\d+)\): error (TS\d+): (.*)$/;
+const GLOBAL_ERROR_LINE = /^error (TS\d+): (.*)$/;
 
 /**
  * vue-tsc / tsc の出力からエラー行を抽出する。
@@ -33,14 +38,22 @@ export function parseVueTscErrors(output) {
   const errors = [];
   for (const rawLine of output.split(/\r?\n/)) {
     const m = ERROR_LINE.exec(rawLine);
-    if (!m) continue;
-    errors.push({
-      file: m[1].replace(/\\/g, '/').replace(/^\.\//, ''),
-      line: Number(m[2]),
-      col: Number(m[3]),
-      code: m[4],
-      message: m[5],
-    });
+    if (m) {
+      errors.push({
+        file: m[1].replace(/\\/g, '/').replace(/^\.\//, ''),
+        line: Number(m[2]),
+        col: Number(m[3]),
+        code: m[4],
+        message: m[5],
+      });
+      continue;
+    }
+    const g = GLOBAL_ERROR_LINE.exec(rawLine);
+    if (g) {
+      // 位置情報の無い診断は既知一覧と照合できないため file: null で保持し、
+      // matchKnownErrors では必ず unexpected になる
+      errors.push({ file: null, line: null, col: null, code: g[1], message: g[2] });
+    }
   }
   return errors;
 }
@@ -78,6 +91,9 @@ export function matchKnownErrors(errors, knownEntries) {
 }
 
 function formatError(e) {
+  if (e.file === null) {
+    return `error ${e.code}: ${e.message}`;
+  }
   return `${e.file}(${e.line},${e.col}): error ${e.code}: ${e.message}`;
 }
 
@@ -101,15 +117,13 @@ function main() {
   const output = `${result.stdout ?? ''}\n${result.stderr ?? ''}`;
   const errors = parseVueTscErrors(output);
 
-  if (errors.length === 0) {
-    if (result.status === 0) {
-      console.log('型チェック成功: vue-tsc エラー 0 件');
-      process.exit(0);
-    }
-    // エラー行が無いのに異常終了した場合はツールの失敗としてそのまま伝える
+  if (errors.length === 0 && result.status !== 0) {
+    // 診断行が無いのに異常終了した場合はツールの失敗としてそのまま伝える
     console.error(output);
     process.exit(result.status ?? 1);
   }
+  // エラー 0 件 (vue-tsc 正常終了) でも照合は行う: 既知エラーが全て解消されて
+  // いれば一覧の残存エントリが陳腐化として検出される
 
   const { suppressed, unexpected, stale } = matchKnownErrors(errors, known.errors);
 
@@ -139,7 +153,11 @@ function main() {
   if (failed) {
     process.exit(1);
   }
-  console.log(`型チェック成功: 新規エラー 0 件 (既知 ${suppressed.length} 件は対象外として許容)`);
+  if (suppressed.length === 0) {
+    console.log('型チェック成功: vue-tsc エラー 0 件');
+  } else {
+    console.log(`型チェック成功: 新規エラー 0 件 (既知 ${suppressed.length} 件は対象外として許容)`);
+  }
   process.exit(0);
 }
 
