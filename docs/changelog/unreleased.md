@@ -29,6 +29,8 @@
 
 ## Internal Improvements
 
+- **TASK-543**: 型チェックを tsc から vue-tsc へ切り替え（vue-tsc 3.3.14 を devDependencies へ追加し、package.json の type-check と CI の Type check step を切替）。導入時点で残る型エラー12件は全て連動タスク（TASK-565 / 639 / 641 / 642）の決着と一体のものであるため、既知エラー一覧（scripts/vue-tsc-known-errors.json、件ごとに連動タスクと理由を明記）として明示的に対象外とし、type-check（scripts/type-check.mjs）が一覧との照合で新規エラーと陳腐化エントリの双方を検出する形で導入した。素の vue-tsc 出力は type-check:strict で確認できる
+
 - **TASK-505**: 検索条件ダイアログのフィルタータブ（FilterTab.vue）を全面条件化: 条件書38条件+excluded 7件・unitテスト53itを整備し、表示契約（disabled・tooltip・chip描画）とemit契約15イベントを網羅検証（実装コードは無変更）
 
 ## Known Issues
