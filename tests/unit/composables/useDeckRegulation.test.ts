@@ -577,4 +577,105 @@ describe('useDeckRegulation conditions', () => {
     expect(genesysPointCache.ensureList).toHaveBeenCalledWith('202608');
     expect(regulation.showRegulationFixDialog.value).toBe(false);
   });
+
+  it('[covers:resolve.silent_keeps_pending_dialog_when_fallback_remains] デッキを開いて表示されたダイアログは、後続のsilent再解決（fallback継続）では消えない', async () => {
+    // 台帳の実再現（dno=59 に実在しない版タグ [OCG-2502] を付けて開くとダイアログが出ない）
+    // に対応する競合の再現テスト。修正前は silent 再解決の開始時 resetRegulation で
+    // showRegulationFixDialog が false に戻り、ダイアログは表示されなかった
+    const fallback = {
+      requestedYymm: '2608',
+      reason: 'not-exist' as const,
+      appliedIdentifier: '2026-07-01',
+      appliedYymm: '2607'
+    };
+    mocks.resolveDeckRegulation.mockReturnValue(
+      resolved({ mode: 'ocg', tag: tag('ocg', '2608', '[OCG-2608]'), effectiveDate: '2026-07-01', fallback })
+    );
+    const regulation = useDeckRegulation(createOptions({ dno: 59, name: '[OCG-2608] テスト' }));
+
+    // デッキを開く解決（loadDeck の silent=false）
+    await regulation.resolveAndEnsure({ dno: 59, silent: false });
+    expect(regulation.showRegulationFixDialog.value).toBe(true);
+
+    // 監視側の silent 再解決が後から走っても、表示待ちのダイアログは消えない
+    await regulation.resolveAndEnsure({ dno: 59, silent: true });
+    expect(regulation.showRegulationFixDialog.value).toBe(true);
+    expect(regulation.resolvedRegulation.value.fallback).toEqual(fallback);
+  });
+
+  it('[covers:resolve.serialized_no_interleaving] 非silent解決とsilent解決を同時に呼んでも直列化され、ダイアログは表示される', async () => {
+    const fallback = {
+      requestedYymm: '2608',
+      reason: 'not-exist' as const,
+      appliedIdentifier: '2026-07-01',
+      appliedYymm: '2607'
+    };
+    mocks.resolveDeckRegulation.mockReturnValue(
+      resolved({ mode: 'ocg', tag: tag('ocg', '2608', '[OCG-2608]'), effectiveDate: '2026-07-01', fallback })
+    );
+    const regulation = useDeckRegulation(createOptions({ dno: 59, name: '[OCG-2608] テスト' }));
+
+    // loadDeck の明示解決と watch の silent 再解決が重なる状況
+    const opening = regulation.resolveAndEnsure({ dno: 59, silent: false });
+    const watching = regulation.resolveAndEnsure({ dno: 59, silent: true });
+    await Promise.all([opening, watching]);
+
+    expect(regulation.showRegulationFixDialog.value).toBe(true);
+  });
+
+  it('[covers:resolve.silent_hides_dialog_when_fallback_gone] silent再解決でfallbackが消えた場合は表示中のダイアログを閉じる', async () => {
+    const fallback = {
+      requestedYymm: '2608',
+      reason: 'not-exist' as const,
+      appliedIdentifier: '2026-07-01',
+      appliedYymm: '2607'
+    };
+    mocks.resolveDeckRegulation.mockReturnValueOnce(
+      resolved({ mode: 'ocg', tag: tag('ocg', '2608', '[OCG-2608]'), effectiveDate: '2026-07-01', fallback })
+    );
+    mocks.resolveDeckRegulation.mockReturnValue(resolved({ mode: 'none' }));
+    const regulation = useDeckRegulation(createOptions({ dno: 59, name: '[OCG-2608] テスト' }));
+
+    await regulation.resolveAndEnsure({ dno: 59, silent: false });
+    expect(regulation.showRegulationFixDialog.value).toBe(true);
+
+    // タグが実在する版へ編集され fallback が消えたら、前提を失ったダイアログは閉じる
+    await regulation.resolveAndEnsure({ dno: 59, silent: true });
+    expect(regulation.showRegulationFixDialog.value).toBe(false);
+  });
+
+  it('watch経由の再現: デッキを開いた後にタグ変更watchのsilent再解決が走ってもダイアログは消えない', async () => {
+    const fallback = {
+      requestedYymm: '2608',
+      reason: 'not-exist' as const,
+      appliedIdentifier: '2026-07-01',
+      appliedYymm: '2607'
+    };
+    mocks.resolveDeckRegulation.mockReturnValue(
+      resolved({ mode: 'ocg', tag: tag('ocg', '2608', '[OCG-2608]'), effectiveDate: '2026-07-01', fallback })
+    );
+    const options = createOptions({ dno: 59, name: '[OCG-2608] テスト' });
+    const regulation = useDeckRegulation(options);
+
+    await regulation.resolveAndEnsure({ dno: 59, silent: false });
+    expect(regulation.showRegulationFixDialog.value).toBe(true);
+
+    // 別の実在しない版タグへ名前が変わり、watch が silent 再解決を発火させる
+    mocks.resolveDeckRegulation.mockReturnValue(
+      resolved({
+        mode: 'ocg',
+        tag: tag('ocg', '2609', '[OCG-2609]'),
+        effectiveDate: '2026-07-01',
+        fallback: { ...fallback, requestedYymm: '2609' }
+      })
+    );
+    options.deckInfo.value.name = '[OCG-2609] テスト';
+    await nextTick();
+    // 直列化キュー + 非同期解決の完了を待つ
+    await new Promise(resolve => setTimeout(resolve, 0));
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    expect(regulation.showRegulationFixDialog.value).toBe(true);
+    expect(regulation.resolvedRegulation.value.tag?.yymm).toBe('2609');
+  });
 });

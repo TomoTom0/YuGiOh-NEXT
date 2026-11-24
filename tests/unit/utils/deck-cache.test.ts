@@ -5,6 +5,7 @@ import {
   isDeckListOrderChanged,
   loadThumbnailCache,
   saveThumbnailCache,
+  MAX_THUMBNAIL_CACHE_ENTRIES,
   loadDeckInfoCache,
   saveDeckInfoCache,
   calculateDeckHash,
@@ -179,6 +180,33 @@ describe('deck-cache', () => {
       expect(loaded.size).toBe(2);
       expect(loaded.get(1)).toBe('data:image/png;base64,abc');
       expect(loaded.get(2)).toBe('data:image/png;base64,def');
+    });
+
+    it('[covers:save-thumbnail.evicts-oldest-beyond-cap] 上限を超えたら古いものから捨て、メモリと保存内容が一致する', () => {
+      const thumbnails = new Map<number, string>();
+      for (let dno = 1; dno <= MAX_THUMBNAIL_CACHE_ENTRIES + 5; dno++) {
+        thumbnails.set(dno, `data:image/webp;base64,${dno}`);
+      }
+
+      saveThumbnailCache(thumbnails);
+
+      expect(thumbnails.size).toBe(MAX_THUMBNAIL_CACHE_ENTRIES);
+      expect(thumbnails.has(5)).toBe(false);
+      expect(thumbnails.has(6)).toBe(true);
+      const loaded = loadThumbnailCache();
+      expect(loaded.size).toBe(MAX_THUMBNAIL_CACHE_ENTRIES);
+      expect(loaded.has(MAX_THUMBNAIL_CACHE_ENTRIES + 5)).toBe(true);
+    });
+
+    it('[covers:save-thumbnail.evicts-oldest-beyond-cap] 上限以下なら何も捨てない', () => {
+      const thumbnails = new Map<number, string>();
+      thumbnails.set(1, 'data:a');
+      thumbnails.set(2, 'data:b');
+
+      saveThumbnailCache(thumbnails);
+
+      expect(thumbnails.size).toBe(2);
+      expect(loadThumbnailCache().size).toBe(2);
     });
 
     it('空のMapを保存・読み込みできる', () => {
@@ -793,7 +821,7 @@ describe('deck-cache', () => {
       ]);
       const getDeckDetail = vi.fn();
 
-      await generateThumbnailsInBackground(0, 50, [{ dno: 1, name: 'Deck 1' }], getDeckDetail, [], new Map(), cachedDeckInfos);
+      await generateThumbnailsInBackground(0, 50, [{ dno: 1, name: 'Deck 1' }], getDeckDetail, [], new Map([[1, 'data:image/png;base64,existing']]), cachedDeckInfos);
 
       expect(getDeckDetail).not.toHaveBeenCalled();
       expect(generateDeckThumbnailImage).not.toHaveBeenCalled();
@@ -810,7 +838,7 @@ describe('deck-cache', () => {
       ]);
       const getDeckDetail = vi.fn().mockResolvedValue(deckInfo);
 
-      await generateThumbnailsInBackground(1, 1, [{ dno: 1, name: 'Deck 1' }, { dno: 2, name: 'Deck 2' }], getDeckDetail, [], new Map(), cachedDeckInfos);
+      await generateThumbnailsInBackground(1, 1, [{ dno: 1, name: 'Deck 1' }, { dno: 2, name: 'Deck 2' }], getDeckDetail, [], new Map([[2, 'data:image/png;base64,existing']]), cachedDeckInfos);
 
       expect(getDeckDetail).toHaveBeenCalledWith(2);
       expect(cachedDeckInfos.get(2)?.lastThumbnailUpdate).toBe(Date.now());
@@ -834,7 +862,7 @@ describe('deck-cache', () => {
         [{ dno: 2, name: 'Deck 2' }, { dno: 1, name: 'Deck 1' }],
         getDeckDetail,
         [],
-        new Map(),
+        new Map([[1, 'data:image/png;base64,existing'], [2, 'data:image/png;base64,existing']]),
         cachedDeckInfos,
         true
       );
@@ -852,8 +880,9 @@ describe('deck-cache', () => {
         cachedDeckInfos.set(deck.dno, cacheForDeck(deckInfo));
       }
       const getDeckDetail = vi.fn((dno: number) => Promise.resolve(createDeckInfo(dno)));
+      const deckThumbnails = new Map<number, string>(deckList.map(d => [d.dno, 'data:image/png;base64,existing']));
 
-      await generateThumbnailsInBackground(0, 50, deckList, getDeckDetail, [], new Map(), cachedDeckInfos, true);
+      await generateThumbnailsInBackground(0, 50, deckList, getDeckDetail, [], deckThumbnails, cachedDeckInfos, true);
 
       expect(getDeckDetail).toHaveBeenCalledTimes(5);
       expect(generateDeckThumbnailImage).not.toHaveBeenCalled();
@@ -885,6 +914,45 @@ describe('deck-cache', () => {
       expect(cachedDeckInfos.size).toBe(2);
     });
 
+    it('[covers:background.missing-thumbnail-regenerates] サムネイルが無いデッキは1日以内の更新済みでも再生成する', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-08-06T00:00:00.000Z'));
+      allowBackgroundSettings();
+      (window as any).requestIdleCallback = vi.fn((callback: IdleRequestCallback) => {
+        callback({ didTimeout: false, timeRemaining: () => 1 });
+        return 1;
+      });
+      const deckInfo = createDeckInfo(1);
+      const cachedDeckInfos = new Map<number, CachedDeckInfo>([
+        [1, cacheForDeck(deckInfo, { lastThumbnailUpdate: Date.now() })],
+      ]);
+      const deckThumbnails = new Map<number, string>();
+      const getDeckDetail = vi.fn().mockResolvedValue(deckInfo);
+
+      await generateThumbnailsInBackground(0, 50, [{ dno: 1, name: 'Deck 1' }], getDeckDetail, [], deckThumbnails, cachedDeckInfos);
+
+      expect(getDeckDetail).toHaveBeenCalledWith(1);
+      expect(deckThumbnails.get(1)).toBe('data:image/png;base64,mock');
+    });
+
+    it('[covers:background.missing-thumbnail-regenerates] サムネイルが無いデッキは内容が変わっていなくても再生成する（force）', async () => {
+      (window as any).requestIdleCallback = vi.fn((callback: IdleRequestCallback) => {
+        callback({ didTimeout: false, timeRemaining: () => 1 });
+        return 1;
+      });
+      saveDeckListOrder([{ dno: 1, name: 'Deck 1' }]);
+      const deckInfo = createDeckInfo(1);
+      const cachedDeckInfos = new Map<number, CachedDeckInfo>([
+        [1, cacheForDeck(deckInfo, { lastThumbnailUpdate: undefined })],
+      ]);
+      const deckThumbnails = new Map<number, string>();
+      const getDeckDetail = vi.fn().mockResolvedValue(deckInfo);
+
+      await generateThumbnailsInBackground(0, 50, [{ dno: 1, name: 'Deck 1' }], getDeckDetail, [], deckThumbnails, cachedDeckInfos, true);
+
+      expect(deckThumbnails.get(1)).toBe('data:image/png;base64,mock');
+    });
+
     it('[covers:background.no-decks-to-update-returns-after-save] 更新対象が無い場合はdeck info cache保存後に戻る', async () => {
       const deckList = [{ dno: 1, name: 'Deck 1' }];
       saveDeckListOrder(deckList);
@@ -892,7 +960,7 @@ describe('deck-cache', () => {
       const cachedDeckInfos = new Map<number, CachedDeckInfo>([[1, cacheForDeck(deckInfo)]]);
       const getDeckDetail = vi.fn().mockResolvedValue(deckInfo);
 
-      await generateThumbnailsInBackground(0, 50, deckList, getDeckDetail, [], new Map(), cachedDeckInfos, true);
+      await generateThumbnailsInBackground(0, 50, deckList, getDeckDetail, [], new Map([[1, 'data:image/png;base64,existing']]), cachedDeckInfos, true);
 
       expect(localStorage.getItem('ygoNext:deckInfoCache')).toBeTruthy();
       expect(generateDeckThumbnailImage).not.toHaveBeenCalled();

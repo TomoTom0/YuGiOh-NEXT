@@ -1,4 +1,6 @@
 # 検証対象: src/utils/deck-cache.ts
+# 2026-11-25(TASK-648): サムネイルキャッシュ (localStorage側) に保持件数上限200件を
+# 追加し、上限超過分は古いものから捨てる (save-thumbnail.evicts-oldest-beyond-cap)。
 #
 # tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
 # TASK-323(Tier A本展開)、外部I/O・永続化・キャッシュを伴う中核utils。
@@ -13,10 +15,10 @@
 feature = "deck-cache"
 source_file = "src/utils/deck-cache.ts"
 verified = true
-verified_at = "2026-11-22"
+verified_at = "2026-11-25"
 verified_by = "claude"
 test_command = "mise run test:vitest -- tests/unit/utils/deck-cache.test.ts"
-source_hash = "e68f798454435d9c5593ae3bb58dbc517e46dc77"
+source_hash = "288d4838ca028629b85289f6e33f3d8b532b3a7a"
 note = "verified=falseは0件。TASK-478でsrc/utils/__tests__/deck-cache.test.ts（36テスト）を削除して一本化。両ファイルをit()単位で実体比較した結果、src側36件すべてがtests/unit/utils/deck-cache.test.ts（61テスト）の既存検証と同趣旨（多くはunit側が例外・境界ケースまで広く網羅）のため移植0件。src側は旧形式のlocalStorageキー（ygo_deck_list_order等）でモックしていたが、実装はygoNext:プレフィックスキーを使用しておりunit側が正しいキーで同一検証を保持"
 
 # --- loadDeckListOrder(): number[] ---
@@ -134,6 +136,13 @@ target_function = "saveThumbnailCache"
 description = "Object.fromEntries/JSON.stringify/setItemのいずれかで例外が発生しても例外を再throwしない"
 given = "localStorage.setItemが例外をthrowする"
 expect_no_throw = true
+
+[[condition]]
+id = "save-thumbnail.evicts-oldest-beyond-cap"
+target_function = "saveThumbnailCache"
+description = "サムネイルキャッシュが保持件数上限MAX_THUMBNAIL_CACHE_ENTRIES (200件) を超える場合、先頭側 (読み込み時はdno昇順≒古いデッキ順、生成したものは末尾へ付け直されるため生成の古い順) から捨てて上限件数にし、渡されたMap自体からも削除してメモリと保存内容を一致させる。上限以下なら何も捨てない"
+given = "上限を超える件数のMap、または上限以下のMap"
+expect_side_effect = "上限超過分だけ古いエントリが削除され、上限件数が保存される"
 
 # --- loadDeckInfoCache(): Map<number, CachedDeckInfo> ---
 
@@ -469,7 +478,7 @@ expect_return_shape = "getDeckDetailはdno 2と3だけで呼ばれる"
 id = "background.recent-update-skips-api"
 source_lines = "tests/unit/utils/deck-cache.test.ts:786"
 target_function = "generateThumbnailsInBackground"
-description = "force=falseでcached.lastThumbnailUpdateがtruthy、かつDate.nowとの差分が1日未満の場合、そのdeckではcheckDeckNeedsUpdateを呼ばずskipDueToRecentUpdate=trueにする"
+description = "force=falseでcached.lastThumbnailUpdateがtruthy、かつDate.nowとの差分が1日未満の場合、そのdeckではcheckDeckNeedsUpdateを呼ばずskipDueToRecentUpdate=trueにする。ただしdeckThumbnailsに当該dnoのサムネイルが無い場合はこの限りでない（background.missing-thumbnail-regenerates）"
 given = "lastThumbnailUpdateが現在時刻、force=false"
 expect_return_shape = "そのdnoのgetDeckDetailは呼ばれない"
 
@@ -477,7 +486,7 @@ expect_return_shape = "そのdnoのgetDeckDetailは呼ばれない"
 id = "background.order-preserved-no-update-skip-records-check-time"
 source_lines = "tests/unit/utils/deck-cache.test.ts:802"
 target_function = "generateThumbnailsInBackground"
-description = "前回順序上で当該dnoより前にあったdnoのうち現存するものが、今回の当該dnoより前にも部分シーケンスとして存在し、needsUpdate=falseの場合shouldSkipになり、force=falseかつrecent skipでなければcached.lastThumbnailUpdateを現在時刻に更新する"
+description = "前回順序上で当該dnoより前にあったdnoのうち現存するものが、今回の当該dnoより前にも部分シーケンスとして存在し、needsUpdate=falseの場合shouldSkipになり、force=falseかつrecent skipでなければcached.lastThumbnailUpdateを現在時刻に更新する。ただしdeckThumbnailsに当該dnoのサムネイルが無い場合はshouldSkipにならない（background.missing-thumbnail-regenerates）"
 given = "前回順序[1,2]、今回順序[1,2]、dno 2のhash一致・期限内、force=false"
 expect_return_shape = "dno 2のlastThumbnailUpdateが更新され、thumbnailは生成されない"
 
@@ -488,6 +497,14 @@ target_function = "generateThumbnailsInBackground"
 description = "shouldSkipが5件連続した時点でループをbreakし、残りのtargetDecksをチェックしない"
 given = "7件のdeckが順序保持かつ変更なし"
 expect_return_shape = "getDeckDetailは5回だけ呼ばれる"
+
+[[condition]]
+id = "background.missing-thumbnail-regenerates"
+source_lines = "tests/unit/utils/deck-cache.test.ts (TASK-648で追加)"
+target_function = "generateThumbnailsInBackground"
+description = "deckThumbnailsに当該dnoのサムネイルが無いデッキは、内容変化がなく順序が保持されていても、またforce=falseで最終サムネイル更新から1日未満でも、スキップせず再生成の対象にする。保持上限による追い出しで消えたサムネイルをデッキ一覧の表示経路で復活させるため"
+given = "cachedDeckInfosにhash一致・期限内の記録があり、deckThumbnailsに当該dnoが無い"
+expect_return_shape = "getDeckDetailが呼ばれ、サムネイルが生成されてdeckThumbnailsに保存される"
 
 [[condition]]
 id = "background.non-skip-changed-deck-queued"

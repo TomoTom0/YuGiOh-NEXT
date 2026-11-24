@@ -258,6 +258,30 @@ describe('deck-export', () => {
       expect(result.deckInfo!.mainDeck[0].quantity).toBe(2);
     });
 
+    it('should preserve an extra-deck card whose imgHash contains "--" through TXT round-trip', () => {
+      // 実在する imgHash には "--" を含むものがある（2026-11-25 実操作で確認）
+      mockCardDB.set('9753', {
+        name: 'PSYフレームロード・Λ',
+        cardId: '9753',
+        ciid: '1',
+        imgs: [{ ciid: '1', imgHash: '9753_1_1_1--2' }],
+        cardType: 'monster'
+      } as any);
+
+      const txt = exportToTXT(sampleDeck);
+      expect(txt).toContain('(9753:1:9753_1_1_1--2)');
+
+      const result = importFromTXT(txt);
+
+      expect(result.success).toBe(true);
+      expect(result.warnings).toBeUndefined();
+      expect(result.deckInfo!.mainDeck).toHaveLength(2);
+      expect(result.deckInfo!.extraDeck).toHaveLength(1);
+      expect(result.deckInfo!.extraDeck[0].cid).toBe('9753');
+      expect(result.deckInfo!.extraDeck[0].quantity).toBe(1);
+      expect(result.deckInfo!.sideDeck).toHaveLength(1);
+    });
+
     it('[covers:export_csv.escape_name_when_special_chars] should handle special characters through CSV round-trip', () => {
       mockCardDB.set('77777', {
         name: 'Card, "Name"',

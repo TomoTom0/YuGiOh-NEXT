@@ -181,7 +181,9 @@ export function importFromTXT(content: string): ImportResult {
       // カード行をパース
       // 新形式: "2x 灰流うらら (12950:1:abc123)"
       // 旧形式: "2x 灰流うらら (12950:1)"
-      const matchWithEnc = line.match(/^(\d+)x\s+(.+?)\s+\((\d+):(\d+):(\w+)\)$/);
+      // enc は imgHash（公式サイト発行の不透明な値）で、"--" など \w 外の文字を含む
+      // 実在値があるため、空白と括弧以外の文字列として受理する
+      const matchWithEnc = line.match(/^(\d+)x\s+(.+?)\s+\((\d+):(\d+):([^\s()]+)\)$/);
       const matchOld = line.match(/^(\d+)x\s+(.+?)\s+\((\d+):(\d+)\)$/);
 
       if (matchWithEnc && currentSection) {

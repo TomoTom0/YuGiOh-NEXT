@@ -35,6 +35,14 @@ export interface CachedDeckInfo {
 const CACHE_EXPIRATION_MS = 7 * 24 * 60 * 60 * 1000; // 7日間
 
 /**
+ * サムネイルキャッシュ（localStorage）の保持件数上限。
+ * サムネイルは再生成できるため、上限を超えた分は古いものから捨てる。
+ * 件数の目安は chrome.storage 側のサムネイルキャッシュ（deck-thumbnail-cache）の
+ * 上限200件に合わせる
+ */
+export const MAX_THUMBNAIL_CACHE_ENTRIES = 200;
+
+/**
  * localStorage から deckList の順序（dno配列）を読み込む
  */
 export function loadDeckListOrder(): number[] {
@@ -103,9 +111,19 @@ export function loadThumbnailCache(): Map<number, string> {
 
 /**
  * localStorage にサムネイルキャッシュを保存
+ *
+ * 保持件数上限（MAX_THUMBNAIL_CACHE_ENTRIES）を超える場合は、古いものから
+ * 捨てる。Map の並びは「読み込み時は dno 昇順（≒ デッキ作成の古い順）、
+ * 生成したものは末尾」で、生成時に末尾へ付け直されるため、先頭側が古い。
+ * 渡された Map 自体からも削除し、メモリ上の状態と保存内容を一致させる
  */
 export function saveThumbnailCache(deckThumbnails: Map<number, string>): void {
   try {
+    while (deckThumbnails.size > MAX_THUMBNAIL_CACHE_ENTRIES) {
+      const oldest = deckThumbnails.keys().next();
+      if (oldest.done) break;
+      deckThumbnails.delete(oldest.value);
+    }
     const obj = Object.fromEntries(deckThumbnails);
     localStorage.setItem(STORAGE_KEY_DECK_THUMBNAILS, JSON.stringify(obj));
   } catch (error) {
@@ -276,6 +294,9 @@ export async function generateAndCacheThumbnail(
 
     // サムネイル画像を生成
     const imageUrl = await generateDeckThumbnailImage(deckInfo, headPlacementCardIds);
+    // 生成し直したデッキは「最も新しい」ものとして末尾へ付け直す
+    // （saveThumbnailCache の上限超過時の追い出し順を生成の古い順にするため）
+    deckThumbnails.delete(dno);
     if (imageUrl) {
       deckThumbnails.set(dno, imageUrl);
     } else {
@@ -496,9 +517,14 @@ export async function generateThumbnailsInBackground(
     if (!deck) continue;
     const currentDno = deck.dno;
 
+    // サムネイルがキャッシュに無いデッキは、内容が変わっていなくても再生成の対象
+    // （保持上限で追い出されたサムネイルが復活できない問題への対処）
+    const thumbnailMissing = !deckThumbnails.has(currentDno);
+
     // バックグラウンド更新の場合（force=false）、前回更新から1日以内はスキップ
+    // ただしサムネイルが無い場合は、古いチェック時刻を理由にスキップしない
     let skipDueToRecentUpdate = false;
-    if (!force) {
+    if (!force && !thumbnailMissing) {
       const cached = cachedDeckInfos.get(currentDno);
       console.temp(`[generateThumbnailsInBackground] Deck ${currentDno}: cached=${!!cached}, lastThumbnailUpdate=${cached?.lastThumbnailUpdate}`);
       if (cached?.lastThumbnailUpdate) {
@@ -555,7 +581,8 @@ export async function generateThumbnailsInBackground(
     console.temp(`[generateThumbnailsInBackground] Deck ${currentDno}: orderPreserved=${orderPreserved}, needsUpdate=${needsUpdate}, skipDueToRecentUpdate=${skipDueToRecentUpdate}`);
 
     // スキップ条件：「順序関係が保たれている + 内容変化なし」または「1日以内に更新済み」
-    const shouldSkip = (orderPreserved && !needsUpdate) || skipDueToRecentUpdate;
+    // サムネイルが無いデッキはどちらの条件でもスキップしない
+    const shouldSkip = !thumbnailMissing && ((orderPreserved && !needsUpdate) || skipDueToRecentUpdate);
 
     if (shouldSkip) {
       consecutiveSkipped++;
@@ -578,7 +605,7 @@ export async function generateThumbnailsInBackground(
       continue;
     } else {
       consecutiveSkipped = 0; // リセット
-      if (needsUpdate && deckInfo) {
+      if ((needsUpdate || thumbnailMissing) && deckInfo) {
         console.temp(`[generateThumbnailsInBackground] Deck ${currentDno} will be updated`);
         decksToUpdate.push({ dno: currentDno, deckInfo });
       }

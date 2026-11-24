@@ -101,6 +101,19 @@ extra,23995346,2`;
       expect(result.deckInfo?.mainDeck[0]?.quantity).toBe(3);
     });
 
+    it('encに "--" を含む行（imgHashの実在値）をパースできる [covers:import-txt.enc-non-word-chars]', () => {
+      const txtContent = `=== Extra Deck (1 cards) ===
+1x PSYフレームロード・Λ (9753:1:9753_1_1_1--2)`;
+
+      const result = importFromTXT(txtContent);
+
+      expect(result.success).toBe(true);
+      expect(result.warnings).toBeUndefined();
+      expect(result.deckInfo?.extraDeck).toHaveLength(1);
+      expect(result.deckInfo?.extraDeck[0]?.cid).toBe('9753');
+      expect(result.deckInfo?.extraDeck[0]?.quantity).toBe(1);
+    });
+
     it('セクション区切りを正しく認識する [covers:import-txt.section-header-switches-current-section]', () => {
       const txtContent = `=== Main Deck ===
 3x カード1 (1:1)

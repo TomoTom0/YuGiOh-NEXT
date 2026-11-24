@@ -94,6 +94,8 @@ export const STORAGE_KEYS = {
   cardTableCPrefix: 'cardTableC:',
   // move history (for deck edit actions)
   moveHistory: 'moveHistory',
+  // デッキ詳細 preload スナップショットのキープレフィックス（background/main.ts が書く）
+  deckPreloadPrefix: 'ygo-deck-preload:',
   productTableBPrefix: 'productTableB:',
   faqTableBPrefix: 'faqTableB:'
 } as const;
@@ -979,7 +981,14 @@ export class UnifiedCacheDB {
       await chrome.storage.local.remove(faqKeysToRemove);
     }
 
-    // 5. 保存
+    // 5. moveHistory の期限切れ削除
+    // 読み手のない永続ログが残り続ける問題への対処として、cleanup の対象に含める。
+    // 件数上限（1000件）とは別に、FAQ と同じ1ヶ月を寿命とし、それより古い記録は残さない
+    if (this.moveHistory.length > 0) {
+      this.moveHistory = this.moveHistory.filter(entry => now - entry.ts <= ONE_MONTH);
+    }
+
+    // 6. 保存
     await this.saveAll();
   }
 
@@ -1013,13 +1022,16 @@ export class UnifiedCacheDB {
       STORAGE_KEYS.lastCleanupAt
     ];
 
-    // プレフィックス付きキーの削除（cardTableC:*, productTableB:*, faqTableB:*）
+    // プレフィックス付きキーの削除（cardTableC:*, productTableB:*, faqTableB:*, ygo-deck-preload:*）
     const allStorage = await chrome.storage.local.get();
     const prefixedKeysToRemove = Object.keys(allStorage).filter(
       key =>
         key.startsWith(STORAGE_KEYS.cardTableCPrefix) ||
         key.startsWith(STORAGE_KEYS.productTableBPrefix) ||
-        key.startsWith(STORAGE_KEYS.faqTableBPrefix)
+        key.startsWith(STORAGE_KEYS.faqTableBPrefix) ||
+        // デッキ詳細 preload スナップショット。現行コードに送信元・読み手がなく、
+        // 旧ビルドが書いた分が残り続けるため、全消去の対象に含めて消せるようにする
+        key.startsWith(STORAGE_KEYS.deckPreloadPrefix)
     );
 
     await chrome.storage.local.remove([...keysToRemove, ...prefixedKeysToRemove]);
