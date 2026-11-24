@@ -517,9 +517,14 @@ export async function generateThumbnailsInBackground(
     if (!deck) continue;
     const currentDno = deck.dno;
 
+    // サムネイルがキャッシュに無いデッキは、内容が変わっていなくても再生成の対象
+    // （保持上限で追い出されたサムネイルが復活できない問題への対処）
+    const thumbnailMissing = !deckThumbnails.has(currentDno);
+
     // バックグラウンド更新の場合（force=false）、前回更新から1日以内はスキップ
+    // ただしサムネイルが無い場合は、古いチェック時刻を理由にスキップしない
     let skipDueToRecentUpdate = false;
-    if (!force) {
+    if (!force && !thumbnailMissing) {
       const cached = cachedDeckInfos.get(currentDno);
       console.temp(`[generateThumbnailsInBackground] Deck ${currentDno}: cached=${!!cached}, lastThumbnailUpdate=${cached?.lastThumbnailUpdate}`);
       if (cached?.lastThumbnailUpdate) {
@@ -576,7 +581,8 @@ export async function generateThumbnailsInBackground(
     console.temp(`[generateThumbnailsInBackground] Deck ${currentDno}: orderPreserved=${orderPreserved}, needsUpdate=${needsUpdate}, skipDueToRecentUpdate=${skipDueToRecentUpdate}`);
 
     // スキップ条件：「順序関係が保たれている + 内容変化なし」または「1日以内に更新済み」
-    const shouldSkip = (orderPreserved && !needsUpdate) || skipDueToRecentUpdate;
+    // サムネイルが無いデッキはどちらの条件でもスキップしない
+    const shouldSkip = !thumbnailMissing && ((orderPreserved && !needsUpdate) || skipDueToRecentUpdate);
 
     if (shouldSkip) {
       consecutiveSkipped++;
@@ -599,7 +605,7 @@ export async function generateThumbnailsInBackground(
       continue;
     } else {
       consecutiveSkipped = 0; // リセット
-      if (needsUpdate && deckInfo) {
+      if ((needsUpdate || thumbnailMissing) && deckInfo) {
         console.temp(`[generateThumbnailsInBackground] Deck ${currentDno} will be updated`);
         decksToUpdate.push({ dno: currentDno, deckInfo });
       }
