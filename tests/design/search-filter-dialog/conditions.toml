@@ -388,14 +388,14 @@ decided_by = "claude"
 [[excluded]]
 item = "headerFilterIcons・hasActiveFiltersの計算本体"
 source = "src/components/SearchFilterDialog.vue L184, L185 と src/composables/search-filter/useFilterLogic.ts L201-233 と tm TASK-504"
-reason = "useFilterLogic（convertFiltersToIcons・activeConditionChips）への委譲で、本体はuse_filter_logic.header_filter_icons_delegates / has_active_filters およびfilter-icons条件書（26条件）で条件化済み。本書は表示（header-chips-rendered-from-filter-icons）とクリアボタン表示（clear-button-visibility-and-delegation）のみ条件化"
+reason = "useFilterLogic（convertFiltersToIcons・activeConditionChips）への委譲で、本体はuse-filter-logic.header-filter-icons-delegates / has-active-filters およびfilter-icons条件書（26条件）で条件化済み。本書は表示（header-chips-rendered-from-filter-icons）とクリアボタン表示（clear-button-visibility-and-delegation）のみ条件化"
 decided_at = "2026-09-19"
 decided_by = "claude"
 
 [[excluded]]
 item = "clearFiltersによる全フィルター初期化の内容"
 source = "src/components/SearchFilterDialog.vue L201 と src/composables/search-filter/useFilterLogic.ts L437-440 と tm TASK-504"
-reason = "store.clearAllFiltersへの委譲で、初期化内容は use_filter_logic.clear_filters・search-store条件書（clear-all-filters.resets-search-filters-to-default-values）で条件化済み。本書はボタン表示条件と委譲接続のみ条件化"
+reason = "store.clearAllFiltersへの委譲で、初期化内容は use-filter-logic.clear-filters・search-store条件書（clear-all-filters.resets-search-filters-to-default-values）で条件化済み。本書はボタン表示条件と委譲接続のみ条件化"
 decided_at = "2026-09-19"
 decided_by = "claude"
 
