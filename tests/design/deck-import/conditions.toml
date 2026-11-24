@@ -22,10 +22,10 @@
 feature = "deck-import"
 source_file = "src/utils/deck-import.ts"
 verified = true
-verified_at = "2026-11-22"
+verified_at = "2026-11-25"
 verified_by = "claude"
 test_command = "mise run test:vitest -- tests/unit/deck-import.test.ts tests/unit/utils/deck-import-comprehensive.test.ts"
-source_hash = "50b5c19d9712cb77efa7c2d17aac80cb7d1bd583"
+source_hash = "98f9eaa3f278810d11abded0926198d6cd15d4bd"
 note = "verified=falseは3件: import_csv/import_png/import_txtの各catch_error(防御的try-catchで現実的な入力での再現不能)。FileReader系はglobalThis.FileReaderスタブによりimportDeckFromFile()経由で検証可能"
 
 # --- importFromCSV(content: string): ImportResult ---
@@ -164,9 +164,17 @@ expect_return_shape = "空行はrows・warningsに影響しない"
 id = "import-txt.match-with-enc"
 source_lines = "tests/unit/deck-import.test.ts:378,tests/unit/utils/deck-import-comprehensive.test.ts:91"
 target_function = "importFromTXT"
-description = "'数量x カード名 (cid:ciid:enc)' 形式(enc付き新形式)にマッチし、かつcurrentSectionが設定済みならrowsに追加する"
+description = "'数量x カード名 (cid:ciid:enc)' 形式(enc付き新形式)にマッチし、かつcurrentSectionが設定済みならrowsに追加する。encはimgHash（公式サイト発行の不透明な値）で文字種の制限はなく、空白と括弧以外の文字列として受理する（import-txt.enc-non-word-chars）"
 given = "currentSection='main'、行 = '2x 灰流うらら (12950:1:abc123)'"
 expect_return_shape = "rows に { section: 'main', name: '灰流うらら', cid: '12950', ciid: '1', enc: 'abc123', quantity: 2 } が追加される"
+
+[[condition]]
+id = "import-txt.enc-non-word-chars"
+source_lines = "tests/unit/utils/deck-import-comprehensive.test.ts (TASK-648で追加), tests/unit/deck-export.test.ts (往復)"
+target_function = "importFromTXT"
+description = 'encに単語文字以外の文字（"--" など）を含む行も新形式として受理し、カードが落ちない。拡張自身のTXTエクスポートが書き出した行をそのまま読み戻せる（往復）こと'
+given = "currentSection='extra'、行 = '1x PSYフレームロード・Λ (9753:1:9753_1_1_1--2)'"
+expect_return_shape = "警告なしで rows に { section: 'extra', cid: '9753', ciid: '1', enc: '9753_1_1_1--2', quantity: 1 } が追加される"
 
 [[condition]]
 id = "import-txt.match-old-no-enc"
