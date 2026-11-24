@@ -10,6 +10,13 @@
 # - reconstructCardInfo L1089-1100: Map#get と単純代入のみのtry-catchであり、通常入力から
 #   catchへ到達させる現実的な経路は見つからなかった（防御的catch）。
 #
+# 2026-11-25(TASK-648): 把握の発見への対処。(1) デッキ詳細 preload スナップショット
+# (ygo-deck-preload:{dno}:{cgid}) は現行コードに送信元・読み手がなく、clearAll の対象外で
+# 消せなかったため、clearAll のプレフィックス削除対象に追加した
+# (clear-all.removes-deck-preload-snapshots)。一覧 preload は読み手 (fetchDeckList) が
+# あるため対象外のまま。(2) moveHistory は読み手がなく残り続けるため、記録は維持したまま
+# cleanup の対象に加え、FAQ と同じ1ヶ月を寿命とした (cleanup.prunes-expired-move-history)。
+#
 # 既存テストの説明文・アサーションの不正確さ:
 # - tests/unit/utils/unified-cache-db-comprehensive.test.ts の「ストレージ読み込みエラーが発生しても初期化が完了する」は
 #   実装上、loadMoveHistory と checkAndRunCleanup 以外のロード失敗は initialize() の Promise.all をrejectさせる。
@@ -19,10 +26,10 @@
 feature = "unified-cache-db"
 source_file = "src/utils/unified-cache-db.ts"
 verified = true
-verified_at = "2026-11-22"
+verified_at = "2026-11-25"
 verified_by = "claude"
 test_command = "pnpm exec vitest run tests/unit/utils/unified-cache-db.test.ts tests/unit/utils/unified-cache-db-comprehensive.test.ts"
-source_hash = "0de555a5eb0876275babbca7598b32d80c152ef5"
+source_hash = "b361b76bb84b38ecb36d4aa70547bfdeb612e2d4"
 note = "verified=falseは3件: private saveMoveHistory catch、reconstructCardInfo defensive catch、resetUnifiedCacheDBの非await clearAll完了順。いずれも公開APIから副作用を確定検証しにくい防御的/非同期fire-and-forget分岐"
 
 # --- calculateTier(tierData, deckHistory) ---
@@ -491,9 +498,23 @@ expect_return_shape = "期限切れFAQだけ削除され、残データが保存
 id = "clear-all.clears-memory-and-cache-keys-only"
 target_function = "UnifiedCacheDB#clearAll"
 source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:2059,tests/unit/utils/unified-cache-db-comprehensive.test.ts:2103"
-description = "メモリ上の各Map/履歴/cacheを空にし、固定キーとcardTableC:/productTableB:/faqTableB:プレフィックスキーをstorageから削除する。その他設定キーは削除しない"
+description = "メモリ上の各Map/履歴/cacheを空にし、固定キーとcardTableC:/productTableB:/faqTableB:/ygo-deck-preload:プレフィックスキーをstorageから削除する。その他設定キーは削除しない"
 given = "Cache DB関連キーと無関係な設定キーがstorageにある"
 expect_return_shape = "関連キーのみ削除され、設定キーは残る"
+
+[[condition]]
+id = "cleanup.prunes-expired-move-history"
+target_function = "UnifiedCacheDB#cleanup"
+description = "cleanupはmoveHistoryのうちtsが1ヶ月より古いエントリを削除し、1ヶ月以内のエントリは保持する。件数上限1000件とは別の寿命として扱い、末尾のsaveAllでストレージへも反映する"
+given = "1ヶ月より古いエントリと1ヶ月以内のエントリが混在する"
+expect_return_shape = "1ヶ月より古いエントリだけが削除され、新しいエントリが残る"
+
+[[condition]]
+id = "clear-all.removes-deck-preload-snapshots"
+target_function = "UnifiedCacheDB#clearAll"
+description = "clearAllはygo-deck-preload:{dno}:{cgid}形式のデッキ詳細preloadスナップショットキーも削除対象に含める。一覧preload (ygo-deck-list-preload) は読み手があるため削除しない"
+given = "ygo-deck-preload:*キーとygo-deck-list-preloadキーがstorageにある"
+expect_return_shape = "ygo-deck-preload:*キーだけが削除され、ygo-deck-list-preloadは残る"
 
 # --- reconstruct / utilities / full card cache ---
 

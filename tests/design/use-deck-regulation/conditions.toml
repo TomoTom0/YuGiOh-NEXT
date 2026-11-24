@@ -18,6 +18,13 @@
 # （デッキ閲覧画面のregulation-ui.tsと共有）へ切り出し、ここは薄い委譲になった
 # （limit_override.delegates_to_shared_module / genesys_point.delegates_to_shared_module に統合）。
 #
+# 2026-11-25(TASK-648): Regulation Fix ダイアログが出ない競合の修正。loadDeck の明示解決
+# (silent=false) と watch の silent 再解決が同時に走り、後発の開始時 resetRegulation が
+# showRegulationFixDialog を戻してしまう競合があった。解決を直列化し、ダイアログフラグの
+# 決定を非 silent 解決の終了時だけに寄せた (resolve.serialized_no_interleaving /
+# resolve.silent_keeps_pending_dialog_when_fallback_remains /
+# resolve.silent_hides_dialog_when_fallback_gone を追加)。
+#
 # 2026-09-03(TASK-450) その3: 「編集モードでバッジの部分を押下してregulationを閲覧モードのように
 # 切り替えられるようにしたい。また、その際デッキ名も編集されるべきだ」指摘への対応。
 # availableRegulations（実在版一覧、バッジクリックメニュー表示用）とsetRegulation（手動選択された
@@ -28,10 +35,10 @@
 feature = "use-deck-regulation"
 source_file = "src/composables/deck/useDeckRegulation.ts"
 verified = true
-verified_at = "2026-09-03"
+verified_at = "2026-11-25"
 verified_by = "claude"
 test_command = "mise run test:vitest -- tests/unit/composables/useDeckRegulation.test.ts"
-source_hash = "fd0be6ce71557138a6fc025d46176542a0c8723f"
+source_hash = "75b02535db2b7257aed95ab2d0c51b2b40e09342"
 note = "verified=falseは0件。TASK-478でsrc/composables/deck/__tests__/useDeckRegulation.test.tsから未カバー検証1件（checkAndUpdate完了後に取得したavailableをresolverへ渡す実挙動ベースの順序検証）を移植し、旧ファイルを削除して一本化。残るsrc側テスト3件はいずれもtests/unit側の既存テスト（resolve.genesys_without_list_param_ensures_current_list / resolve.genesys_list_param_ensures_genesys_list / resolve.ocg_effective_date_ensures_forbidden_list）に同趣旨の検証が既存のため移植不要。新規条件追加なし（resolve.ensure_order_and_available_passed_to_resolverが対応）"
 
 # --- useDeckRegulation(options) ---
@@ -117,16 +124,16 @@ expect_return_shape = "getGenesysPoint(cid, resolvedRegulation.value)の戻り�
 [[condition]]
 id = "reset_regulation_restores_none_and_hides_dialog"
 target_function = "useDeckRegulation"
-source_lines = "90-93,102"
-description = "resetRegulationはresolvedRegulationをタグ無し初期状態へ戻し、showRegulationFixDialogをfalseにする。resolveAndEnsure開始時にも同じ初期化を行う"
+source_lines = "97-100"
+description = "resetRegulationはresolvedRegulationをタグ無し初期状態へ戻し、showRegulationFixDialogをfalseにする（デッキ切替時の明示リセット）。resolveAndEnsureの開始時はresolvedRegulationだけを初期化し、ダイアログフラグはsilent解決では触らず、非silent解決では開始時にfalseへ戻して終了時に決め直す"
 given = "resolvedRegulation/showRegulationFixDialogが変更済み"
 expect_return_shape = "resolvedRegulation={ mode:'none', tag:null, effectiveDate:null, listParam:null, fallback:undefined } かつ showRegulationFixDialog=false"
 
 [[condition]]
 id = "resolve.ensure_order_and_available_passed_to_resolver"
 target_function = "useDeckRegulation"
-source_lines = "101-133"
-description = "resolveAndEnsureはreset後、両キャッシュのinit、両キャッシュのcheckAndUpdateをawaitし、その後getAvailableDates/getAvailableListParamsの戻り値をavailableとしてresolveDeckRegulation(getDeckName(), available)へ渡し、戻り値をresolvedRegulationへ設定する"
+source_lines = "117-160"
+description = "resolveAndEnsureはresolvedRegulationの初期化後、両キャッシュのinit、両キャッシュのcheckAndUpdateをawaitし、その後getAvailableDates/getAvailableListParamsの戻り値をavailableとしてresolveDeckRegulation(getDeckName(), available)へ渡し、戻り値をresolvedRegulationへ設定する"
 given = "resolveAndEnsureを呼ぶ"
 expect_return_shape = "resolveDeckRegulationに現在のデッキ名とavailableが渡され、resolvedRegulation.valueがresolver戻り値になる"
 
@@ -165,7 +172,7 @@ expect_return_shape = "リストensure系メソッド呼び出しなし"
 [[condition]]
 id = "resolve.fallback_dialog_only_when_not_silent_not_ignored"
 target_function = "useDeckRegulation"
-source_lines = "147-150"
+source_lines = "172-180"
 description = "resolveAndEnsureはsilent=false、resolved.fallbackあり、かつopts.dnoがignoredDeckDnosに含まれない場合だけshowRegulationFixDialogをtrueにする"
 given = "opts.silent=false、resolved.fallbackあり、未ignoreのdno"
 expect_return_shape = "showRegulationFixDialog=true"
@@ -173,9 +180,33 @@ expect_return_shape = "showRegulationFixDialog=true"
 [[condition]]
 id = "resolve.fallback_dialog_suppressed_by_silent_missing_fallback_or_ignored"
 target_function = "useDeckRegulation"
-source_lines = "147-150"
-description = "silent=true、fallbackなし、またはopts.dnoがignoredDeckDnosに含まれる場合、fallbackダイアログを表示しない"
+source_lines = "172-180"
+description = "silent=trueの解決はfallbackダイアログを新たに表示しない。非silent解決でもfallbackなし、またはopts.dnoがignoredDeckDnosに含まれる場合は表示しない"
 given = "opts.silent=true、またはresolved.fallbackなし、またはignore済みdno"
+expect_return_shape = "showRegulationFixDialog=false"
+
+[[condition]]
+id = "resolve.serialized_no_interleaving"
+target_function = "useDeckRegulation"
+source_lines = "101-115"
+description = "resolveAndEnsureの呼び出しは直列化キューで1つずつ実行され、複数の解決が同時に走らない。失敗した解決は後続の解決を塞がない"
+given = "非silent解決とsilent解決を await せずに続けて呼ぶ"
+expect_side_effect = "両方の解決が順番に完了し、結果が競合しない"
+
+[[condition]]
+id = "resolve.silent_keeps_pending_dialog_when_fallback_remains"
+target_function = "useDeckRegulation"
+source_lines = "172-180"
+description = "非silent解決で表示された修正提案ダイアログは、その後のsilent再解決がfallbackを継続して解決する限り、showRegulationFixDialog=trueのまま維持される（silent解決はフラグに触らない）"
+given = "fallbackありのデッキを非silentで解決してダイアログ表示後、同じくfallbackありでsilent再解決する"
+expect_return_shape = "showRegulationFixDialog=trueのまま"
+
+[[condition]]
+id = "resolve.silent_hides_dialog_when_fallback_gone"
+target_function = "useDeckRegulation"
+source_lines = "172-180"
+description = "表示中の修正提案ダイアログは、その後のsilent再解決でfallbackが消えた場合に限り閉じられる（ダイアログの前提が無くなったため）"
+given = "fallbackありのデッキを非silentで解決してダイアログ表示後、fallbackなしでsilent再解決する"
 expect_return_shape = "showRegulationFixDialog=false"
 
 [[condition]]

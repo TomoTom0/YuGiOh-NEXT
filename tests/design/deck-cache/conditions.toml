@@ -1,4 +1,6 @@
 # 検証対象: src/utils/deck-cache.ts
+# 2026-11-25(TASK-648): サムネイルキャッシュ (localStorage側) に保持件数上限200件を
+# 追加し、上限超過分は古いものから捨てる (save-thumbnail.evicts-oldest-beyond-cap)。
 #
 # tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
 # TASK-323(Tier A本展開)、外部I/O・永続化・キャッシュを伴う中核utils。
@@ -13,10 +15,10 @@
 feature = "deck-cache"
 source_file = "src/utils/deck-cache.ts"
 verified = true
-verified_at = "2026-11-22"
+verified_at = "2026-11-25"
 verified_by = "claude"
 test_command = "mise run test:vitest -- tests/unit/utils/deck-cache.test.ts"
-source_hash = "e68f798454435d9c5593ae3bb58dbc517e46dc77"
+source_hash = "81d9e6c80f2aa7f1e66766f659ceaf6498cd6b99"
 note = "verified=falseは0件。TASK-478でsrc/utils/__tests__/deck-cache.test.ts（36テスト）を削除して一本化。両ファイルをit()単位で実体比較した結果、src側36件すべてがtests/unit/utils/deck-cache.test.ts（61テスト）の既存検証と同趣旨（多くはunit側が例外・境界ケースまで広く網羅）のため移植0件。src側は旧形式のlocalStorageキー（ygo_deck_list_order等）でモックしていたが、実装はygoNext:プレフィックスキーを使用しておりunit側が正しいキーで同一検証を保持"
 
 # --- loadDeckListOrder(): number[] ---
@@ -134,6 +136,13 @@ target_function = "saveThumbnailCache"
 description = "Object.fromEntries/JSON.stringify/setItemのいずれかで例外が発生しても例外を再throwしない"
 given = "localStorage.setItemが例外をthrowする"
 expect_no_throw = true
+
+[[condition]]
+id = "save-thumbnail.evicts-oldest-beyond-cap"
+target_function = "saveThumbnailCache"
+description = "サムネイルキャッシュが保持件数上限MAX_THUMBNAIL_CACHE_ENTRIES (200件) を超える場合、先頭側 (読み込み時はdno昇順≒古いデッキ順、生成したものは末尾へ付け直されるため生成の古い順) から捨てて上限件数にし、渡されたMap自体からも削除してメモリと保存内容を一致させる。上限以下なら何も捨てない"
+given = "上限を超える件数のMap、または上限以下のMap"
+expect_side_effect = "上限超過分だけ古いエントリが削除され、上限件数が保存される"
 
 # --- loadDeckInfoCache(): Map<number, CachedDeckInfo> ---
 

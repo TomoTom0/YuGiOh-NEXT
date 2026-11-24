@@ -5,6 +5,7 @@ import {
   isDeckListOrderChanged,
   loadThumbnailCache,
   saveThumbnailCache,
+  MAX_THUMBNAIL_CACHE_ENTRIES,
   loadDeckInfoCache,
   saveDeckInfoCache,
   calculateDeckHash,
@@ -179,6 +180,33 @@ describe('deck-cache', () => {
       expect(loaded.size).toBe(2);
       expect(loaded.get(1)).toBe('data:image/png;base64,abc');
       expect(loaded.get(2)).toBe('data:image/png;base64,def');
+    });
+
+    it('[covers:save-thumbnail.evicts-oldest-beyond-cap] 上限を超えたら古いものから捨て、メモリと保存内容が一致する', () => {
+      const thumbnails = new Map<number, string>();
+      for (let dno = 1; dno <= MAX_THUMBNAIL_CACHE_ENTRIES + 5; dno++) {
+        thumbnails.set(dno, `data:image/webp;base64,${dno}`);
+      }
+
+      saveThumbnailCache(thumbnails);
+
+      expect(thumbnails.size).toBe(MAX_THUMBNAIL_CACHE_ENTRIES);
+      expect(thumbnails.has(5)).toBe(false);
+      expect(thumbnails.has(6)).toBe(true);
+      const loaded = loadThumbnailCache();
+      expect(loaded.size).toBe(MAX_THUMBNAIL_CACHE_ENTRIES);
+      expect(loaded.has(MAX_THUMBNAIL_CACHE_ENTRIES + 5)).toBe(true);
+    });
+
+    it('[covers:save-thumbnail.evicts-oldest-beyond-cap] 上限以下なら何も捨てない', () => {
+      const thumbnails = new Map<number, string>();
+      thumbnails.set(1, 'data:a');
+      thumbnails.set(2, 'data:b');
+
+      saveThumbnailCache(thumbnails);
+
+      expect(thumbnails.size).toBe(2);
+      expect(loadThumbnailCache().size).toBe(2);
     });
 
     it('空のMapを保存・読み込みできる', () => {

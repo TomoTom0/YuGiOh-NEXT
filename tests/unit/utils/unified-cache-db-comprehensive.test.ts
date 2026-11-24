@@ -2022,6 +2022,24 @@ describe('UnifiedCacheDB', () => {
       expect(db.getFAQA('faq-recent')).toBeDefined();
     });
 
+    it('cleanup() は1ヶ月より古い moveHistory を削除し、新しい記録は保持する [covers:cleanup.prunes-expired-move-history]', async () => {
+      const now = Date.now();
+      const oldTs = now - (31 * 24 * 60 * 60 * 1000);
+      (db as any).moveHistory = [
+        { action: 'move', cardId: 'old-card', ts: oldTs },
+        { action: 'move', cardId: 'new-card', ts: now }
+      ];
+
+      await db.cleanup();
+
+      const history = db.getMoveHistory();
+      expect(history).toHaveLength(1);
+      expect(history[0].cardId).toBe('new-card');
+      // cleanup 末尾の saveAll でストレージにも反映される
+      expect(mockStorageData[STORAGE_KEYS.moveHistory]).toHaveLength(1);
+      expect(mockStorageData[STORAGE_KEYS.moveHistory][0].cardId).toBe('new-card');
+    });
+
     it('cleanup() は全データを保存', async () => {
       // カード情報を追加
       const cardInfo = createSampleCardInfo({ cardId: '123', lang: 'ja' });
@@ -2120,6 +2138,20 @@ describe('UnifiedCacheDB', () => {
       expect(db.getStats().cardTierCount).toBe(0);
       expect(mockStorageData[STORAGE_KEYS.cardTableA]).toBeUndefined();
     });
+    it('clearAll() は preload スナップショット (ygo-deck-preload:*) を削除する [covers:clear-all.removes-deck-preload-snapshots]', async () => {
+      // 旧ビルドが書いたデッキ詳細 preload スナップショット
+      mockStorageData['ygo-deck-preload:59:some-cgid'] = JSON.stringify({ deckInfo: {}, timestamp: 1 });
+      mockStorageData['ygo-deck-preload:60:some-cgid'] = JSON.stringify({ deckInfo: {}, timestamp: 1 });
+      // 一覧 preload は読み手 (fetchDeckList) があるため対象外
+      mockStorageData['ygo-deck-list-preload'] = JSON.stringify({ deckList: [], timestamp: 1 });
+
+      await db.clearAll();
+
+      expect(mockStorageData['ygo-deck-preload:59:some-cgid']).toBeUndefined();
+      expect(mockStorageData['ygo-deck-preload:60:some-cgid']).toBeUndefined();
+      expect(mockStorageData['ygo-deck-list-preload']).toBeDefined();
+    });
+
   });
 
   // =========================================

@@ -98,8 +98,31 @@ export function useDeckRegulation(options: {
    * @param opts.dno デッキ番号（ignore判定用）
    * @param opts.silent true=バナー更新のみ / false=loadDeck時（fallback時ダイアログ候補）
    */
-  async function resolveAndEnsure(opts: { dno: number; silent: boolean }): Promise<void> {
-    resetRegulation();
+  /**
+   * 解決の直列化キュー。loadDeck の明示解決（silent=false）と、デッキ名タグ変更を
+   * 監視する watch の silent 再解決が同時に走ると、後発の解決の開始時リセットが
+   * 先行する解決の結果（ダイアログ表示フラグ）を打ち消してしまう競合があったため、
+   * 解決は常に1つずつ順番に実行する。
+   */
+  let resolutionQueue: Promise<void> = Promise.resolve();
+
+  function resolveAndEnsure(opts: { dno: number; silent: boolean }): Promise<void> {
+    const run = resolutionQueue.then(() => runResolveAndEnsure(opts));
+    // 失敗した解決が後続の解決を塞がないよう、キュー側には成否を伝播させない
+    resolutionQueue = run.catch(() => undefined);
+    return run;
+  }
+
+  /** resolveAndEnsure の実体。直列化された状態でだけ呼ばれる */
+  async function runResolveAndEnsure(opts: { dno: number; silent: boolean }): Promise<void> {
+    // 開始時の初期化。ダイアログ表示フラグは silent 解決では触らない（表示待ちの
+    // ダイアログを監視側の再解決が消してしまう競合の修正）。フラグの決定は
+    // 非 silent 解決の終了時にだけ行う。silent 解決は fallback が消えた場合に
+    // 限り、前提を失ったダイアログを閉じる
+    resolvedRegulation.value = { ...NONE_RESOLVED };
+    if (!opts.silent) {
+      showRegulationFixDialog.value = false;
+    }
 
     // キャッシュ初期化（冪等）。未初期化だと available が空になり fallback 判定が付かない
     await forbiddenLimitedCache.init();
@@ -128,6 +151,8 @@ export function useDeckRegulation(options: {
     // feature flag で無効な場合は genesys タグを無視
     if (resolved.mode === 'genesys' && !isGenesysEnabled()) {
       resolvedRegulation.value = { ...NONE_RESOLVED };
+      // fallback は存在しないため、表示中のダイアログがあれば閉じる
+      showRegulationFixDialog.value = false;
       return;
     }
     resolvedRegulation.value = resolved;
@@ -144,9 +169,13 @@ export function useDeckRegulation(options: {
       await genesysPointCache.ensureCurrentList();
     }
 
-    // fallback 時の修正提案ダイアログ（ignore 済みでなければ）
-    if (!opts.silent && resolved.fallback && !ignoredDeckDnos.value.has(opts.dno)) {
-      showRegulationFixDialog.value = true;
+    // fallback 時の修正提案ダイアログ（ignore 済みでなければ）。
+    // フラグを決めるのは非 silent 解決（デッキを開く解決）だけ。silent 再解決は
+    // fallback が残る限り表示状態に触らず、fallback が消えた場合だけ閉じる
+    if (!opts.silent) {
+      showRegulationFixDialog.value = !!resolved.fallback && !ignoredDeckDnos.value.has(opts.dno);
+    } else if (!resolved.fallback) {
+      showRegulationFixDialog.value = false;
     }
   }
 
