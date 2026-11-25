@@ -393,10 +393,15 @@ export default {
         class: 'danger',
         onClick: async () => {
           deckStore.showUnsavedChangesDialog = false
-          if (pendingAction.value) {
-            await pendingAction.value()
+          try {
+            if (pendingAction.value) {
+              await pendingAction.value()
+            }
+          } catch (error) {
+            console.error('Continue without saving error:', error)
+          } finally {
+            pendingAction.value = null
           }
-          pendingAction.value = null
         }
       }
     ])
@@ -698,6 +703,10 @@ export default {
     // イベントリスナーのハンドラーを保持（onUnmounted で正しく削除するため）
     let checkDnoChangeHandler: (() => void) | null = null
 
+    // window.ygoChangeLanguage の上書き前の関数（onUnmounted で復元するため保持）
+    let originalChangeLanguageRef: typeof window.ygoChangeLanguage = undefined
+    let languageOverrideInstalled = false
+
     // checkUnsavedChanges を子コンポーネント（DeckEditTopBar）に提供
     provide('checkUnsavedChanges', checkUnsavedChanges)
     provide('practiceMode', practiceMode)
@@ -740,6 +749,8 @@ export default {
 
       // window.ygoChangeLanguage をオーバーライド（未保存変更確認機能を追加）
       const originalChangeLanguage = window.ygoChangeLanguage
+      originalChangeLanguageRef = originalChangeLanguage
+      languageOverrideInstalled = true
       window.ygoChangeLanguage = (lang: string) => {
         const performChange = () => {
           originalChangeLanguage?.(lang)
@@ -813,6 +824,11 @@ export default {
       }
       window.removeEventListener('resize', handleResize)
       window.removeEventListener('keydown', handleGlobalKeydown)
+      // 上書きした window.ygoChangeLanguage を元の関数へ復元
+      if (languageOverrideInstalled) {
+        window.ygoChangeLanguage = originalChangeLanguageRef
+        languageOverrideInstalled = false
+      }
     })
 
     // 初期データ設定は行わない（load で読み込むため）

@@ -965,21 +965,18 @@ describe('DeckEditLayout.vue', () => {
       expect(initSpy).toHaveBeenCalledTimes(1);
     });
 
-    it('[covers:deck-edit-layout.unmounted-does-not-restore-ygo-change-language] 現行挙動: unmountしてもwindow.ygoChangeLanguageはwrapperのまま復元されない', async () => {
+    it('[covers:deck-edit-layout.unmounted-restores-ygo-change-language] unmountするとwindow.ygoChangeLanguageはmount前の元関数へ復元される', async () => {
       const original = vi.fn();
       window.ygoChangeLanguage = original;
       mountLayout();
       await flushPromises();
 
-      const wrapperFn = window.ygoChangeLanguage;
-      expect(wrapperFn).not.toBe(original);
+      expect(window.ygoChangeLanguage).not.toBe(original);
 
       currentWrapper().unmount();
       wrapper = undefined;
 
-      // 期待仕様は復元だが、現行実装ではwrapperが残留する（TASK-495）
-      expect(window.ygoChangeLanguage).toBe(wrapperFn);
-      expect(window.ygoChangeLanguage).not.toBe(original);
+      expect(window.ygoChangeLanguage).toBe(original);
     });
   });
 
@@ -1316,9 +1313,10 @@ describe('DeckEditLayout.vue', () => {
       expect(toastSpy).not.toHaveBeenCalled();
     });
 
-    it('[covers:deck-edit-layout.unsaved-button-continue-without-saving-no-catch] 現行挙動: 「保存せず続ける」にcatchがなくpendingActionのrejectは外へ伝播する', async () => {
+    it('[covers:deck-edit-layout.unsaved-button-continue-without-saving-handles-reject] 「保存せず続ける」でpendingActionがrejectしてもエラーを握り、ダイアログを閉じpendingActionをクリアする', async () => {
       const errorHandlerCalls: unknown[] = [];
       const { deckStore, settingsStore } = mountLayout({ errorHandler: err => { errorHandlerCalls.push(err); } });
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       await flushPromises();
 
       const rejectError = new Error('pending rejected');
@@ -1327,12 +1325,11 @@ describe('DeckEditLayout.vue', () => {
       await clickBodyButton('保存せず続ける');
       await flushPromises();
 
-      // onClick外へrejectionが伝播する（unhandled rejection。期待仕様ではなく現行挙動・TASK-494）
       expect(action).toHaveBeenCalledTimes(1);
-      expect(errorHandlerCalls).toContain(rejectError);
-      // ダイアログは先に閉じられている
+      // rejectionはonClick外へ伝播せず、console.errorで記録される
+      expect(errorHandlerCalls).not.toContain(rejectError);
+      expect(errorSpy).toHaveBeenCalledWith('Continue without saving error:', rejectError);
       expect(deckStore.showUnsavedChangesDialog).toBe(false);
-      // pendingAction=nullは実行されず残留するが、内部refのためDOM観測は不可（伝播とダイアログ挙動で検証）
     });
 
     it('[covers:deck-edit-layout.unsaved-cancel-clears-pending] ConfirmDialogのcancel（overlayクリック）でもダイアログを閉じpendingActionを破棄する', async () => {
