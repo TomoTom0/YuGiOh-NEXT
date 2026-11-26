@@ -26,7 +26,7 @@ verified_at = "2026-11-26"
 verified_by = "claude"
 test_command = "mise run test:vitest -- tests/unit/deck-import.test.ts tests/unit/deck-export.test.ts tests/unit/utils/deck-export.test.ts tests/unit/utils/deck-import-comprehensive.test.ts"
 source_hash = "0708c8a35418f5836908055daea5c40e7fbbe3ff"
-note = "verified=falseは3件: import_csv/import_png/import_txtの各catch_error(防御的try-catchで現実的な入力での再現不能)。FileReader系はglobalThis.FileReaderスタブによりimportDeckFromFile()経由で検証可能"
+note = "verified=falseは3件: import_csv/import_png/import_txtの各catch_error(防御的try-catchで現実的な入力での再現不能)。FileReader系はglobalThis.FileReaderスタブによりimportDeckFromFile()経由で検証可能。2026-11-26の再記録(TASK-649)は OpenCode worker (GLM-5.4) による実施で、verified_by は規定値の claude を代用している"
 
 # --- importFromCSV(content: string): ImportResult ---
 
