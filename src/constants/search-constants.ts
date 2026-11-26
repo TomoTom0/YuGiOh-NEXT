@@ -36,6 +36,68 @@ export const parseFlexibleDate = (dateStr: string): string | null => {
   return null
 }
 
+export interface NormalizedReleaseDate {
+  from?: string
+  to?: string
+}
+
+/**
+ * /date コマンドの検証が受理する日付・閉区間・明らかな右側省略形式を
+ * SearchFilters['releaseDate'] と同じ YYYY-MM-DD 表現に正規化する。
+ * 先頭ハイフン形式および NOT 指定は未決のため対象外（null を返す）。
+ */
+export const normalizeReleaseDateInput = (rawValue: string): NormalizedReleaseDate | null => {
+  const value = toHalfWidth(rawValue).trim()
+  if (!value || /^-/.test(value)) {
+    return null
+  }
+
+  // 明らかな右側省略形式: 2020-01-01-, 2020/01/01-, 2020.01.01-, 20200101-
+  if (/-$/.test(value)) {
+    const dateStr = value.substring(0, value.length - 1).trim()
+    const from = parseFlexibleDate(dateStr)
+    return from !== null ? { from } : null
+  }
+
+  // チルダ区切りの閉区間: 2020-01-01~2020-12-31
+  if (value.includes('~')) {
+    const parts = value.split('~').map(s => s.trim())
+    if (parts.length !== 2) return null
+    const [rawFrom, rawTo] = parts
+    if (rawFrom === undefined || rawTo === undefined) return null
+    const from = parseFlexibleDate(rawFrom)
+    const to = parseFlexibleDate(rawTo)
+    return from !== null && to !== null ? { from, to } : null
+  }
+
+  // スペース区切りの閉区間: 2020-01-01 2020-12-31
+  if (value.includes(' ')) {
+    const parts = value.split(/\s+/).filter(s => s.length > 0)
+    if (parts.length !== 2) return null
+    const [rawFrom, rawTo] = parts
+    if (rawFrom === undefined || rawTo === undefined) return null
+    const from = parseFlexibleDate(rawFrom)
+    const to = parseFlexibleDate(rawTo)
+    return from !== null && to !== null ? { from, to } : null
+  }
+
+  // ドット区切り日付同士のハイフン区切り閉区間: 2020.01.01-2020.12.31
+  if (value.includes('.') && value.includes('-')) {
+    const parts = value.split('-').map(s => s.trim())
+    if (parts.length === 2 && parts.every(p => /^\d{4}\.\d{2}\.\d{2}$/.test(p))) {
+      const [rawFrom, rawTo] = parts
+      if (rawFrom === undefined || rawTo === undefined) return null
+      const from = parseFlexibleDate(rawFrom)
+      const to = parseFlexibleDate(rawTo)
+      return from !== null && to !== null ? { from, to } : null
+    }
+  }
+
+  // 単一の日付: 2020-01-01, 2020/01/01, 2020.01.01, 20200101 等
+  const single = parseFlexibleDate(value)
+  return single !== null ? { from: single, to: single } : null
+}
+
 /**
  * コマンド定義
  */

@@ -29,7 +29,7 @@ import {
   MONSTER_TYPE_MAP,
   LINK_MARKER_MAP,
   FILTER_OPTIONS,
-  toHalfWidth
+  toHalfWidth, normalizeReleaseDateInput
 } from '@/constants/search-constants'
 import {
   ATTRIBUTE_ID_TO_NAME,
@@ -634,14 +634,10 @@ export function useFilterInput(options: UseFilterInputOptions): UseFilterInputRe
         break
       }
       case 'releaseDate': {
-        // 日付範囲を処理
-        if (value.includes('~')) {
-          const [from, to] = value.split('~')
-          f.releaseDate.from = from
-          f.releaseDate.to = to
-        } else {
-          f.releaseDate.from = value
-          f.releaseDate.to = value
+        // 日付・閉区間・明らかな右側省略形式を YYYY-MM-DD 表現へ正規化して適用
+        const normalized = normalizeReleaseDateInput(value)
+        if (normalized) {
+          f.releaseDate = normalized
         }
         break
       }
