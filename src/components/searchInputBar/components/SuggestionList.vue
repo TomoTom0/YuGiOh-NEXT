@@ -24,11 +24,9 @@
 
 <script lang="ts">
 import { defineComponent, computed, watch, ref, type PropType, type ComponentPublicInstance } from 'vue'
+import type { Suggestion } from '@/types/search-ui'
 
-export interface Suggestion {
-  value: string
-  label: string
-}
+export type { Suggestion }
 
 export default defineComponent({
   name: 'SuggestionList',

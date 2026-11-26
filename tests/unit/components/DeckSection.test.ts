@@ -315,4 +315,88 @@ describe('DeckSection.vue', () => {
       expect(transitionGroup.exists()).toBe(true);
     });
   });
+
+  describe('ドロップ処理 (handleEndDrop)', () => {
+    const createDropPayload = (sectionType: string, uuid = 'uuid-src') => ({
+      dataTransfer: {
+        getData: (type: string) =>
+          type === 'text/plain'
+            ? JSON.stringify({
+                sectionType,
+                index: 0,
+                card: mockCards[0],
+                uuid,
+              })
+            : '',
+      },
+    });
+
+    it('infoセクションからのドロップは無視され、trashに同一cidがあってもデッキ状態を変更しない', async () => {
+      store.trashDeck = [{ cid: '4011', ciid: '1', lang: 'ja', quantity: 1 }];
+      store.displayOrder.trash = [{ cid: '4011', ciid: 1, uuid: 'uuid-trash-1' }];
+
+      const moveCardSpy = vi.spyOn(store, 'moveCard');
+      const addMainOrExtraSpy = vi.spyOn(store, 'addCopyToMainOrExtra');
+      const addSectionSpy = vi.spyOn(store, 'addCopyToSection');
+
+      const wrapper = mount(DeckSection, {
+        props: {
+          title: 'メインデッキ',
+          sectionType: 'main',
+          cards: [],
+        },
+        global: {
+          plugins: [pinia],
+        },
+      });
+
+      await wrapper.find('.drop-zone-end').trigger('drop', createDropPayload('info'));
+
+      expect(moveCardSpy).not.toHaveBeenCalled();
+      expect(addMainOrExtraSpy).not.toHaveBeenCalled();
+      expect(addSectionSpy).not.toHaveBeenCalled();
+      expect(store.deckInfo.mainDeck).toHaveLength(0);
+      expect(store.trashDeck).toHaveLength(1);
+    });
+
+    it('searchセクションからのmainドロップはaddCopyToMainOrExtraを呼ぶ', async () => {
+      const addMainOrExtraSpy = vi.spyOn(store, 'addCopyToMainOrExtra');
+
+      const wrapper = mount(DeckSection, {
+        props: {
+          title: 'メインデッキ',
+          sectionType: 'main',
+          cards: [],
+        },
+        global: {
+          plugins: [pinia],
+        },
+      });
+
+      await wrapper.find('.drop-zone-end').trigger('drop', createDropPayload('search'));
+
+      expect(addMainOrExtraSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('別デッキセクション(side)からのmainドロップはmoveCardを呼ぶ', async () => {
+      store.deckInfo.sideDeck = [{ cid: '4011', ciid: '1', lang: 'ja', quantity: 1 }];
+      store.displayOrder.side = [{ cid: '4011', ciid: 1, uuid: 'uuid-side-1' }];
+      const moveCardSpy = vi.spyOn(store, 'moveCard');
+
+      const wrapper = mount(DeckSection, {
+        props: {
+          title: 'メインデッキ',
+          sectionType: 'main',
+          cards: [],
+        },
+        global: {
+          plugins: [pinia],
+        },
+      });
+
+      await wrapper.find('.drop-zone-end').trigger('drop', createDropPayload('side', 'uuid-side-1'));
+
+      expect(moveCardSpy).toHaveBeenCalledWith('4011', 'side', 'main', 'uuid-side-1');
+    });
+  });
 });

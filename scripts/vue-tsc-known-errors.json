@@ -2,14 +2,6 @@
   "description": "vue-tsc 導入時 (TASK-543) に明示的に対象外とした既知の型エラー一覧。各エントリは連動タスクの決着と一体のエラーであり、当該タスクが解消されたらこの一覧から外すこと。scripts/type-check.mjs が vue-tsc の出力とこの一覧を照合し、一覧に無い新規エラーと、一覧にあるのに発生しなくなった陳腐化エントリの両方を失敗として報告する。全エントリが無くなったら type-check を素の vue-tsc --noEmit へ戻す (type-check:strict で現在の生出力を確認できる)。",
   "errors": [
     {
-      "file": "src/components/DeckSection.vue",
-      "code": "TS2345",
-      "messageIncludes": "Argument of type '\"info\" | \"main\" | \"extra\" | \"side\" | \"trash\"' is not assignable to parameter of type '\"main\" | \"extra\" | \"side\" | \"trash\"'",
-      "count": 1,
-      "task": "TASK-639",
-      "reason": "info セクションからのドロップの意味論 (moveCard の from に 'info' を許すか) が未決着であり、エラーの解消は意味論の決定そのものであるため対象外"
-    },
-    {
       "file": "src/components/practice/PracticeZoneInfoPanel.vue",
       "code": "TS6133",
       "messageIncludes": "'mdiClose' is declared but its value is never read",

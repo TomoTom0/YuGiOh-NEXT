@@ -183,6 +183,11 @@ export default {
           return
         }
 
+        // infoセクション（カード詳細パネル）は移動元デッキを持たないため対象外
+        if (sourceSectionType === 'info') {
+          return
+        }
+
         if (sourceSectionType === props.sectionType && sourceUuid) {
           const result = deckStore.reorderWithinSection(props.sectionType, sourceUuid, null)
           handleMoveResult(result)
