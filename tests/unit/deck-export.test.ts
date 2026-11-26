@@ -258,7 +258,7 @@ describe('deck-export', () => {
       expect(result.deckInfo!.mainDeck[0].quantity).toBe(2);
     });
 
-    it('should preserve an extra-deck card whose imgHash contains "--" through TXT round-trip', () => {
+    it('[covers:import-txt.enc-non-word-chars] should preserve an extra-deck card whose imgHash contains "--" through TXT round-trip', () => {
       // 実在する imgHash には "--" を含むものがある（2026-11-25 実操作で確認）
       mockCardDB.set('9753', {
         name: 'PSYフレームロード・Λ',
@@ -279,6 +279,38 @@ describe('deck-export', () => {
       expect(result.deckInfo!.extraDeck).toHaveLength(1);
       expect(result.deckInfo!.extraDeck[0].cid).toBe('9753');
       expect(result.deckInfo!.extraDeck[0].quantity).toBe(1);
+      expect(result.deckInfo!.sideDeck).toHaveLength(1);
+    });
+
+    it('[covers:import-txt.match-with-empty-enc] should preserve a card without imgHash through TXT round-trip', () => {
+      // imgHash を取得できないカードの TXT 行は enc が空の "(cid:ciid:)" になる
+      // (generate_rows.enc_empty_fallback)。拡張自身の書き出した行を取り込み側が落とさないこと。
+      mockCardDB.set('66666', {
+        name: 'ハッシュ無しカード',
+        cardId: '66666',
+        ciid: '1',
+        imgs: [],
+        cardType: 'monster'
+      } as any);
+
+      const deckWithNoHashCard: DeckInfo = {
+        ...sampleDeck,
+        dno: 7,
+        name: 'Deck with no hash card',
+        mainDeck: [...sampleDeck.mainDeck, { cid: '66666', ciid: '1', quantity: 1 }]
+      };
+
+      const txt = exportToTXT(deckWithNoHashCard);
+      expect(txt).toContain('1x ハッシュ無しカード (66666:1:)');
+
+      const result = importFromTXT(txt);
+
+      expect(result.success).toBe(true);
+      expect(result.warnings).toBeUndefined();
+      expect(result.deckInfo!.mainDeck.map(card => card.cid)).toEqual(['12950', '4861', '66666']);
+      expect(result.deckInfo!.mainDeck[2].ciid).toBe('1');
+      expect(result.deckInfo!.mainDeck[2].quantity).toBe(1);
+      expect(result.deckInfo!.extraDeck).toHaveLength(1);
       expect(result.deckInfo!.sideDeck).toHaveLength(1);
     });
 

@@ -388,6 +388,29 @@ invalid,灰流うらら,12950,1,2`;
       expect(result.deckInfo!.extraDeck).toHaveLength(1);
     });
 
+    it('should treat an empty enc as absent and register the card with empty imgs [covers:import-txt.match-with-empty-enc]', () => {
+      // エクスポート側は imgHash を取得できないカードに enc を空で書き出す
+      // (deck-export の generate_rows.enc_empty_fallback)
+      const txt = `=== Main Deck ===
+2x 灰流うらら (12950:1:)`;
+      const result = importFromTXT(txt);
+
+      expect(result.success).toBe(true);
+      expect(result.warnings).toBeUndefined();
+      expect(result.deckInfo!.mainDeck[0]).toMatchObject({
+        cid: '12950',
+        ciid: '1',
+        quantity: 2
+      });
+      // enc 未設定として扱うため、プレースホルダの imgs は空になる（convert-rows.enc-absent-empty-imgs と同じ）
+      expect(mockTempCacheSet).toHaveBeenCalledWith(
+        '12950',
+        expect.objectContaining({
+          imgs: []
+        })
+      );
+    });
+
     it('should return error for empty TXT [covers:import-txt.all-rows-invalid-error]', () => {
       const txt = '';
       const result = importFromTXT(txt);
