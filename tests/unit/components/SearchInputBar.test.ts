@@ -365,6 +365,32 @@ describe('components/SearchInputBar', () => {
       const commandPrefix = wrapper.find('.command-prefix');
       // 実装によってはprefixが表示されない可能性もあるため、存在チェックのみ
     });
+
+    it('should enter the value-input mode of the clicked command suggestion (TASK-592 regression)', async () => {
+      // 候補リストは Suggestion 形式 ({ value, label }) で select-command を emit する。
+      // クリック経路でもキーボード経路と同じくコマンドが確定し、
+      // 検索クエリへ "undefined" が入らないこと (TASK-592)
+      const wrapper = mount(SearchInputBar, {
+        global: {
+          stubs: commonStubs
+        }
+      });
+      const searchStore = useSearchStore();
+
+      const input = wrapper.find('.search-input');
+      await input.setValue('/');
+      await wrapper.vm.$nextTick();
+
+      const suggestions = wrapper.findAll('.command-suggestions .suggestion-item');
+      expect(suggestions.length).toBeGreaterThan(0);
+      const clickedCommand = suggestions[0].find('.suggestion-value').text();
+
+      await suggestions[0].trigger('click');
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.find('.command-prefix').text()).toBe(clickedCommand);
+      expect(searchStore.searchQuery).toBe('');
+    });
   });
 
   describe('Keyboard Navigation', () => {
