@@ -114,6 +114,20 @@ extra,23995346,2`;
       expect(result.deckInfo?.extraDeck[0]?.quantity).toBe(1);
     });
 
+    it('encが空の行（拡張自身のTXTエクスポートが書き出す "(cid:ciid:)"）をパースできる [covers:import-txt.match-with-empty-enc]', () => {
+      const txtContent = `=== Main Deck (1 cards) ===
+1x 灰流うらら (66666:1:)`;
+
+      const result = importFromTXT(txtContent);
+
+      expect(result.success).toBe(true);
+      expect(result.warnings).toBeUndefined();
+      expect(result.deckInfo?.mainDeck).toHaveLength(1);
+      expect(result.deckInfo?.mainDeck[0]?.cid).toBe('66666');
+      expect(result.deckInfo?.mainDeck[0]?.ciid).toBe('1');
+      expect(result.deckInfo?.mainDeck[0]?.quantity).toBe(1);
+    });
+
     it('セクション区切りを正しく認識する [covers:import-txt.section-header-switches-current-section]', () => {
       const txtContent = `=== Main Deck ===
 3x カード1 (1:1)

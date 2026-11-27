@@ -22,11 +22,11 @@
 feature = "deck-import"
 source_file = "src/utils/deck-import.ts"
 verified = true
-verified_at = "2026-11-25"
+verified_at = "2026-11-26"
 verified_by = "claude"
-test_command = "mise run test:vitest -- tests/unit/deck-import.test.ts tests/unit/utils/deck-import-comprehensive.test.ts"
-source_hash = "98f9eaa3f278810d11abded0926198d6cd15d4bd"
-note = "verified=falseは3件: import_csv/import_png/import_txtの各catch_error(防御的try-catchで現実的な入力での再現不能)。FileReader系はglobalThis.FileReaderスタブによりimportDeckFromFile()経由で検証可能"
+test_command = "mise run test:vitest -- tests/unit/deck-import.test.ts tests/unit/deck-export.test.ts tests/unit/utils/deck-export.test.ts tests/unit/utils/deck-import-comprehensive.test.ts"
+source_hash = "0708c8a35418f5836908055daea5c40e7fbbe3ff"
+note = "verified=falseは3件: import_csv/import_png/import_txtの各catch_error(防御的try-catchで現実的な入力での再現不能)。FileReader系はglobalThis.FileReaderスタブによりimportDeckFromFile()経由で検証可能。2026-11-26の再記録(TASK-649)は OpenCode worker (GLM-5.4) による実施で、verified_by は規定値の claude を代用している"
 
 # --- importFromCSV(content: string): ImportResult ---
 
@@ -101,7 +101,7 @@ unverifiable_reason = "convertRowsToDeckInfo/parseCSVLine等が例外をthrowす
 
 [[condition]]
 id = "import-png.extract-fail"
-source_lines = "tests/unit/deck-import.test.ts:490,tests/unit/deck-import.test.ts:499"
+source_lines = "tests/unit/deck-import.test.ts:513,tests/unit/deck-import.test.ts:522"
 target_function = "importFromPNG"
 description = "extractDeckInfoFromPNGがfalsy値(null等)を返した場合、デッキ情報未検出のエラーを返す"
 given = "デッキ情報が埋め込まれていないPNGファイル"
@@ -109,7 +109,7 @@ expect_return_shape = "{ success: false, error: 'PNG画像からデッキ情報�
 
 [[condition]]
 id = "import-png.rows-from-sections"
-source_lines = "tests/unit/deck-import.test.ts:459"
+source_lines = "tests/unit/deck-import.test.ts:482"
 target_function = "importFromPNG"
 description = "simpleDeckInfo.main/extra/sideの各カードをそのままImportRowに変換する（nameフィールドは設定しない）"
 given = "simpleDeckInfoにmain 1件・extra 1件・side 1件が含まれる"
@@ -117,7 +117,7 @@ expect_return_shape = "rows配列に3件（各sectionが正しく割り当てら
 
 [[condition]]
 id = "import-png.all-sections-empty-error"
-source_lines = "tests/unit/deck-import.test.ts:509"
+source_lines = "tests/unit/deck-import.test.ts:532"
 target_function = "importFromPNG"
 description = "main/extra/sideの全てが空の場合、'インポート可能なデータがありません'エラーを返す"
 given = "simpleDeckInfo.main/extra/sideが全て空配列"
@@ -125,7 +125,7 @@ expect_return_shape = "{ success: false, error: 'インポート可能なデー�
 
 [[condition]]
 id = "import-png.success-no-warnings-field"
-source_lines = "tests/unit/deck-import.test.ts:459"
+source_lines = "tests/unit/deck-import.test.ts:482"
 target_function = "importFromPNG"
 description = "成功時、CSV/TXTと異なりwarningsフィールドは設定されない（常にundefined）"
 given = "有効なデッキ情報が埋め込まれたPNG"
@@ -133,7 +133,7 @@ expect_return_shape = "{ success: true, deckInfo: {...} }（warningsキー自体
 
 [[condition]]
 id = "import-png.catch-error"
-source_lines = "tests/unit/deck-import.test.ts:533"
+source_lines = "tests/unit/deck-import.test.ts:556"
 target_function = "importFromPNG"
 description = "処理中に例外が発生した場合、error='PNG読み込みエラー: ${error}'を返す"
 given = "pngBlob.arrayBuffer()が例外をthrowする等の状況（PNGシグネチャ不一致はextractDeckInfoFromPNGがnullを返すだけで例外にはならないため該当しない。実測確認済み）"
@@ -146,7 +146,7 @@ unverifiable_reason = "pngBlob.arrayBuffer()等が例外をthrowする現実的�
 
 [[condition]]
 id = "import-txt.section-header-switches-current-section"
-source_lines = "tests/unit/deck-import.test.ts:367,tests/unit/utils/deck-import-comprehensive.test.ts:104,tests/unit/utils/deck-import-comprehensive.test.ts:389"
+source_lines = "tests/unit/deck-import.test.ts:367,tests/unit/utils/deck-import-comprehensive.test.ts:131,tests/unit/utils/deck-import-comprehensive.test.ts:416"
 target_function = "importFromTXT"
 description = "行に'=== Main Deck'/'=== Extra Deck'/'=== Side Deck'を含む場合(部分一致)、currentSectionを切り替えてcontinueする"
 given = "'=== Main Deck ===' という行"
@@ -154,7 +154,7 @@ expect_return_shape = "以降の行はcurrentSection='main'として処理され
 
 [[condition]]
 id = "import-txt.empty-line-skipped"
-source_lines = "tests/unit/deck-import.test.ts:411,tests/unit/utils/deck-import-comprehensive.test.ts:153"
+source_lines = "tests/unit/deck-import.test.ts:434,tests/unit/utils/deck-import-comprehensive.test.ts:180"
 target_function = "importFromTXT"
 description = "トリム後に空文字列になる行はcontinueでスキップされる"
 given = "セクション内に空行が混在する"
@@ -164,17 +164,26 @@ expect_return_shape = "空行はrows・warningsに影響しない"
 id = "import-txt.match-with-enc"
 source_lines = "tests/unit/deck-import.test.ts:378,tests/unit/utils/deck-import-comprehensive.test.ts:91"
 target_function = "importFromTXT"
-description = "'数量x カード名 (cid:ciid:enc)' 形式(enc付き新形式)にマッチし、かつcurrentSectionが設定済みならrowsに追加する。encはimgHash（公式サイト発行の不透明な値）で文字種の制限はなく、空白と括弧以外の文字列として受理する（import-txt.enc-non-word-chars）"
+description = "'数量x カード名 (cid:ciid:enc)' 形式(enc付き新形式)にマッチし、かつcurrentSectionが設定済みならrowsに追加する。encはimgHash（公式サイト発行の不透明な値）で文字種の制限はなく、空白と括弧以外の文字列として受理する（import-txt.enc-non-word-chars）。encが空の行も受理する（import-txt.match-with-empty-enc）"
 given = "currentSection='main'、行 = '2x 灰流うらら (12950:1:abc123)'"
 expect_return_shape = "rows に { section: 'main', name: '灰流うらら', cid: '12950', ciid: '1', enc: 'abc123', quantity: 2 } が追加される"
 
 [[condition]]
 id = "import-txt.enc-non-word-chars"
-source_lines = "tests/unit/utils/deck-import-comprehensive.test.ts (TASK-648で追加), tests/unit/deck-export.test.ts (往復)"
+source_lines = "tests/unit/deck-export.test.ts:261,tests/unit/utils/deck-import-comprehensive.test.ts:104"
 target_function = "importFromTXT"
 description = 'encに単語文字以外の文字（"--" など）を含む行も新形式として受理し、カードが落ちない。拡張自身のTXTエクスポートが書き出した行をそのまま読み戻せる（往復）こと'
 given = "currentSection='extra'、行 = '1x PSYフレームロード・Λ (9753:1:9753_1_1_1--2)'"
 expect_return_shape = "警告なしで rows に { section: 'extra', cid: '9753', ciid: '1', enc: '9753_1_1_1--2', quantity: 1 } が追加される"
+
+[[condition]]
+id = "import-txt.match-with-empty-enc"
+source_lines = "tests/unit/deck-export.test.ts:285,tests/unit/deck-import.test.ts:391,tests/unit/utils/deck-import-comprehensive.test.ts:117"
+target_function = "importFromTXT"
+source = "TASK-649 body 修正方針節（TASK-648 body のTXT往復欠陥と同じ方針: 取り込む側を修正し、出す側は変えない）"
+description = 'encが空の新形式 "数量x カード名 (cid:ciid:)" も新形式として受理し、カードを落とさない。エクスポート側は imgHash を取得できないカードに enc を空で書き出すため（deck-export の generate_rows.enc_empty_fallback）、拡張自身のTXTエクスポートを読み戻したときにカードが欠けない（往復）。空の enc は enc 未設定として扱う（CSV取り込みの enc 空欄と同じ）'
+given = "currentSection='main'、行 = '2x 灰流うらら (12950:1:)'"
+expect_return_shape = "警告なしで rows に { section: 'main', name: '灰流うらら', cid: '12950', ciid: '1', quantity: 2 } が追加され、enc は未設定 (undefined)。取り込み後のプレースホルダの imgs は空配列"
 
 [[condition]]
 id = "import-txt.match-old-no-enc"
@@ -186,7 +195,7 @@ expect_return_shape = "rows に enc キーを持たない ImportRow が追加さ
 
 [[condition]]
 id = "import-txt.no-match-with-section-warning"
-source_lines = "tests/unit/deck-import.test.ts:399,tests/unit/utils/deck-import-comprehensive.test.ts:129,tests/unit/utils/deck-import-comprehensive.test.ts:310,tests/unit/utils/deck-import-comprehensive.test.ts:365,tests/unit/utils/deck-import-comprehensive.test.ts:377,tests/unit/utils/deck-import-comprehensive.test.ts:406,tests/unit/utils/deck-import-comprehensive.test.ts:417,tests/unit/utils/deck-import-comprehensive.test.ts:428"
+source_lines = "tests/unit/deck-import.test.ts:422,tests/unit/utils/deck-import-comprehensive.test.ts:156,tests/unit/utils/deck-import-comprehensive.test.ts:337,tests/unit/utils/deck-import-comprehensive.test.ts:392,tests/unit/utils/deck-import-comprehensive.test.ts:404,tests/unit/utils/deck-import-comprehensive.test.ts:433,tests/unit/utils/deck-import-comprehensive.test.ts:444,tests/unit/utils/deck-import-comprehensive.test.ts:455"
 target_function = "importFromTXT"
 description = "enc付き・enc無しいずれの正規表現にもマッチせず、currentSectionが設定済みの場合、'フォーマットが不正です'警告を追加する（コメント行『#...』を含む、行の内容が何であれ該当）"
 given = "currentSection='main'、行 = '# これはコメント' や 'invalid line format'"
@@ -195,7 +204,7 @@ note = "既存テストの説明文『コメント行を無視する』は不正
 
 [[condition]]
 id = "import-txt.no-match-without-section-silent"
-source_lines = "tests/unit/utils/deck-import-comprehensive.test.ts:141"
+source_lines = "tests/unit/utils/deck-import-comprehensive.test.ts:168"
 target_function = "importFromTXT"
 description = "currentSectionが未設定(セクションヘッダーが一度も出ていない)状態でカード行らしき内容があっても、warningすら出さず黙って無視される"
 given = "先頭に'=== Main Deck ==='が無いまま '3x カード1 (1:1)' から始まるcontent"
@@ -203,7 +212,7 @@ expect_return_shape = "その行はrows・warningsのどちらにも一切現れ
 
 [[condition]]
 id = "import-txt.all-rows-invalid-error"
-source_lines = "tests/unit/deck-import.test.ts:391,tests/unit/utils/deck-import-comprehensive.test.ts:120,tests/unit/utils/deck-import-comprehensive.test.ts:406,tests/unit/utils/deck-import-comprehensive.test.ts:417,tests/unit/utils/deck-import-comprehensive.test.ts:428"
+source_lines = "tests/unit/deck-import.test.ts:414,tests/unit/utils/deck-import-comprehensive.test.ts:147,tests/unit/utils/deck-import-comprehensive.test.ts:433,tests/unit/utils/deck-import-comprehensive.test.ts:444,tests/unit/utils/deck-import-comprehensive.test.ts:455"
 target_function = "importFromTXT"
 description = "有効な行が1件もない場合、'インポート可能なデータがありません'エラーを返す"
 given = "content = ''（空文字列）"
@@ -211,7 +220,7 @@ expect_return_shape = "{ success: false, error: 'インポート可能なデー�
 
 [[condition]]
 id = "import-txt.success-with-warnings"
-source_lines = "tests/unit/deck-import.test.ts:399"
+source_lines = "tests/unit/deck-import.test.ts:422"
 target_function = "importFromTXT"
 description = "有効行が1件以上あり、かつwarningsが存在する場合、warningsを含めて返す"
 given = "有効行と不正フォーマット行が混在するTXT"
@@ -219,7 +228,7 @@ expect_return_shape = "{ success: true, deckInfo: {...}, warnings: [...] }"
 
 [[condition]]
 id = "import-txt.catch-error"
-source_lines = "tests/unit/deck-import.test.ts:426"
+source_lines = "tests/unit/deck-import.test.ts:449"
 target_function = "importFromTXT"
 description = "処理中に例外が発生した場合、error='TXT読み込みエラー: ${error}'を返す"
 given = "convertRowsToDeckInfo等で例外がthrowされる状況"
@@ -232,7 +241,7 @@ expect_return_shape = "{ success: false, error: 'TXT読み込みエラー: ...' 
 
 [[condition]]
 id = "import-file.ext-png-delegates"
-source_lines = "tests/unit/deck-import.test.ts:619"
+source_lines = "tests/unit/deck-import.test.ts:642"
 target_function = "importDeckFromFile"
 description = "ファイル名の拡張子(小文字化)が'png'の場合、importFromPNGに委譲する（内容は読まない）"
 given = "file.name = 'deck.PNG'"
@@ -240,7 +249,7 @@ expect_return_shape = "importFromPNG(file)の戻り値がそのまま返る"
 
 [[condition]]
 id = "import-file.ext-csv-reads-then-delegates"
-source_lines = "tests/unit/deck-import.test.ts:628"
+source_lines = "tests/unit/deck-import.test.ts:651"
 target_function = "importDeckFromFile"
 description = "拡張子が'csv'の場合、readFileAsTextでテキストを読んでからimportFromCSVに委譲する"
 given = "file.name = 'deck.csv'"
@@ -248,7 +257,7 @@ expect_return_shape = "importFromCSV(content)の戻り値がそのまま返る"
 
 [[condition]]
 id = "import-file.ext-txt-reads-then-delegates"
-source_lines = "tests/unit/deck-import.test.ts:638"
+source_lines = "tests/unit/deck-import.test.ts:661"
 target_function = "importDeckFromFile"
 description = "拡張子が'txt'の場合、readFileAsTextでテキストを読んでからimportFromTXTに委譲する"
 given = "file.name = 'deck.txt'"
@@ -256,7 +265,7 @@ expect_return_shape = "importFromTXT(content)の戻り値がそのまま返る"
 
 [[condition]]
 id = "import-file.ext-unknown-content-has-section"
-source_lines = "tests/unit/deck-import.test.ts:648"
+source_lines = "tests/unit/deck-import.test.ts:671"
 target_function = "importDeckFromFile"
 description = "拡張子がpng/csv/txtのいずれでもない場合、内容の1行目(トリム後・小文字化)に'section'を含めばCSVとして処理する"
 given = "file.name = 'deck' (拡張子なし)、内容の1行目が 'section,name,cid,ciid,quantity'"
@@ -264,7 +273,7 @@ expect_return_shape = "importFromCSV(content)の戻り値が返る"
 
 [[condition]]
 id = "import-file.ext-unknown-content-has-marker"
-source_lines = "tests/unit/deck-import.test.ts:657"
+source_lines = "tests/unit/deck-import.test.ts:680"
 target_function = "importDeckFromFile"
 description = "拡張子不明かつ1行目に'section'を含まないが'==='を含む場合、TXTとして処理する"
 given = "内容の1行目が '=== Main Deck ==='"
@@ -272,7 +281,7 @@ expect_return_shape = "importFromTXT(content)の戻り値が返る"
 
 [[condition]]
 id = "import-file.ext-unknown-content-unsupported"
-source_lines = "tests/unit/deck-import.test.ts:666"
+source_lines = "tests/unit/deck-import.test.ts:689"
 target_function = "importDeckFromFile"
 description = "拡張子不明かつ1行目に'section'も'==='も含まない場合、サポート外形式のエラーを返す"
 given = "file.name = 'deck.dat'、内容の1行目が 'random garbage'"
@@ -280,7 +289,7 @@ expect_return_shape = "{ success: false, error: 'サポートされていない�
 
 [[condition]]
 id = "import-file.catch-error"
-source_lines = "tests/unit/deck-import.test.ts:674,tests/unit/deck-import.test.ts:698"
+source_lines = "tests/unit/deck-import.test.ts:697,tests/unit/deck-import.test.ts:721"
 target_function = "importDeckFromFile"
 description = "readFileAsText等で例外が発生した場合、error='ファイル読み込みエラー: ${error}'を返す"
 given = "FileReaderがエラーを発生させる状況"
@@ -291,7 +300,7 @@ expect_return_shape = "{ success: false, error: 'ファイル読み込みエラ�
 
 [[condition]]
 id = "parse-csv-line.escaped-double-quote"
-source_lines = "tests/unit/utils/deck-import-comprehensive.test.ts:184"
+source_lines = "tests/unit/utils/deck-import-comprehensive.test.ts:211"
 target_function = "parseCSVLine"
 description = "クォート内で連続する2つの'\"'は、エスケープされた1つの'\"'文字としてcurrentに追加され、2文字分インデックスを進める"
 given = "line = '\"Card \"\"Name\"\"\",123'"
@@ -389,7 +398,7 @@ expect_return_shape = "7列目以降は無視され、{ section, name, cid, ciid
 
 [[condition]]
 id = "parse-import-row.cid-non-numeric-invalid"
-source_lines = "tests/unit/deck-import.test.ts:559"
+source_lines = "tests/unit/deck-import.test.ts:582"
 target_function = "parseImportRow"
 description = "解釈されたcidが数字文字列でない場合、warning追加してnullを返す"
 given = "fields = ['main', 'abc', '1']"
@@ -405,7 +414,7 @@ expect_return_shape = "null、warnings に '行N: ciidが不正です \"abc\"' �
 
 [[condition]]
 id = "parse-import-row.quantity-nan-invalid"
-source_lines = "tests/unit/utils/deck-import-comprehensive.test.ts:207"
+source_lines = "tests/unit/utils/deck-import-comprehensive.test.ts:234"
 target_function = "parseImportRow"
 description = "quantityがNaN(数値変換不能)の場合、warning追加してnullを返す"
 given = "fields = ['main', '123', 'abc']（quantity列が数値でない）"
@@ -413,7 +422,7 @@ expect_return_shape = "null、warnings に '行N: quantityが不正です \"abc\
 
 [[condition]]
 id = "parse-import-row.quantity-below-1-invalid"
-source_lines = "tests/unit/deck-import.test.ts:589"
+source_lines = "tests/unit/deck-import.test.ts:612"
 target_function = "parseImportRow"
 description = "quantityが1未満(0または負)の場合、warning追加してnullを返す"
 given = "fields = ['main', '123', '0']"
@@ -421,7 +430,7 @@ expect_return_shape = "null、warnings に '行N: quantityが不正です \"0\"'
 
 [[condition]]
 id = "parse-import-row.quantity-over-99-invalid"
-source_lines = "tests/unit/deck-import.test.ts:608"
+source_lines = "tests/unit/deck-import.test.ts:631"
 target_function = "parseImportRow"
 description = "quantityが99を超える場合、warning追加してnullを返す"
 given = "fields = ['main', '123', '100']"
@@ -431,7 +440,7 @@ expect_return_shape = "null、warnings に '行N: quantityが不正です \"100\
 
 [[condition]]
 id = "convert-rows.merge-duplicate-key-sums-quantity"
-source_lines = "tests/unit/utils/deck-import-comprehensive.test.ts:195"
+source_lines = "tests/unit/utils/deck-import-comprehensive.test.ts:222"
 target_function = "convertRowsToDeckInfo"
 description = "同じ'section:cid:ciid'キーを持つ行が複数ある場合、quantityを加算し1件のカードにまとめる"
 given = "rows = [{section:'main',cid:'1',ciid:'1',quantity:2}, {section:'main',cid:'1',ciid:'1',quantity:1}]"
@@ -439,7 +448,7 @@ expect_return_shape = "mainDeckに1件、quantity=3"
 
 [[condition]]
 id = "convert-rows.different-ciid-treated-as-distinct"
-source_lines = "tests/unit/utils/deck-import-comprehensive.test.ts:258"
+source_lines = "tests/unit/utils/deck-import-comprehensive.test.ts:285"
 target_function = "convertRowsToDeckInfo"
 description = "同じcidでもciidが異なれば別カード(別キー)として扱われる"
 given = "rows = [{section:'main',cid:'1',ciid:'1',quantity:1}, {section:'main',cid:'1',ciid:'2',quantity:1}]"
@@ -506,7 +515,7 @@ expect_return_shape = "dno===0 && name==='' && category.length===0 && tags.lengt
 
 [[condition]]
 id = "read-file-as-text.success"
-source_lines = "tests/unit/deck-import.test.ts:628"
+source_lines = "tests/unit/deck-import.test.ts:651"
 target_function = "readFileAsText"
 description = "FileReaderのonloadでe.target.resultが取得できた場合、resolveする"
 given = "有効なテキストファイル"
@@ -514,7 +523,7 @@ expect_return_shape = "Promiseがファイル内容の文字列でresolveされ�
 
 [[condition]]
 id = "read-file-as-text.onload-no-result-rejects"
-source_lines = "tests/unit/deck-import.test.ts:674"
+source_lines = "tests/unit/deck-import.test.ts:697"
 target_function = "readFileAsText"
 description = "onload発火時にe.target.resultが falsy の場合、'ファイルの読み込みに失敗しました'エラーでrejectする"
 given = "FileReaderのresultがnullのままonloadが発火する状況"
@@ -522,7 +531,7 @@ expect_return_shape = "Promiseがエラーでrejectされる"
 
 [[condition]]
 id = "read-file-as-text.onerror-rejects"
-source_lines = "tests/unit/deck-import.test.ts:698"
+source_lines = "tests/unit/deck-import.test.ts:721"
 target_function = "readFileAsText"
 description = "FileReaderがonerrorを発火した場合、reader.errorでrejectする"
 given = "ファイル読み込みに失敗する状況"

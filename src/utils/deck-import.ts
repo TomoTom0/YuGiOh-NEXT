@@ -179,11 +179,13 @@ export function importFromTXT(content: string): ImportResult {
       if (!line) continue;
 
       // カード行をパース
-      // 新形式: "2x 灰流うらら (12950:1:abc123)"
+      // 新形式: "2x 灰流うらら (12950:1:abc123)"、imgHashが無いカードは "2x 灰流うらら (12950:1:)"
       // 旧形式: "2x 灰流うらら (12950:1)"
       // enc は imgHash（公式サイト発行の不透明な値）で、"--" など \w 外の文字を含む
-      // 実在値があるため、空白と括弧以外の文字列として受理する
-      const matchWithEnc = line.match(/^(\d+)x\s+(.+?)\s+\((\d+):(\d+):([^\s()]+)\)$/);
+      // 実在値があるため、空白と括弧以外の文字列として受理する。
+      // エクスポート側は imgHash を取得できないカードに enc を空で書き出すため、
+      // 空の enc も受理して enc 未設定として扱う（CSV取り込みと同じ。書き出し→取り込みの往復で落とさない）
+      const matchWithEnc = line.match(/^(\d+)x\s+(.+?)\s+\((\d+):(\d+):([^\s()]*)\)$/);
       const matchOld = line.match(/^(\d+)x\s+(.+?)\s+\((\d+):(\d+)\)$/);
 
       if (matchWithEnc && currentSection) {
@@ -191,7 +193,7 @@ export function importFromTXT(content: string): ImportResult {
         const name = matchWithEnc[2] || '';
         const cid = matchWithEnc[3] || '';
         const ciid = matchWithEnc[4] || '1';
-        const enc = matchWithEnc[5] || '';
+        const enc = matchWithEnc[5] || undefined;
         rows.push({
           section: currentSection,
           name,
