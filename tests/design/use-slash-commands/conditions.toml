@@ -15,14 +15,18 @@
 # - 既存itが存在しない実装分岐（未テストの filterType 等）は [[excluded]] に記録
 #   （TASK-476 は移動伴いの design 整備であり、新規テスト追加はスコープ外）。
 
+# 2026-11-27: 先頭ハイフン＝下限省略（上限のみ）の承認に伴い、isNegatedInput / actualInputValue に
+#   atk / def / releaseDate の扱いを追加（upper-only-range-accepted 等の3条件を追加）。
+#   これに伴い useSlashCommands.ts の行番号は従来の参照からずれているが、source の行番参照は
+#   TASK-476 時点の記載のまま（現行の対応は source_lines が自動同期する）。
 [meta]
 feature = "use-slash-commands"
 source_file = "src/components/searchInputBar/composables/useSlashCommands.ts"
 verified = true
-verified_at = "2026-09-09"
+verified_at = "2026-11-27"
 verified_by = "claude"
-test_command = "mise run test:vitest -- tests/unit/composables/useSlashCommands.test.ts"
-source_hash = "286dc96c0963d3af33232c8f05f9eea17d99bf87"
+test_command = "pnpm exec vitest run tests/unit/composables/useSlashCommands.test.ts"
+source_hash = "137879343960c262f6484e0e119274d630c2cc2e"
 note = "verified=falseは0件。idのareaはdesignディレクトリstem（use-slash-commands）で統一（browser-config/conditions.tomlの慣習に整合、`_`不使用）"
 
 # --- useSlashCommands#commandSuggestions ---
@@ -139,15 +143,33 @@ description = "filterType='atk' のとき、下限のみ（'1000-'）・上限�
 given = "pendingCommand = { command: '/atk', filterType: 'atk' } かつ searchQuery = '1000-'"
 expect_return = true
 
+[[condition]]
+id = "use-slash-commands.upper-only-range-accepted"
+source_lines = "tests/unit/composables/useSlashCommands.test.ts:112"
+target_function = "useSlashCommands#isValidCommandInput"
+source = "src/components/searchInputBar/composables/useSlashCommands.ts の入力案内コメント（片方のみの範囲指定: 1000- or -2000 / 2020-01-01- or -2020-12-31）と 2026-11-27 承認「先頭ハイフン＝下限省略・上限のみ」"
+description = "filterType='atk' / 'def' / 'releaseDate' のとき、先頭ハイフンの片側範囲指定（下限省略・上限のみ）は有効。actualInputValue が先頭ハイフンを保持するため、既存の片側指定の分岐に到達する"
+given = "pendingCommand = { filterType: 'atk' または 'def' } かつ searchQuery = '-2000'、または pendingCommand = { filterType: 'releaseDate' } かつ searchQuery = '-2020-12-31'"
+expect_return = true
+
 # --- useSlashCommands#isNegatedInput ---
+
+[[condition]]
+id = "use-slash-commands.lower-bound-omitted-hyphen-not-negation"
+source_lines = "tests/unit/composables/useSlashCommands.test.ts:123"
+target_function = "useSlashCommands#isNegatedInput"
+source = "src/components/searchInputBar/composables/useSlashCommands.ts の入力案内コメント（片方のみの範囲指定: 1000- or -2000 / 2020-01-01- or -2020-12-31）と 2026-11-27 承認「先頭ハイフン＝下限省略・上限のみ」"
+description = "atk / def / releaseDate の入力中は、先頭ハイフンを下限省略（上限のみ）として扱いNOT条件にしない"
+given = "pendingCommand = { filterType: 'atk' または 'def' または 'releaseDate' } かつ searchQuery = '-2000'"
+expect_return = false
 
 [[condition]]
 id = "use-slash-commands.negation-hyphen-detected"
 target_function = "useSlashCommands#isNegatedInput"
-source = "src/components/searchInputBar/composables/useSlashCommands.ts L98-L101 と tm TASK-476（src/__tests__からの移動に伴うdesign整備）"
+source = "src/components/searchInputBar/composables/useSlashCommands.ts の isNegatedInput と tm TASK-476（src/__tests__からの移動に伴うdesign整備）"
 source_lines = "98-101"
-description = "trim後の入力が '-' で始まり長さ2以上の場合、NOT条件（否定）入力と判定する"
-given = "searchQuery = '-光'"
+description = "trim後の入力が '-' で始まり長さ2以上の場合、NOT条件（否定）入力と判定する。atk / def / releaseDate の入力中は先頭ハイフンが下限省略を表すため対象外（lower-bound-omitted-hyphen-not-negation）"
+given = "pendingCommand = null（または atk / def / releaseDate 以外）かつ searchQuery = '-光'"
 expect_return = true
 
 [[condition]]
@@ -162,12 +184,21 @@ expect_return = false
 # --- useSlashCommands#actualInputValue ---
 
 [[condition]]
+id = "use-slash-commands.lower-bound-omitted-hyphen-kept-in-actual-value"
+source_lines = "tests/unit/composables/useSlashCommands.test.ts:155"
+target_function = "useSlashCommands#actualInputValue"
+source = "src/components/searchInputBar/composables/useSlashCommands.ts の入力案内コメント（片方のみの範囲指定: 1000- or -2000 / 2020-01-01- or -2020-12-31）と 2026-11-27 承認「先頭ハイフン＝下限省略・上限のみ」"
+description = "atk / def / releaseDate の入力中は、先頭ハイフン（下限省略）を除去せずに trim・toLowerCase後の値をそのまま返す"
+given = "pendingCommand = { filterType: 'atk' または 'def' } かつ searchQuery = '-2000'、または pendingCommand = { filterType: 'releaseDate' } かつ searchQuery = '-2020-12-31'"
+expect_return = "'-2000' / '-2020-12-31'（先頭ハイフンを保持）"
+
+[[condition]]
 id = "use-slash-commands.actual-value-strips-negation-hyphen"
 target_function = "useSlashCommands#actualInputValue"
-source = "src/components/searchInputBar/composables/useSlashCommands.ts L106-L112 と tm TASK-476（src/__tests__からの移動に伴うdesign整備）"
+source = "src/components/searchInputBar/composables/useSlashCommands.ts の actualInputValue と tm TASK-476（src/__tests__からの移動に伴うdesign整備）"
 source_lines = "106-112"
-description = "'-' プレフィックスの否定入力からは先頭のハイフン1文字を除去した値を返す（バリデーション対象の実値）"
-given = "searchQuery = '-光'"
+description = "'-' プレフィックスの否定入力からは先頭のハイフン1文字を除去した値を返す（バリデーション対象の実値）。atk / def / releaseDate の入力中は先頭ハイフンを保持する（lower-bound-omitted-hyphen-kept-in-actual-value）"
+given = "pendingCommand = null（または atk / def / releaseDate 以外）かつ searchQuery = '-光'"
 expect_return = "'光'"
 
 [[condition]]
@@ -202,10 +233,17 @@ expect_return = false
 # --- 除外記録（既存テストのitが存在しない実装分岐。TASK-476は移動伴いのdesign整備で新規テスト追加はスコープ外のため条件化しない） ---
 
 [[excluded]]
-item = "isValidCommandInput の未テスト filterType 分岐（cardType / monsterTypes / linkNumbers(1-6) / linkMarkers / pendulumScales(0-13) / releaseDate（チルダ・スペース・ドット区切り範囲・片側指定） / races（value/label/aliases一致） / searchMode / default偽）"
+item = "isValidCommandInput の未テスト filterType 分岐（cardType / monsterTypes / linkNumbers(1-6) / linkMarkers / pendulumScales(0-13) / releaseDate（チルダ・スペース・ドット区切り範囲・右側省略 `2020-01-01-` の片側指定） / races（value/label/aliases一致） / searchMode / default偽）。2026-11-27: releaseDate の先頭ハイフン（下限省略）は upper-only-range-accepted で条件化し除外を解消"
 source = "src/components/searchInputBar/composables/useSlashCommands.ts L125-L128, L147-L238（tests/unit/composables/useSlashCommands.test.ts には attributes / levels / atk のみのit）"
 reason = "対応する既存itが存在しない。TASK-476はsrc/__tests__からの移動に伴うdesign整備であり新規テスト追加はスコープ外のため条件化しない。テスト済みの attributes / levels / atk は各条件で網羅"
 decided_at = "2026-09-09"
+decided_by = "claude"
+
+[[excluded]]
+item = "下限省略の先頭ハイフンで上限が確定できない入力（atk / def の `-` 単体・`-abc`、releaseDate の `-2020-12-`）が有効な入力にならないこと"
+source = "src/components/searchInputBar/composables/useSlashCommands.ts の入力案内コメント（片方のみの範囲指定）と 2026-11-27 承認「先頭ハイフン＝下限省略・上限のみ」"
+reason = "既存の片側指定バリデーション分岐の否定結果であり新規の実装分岐ではない。回帰は tests/unit/composables/slash-upper-bound-only.test.ts で担保（適用側 useFilterInput.ts の条件書は未整備）"
+decided_at = "2026-11-27"
 decided_by = "claude"
 
 [[excluded]]

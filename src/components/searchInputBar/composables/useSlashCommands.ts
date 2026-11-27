@@ -93,19 +93,33 @@ export function useSlashCommands(options: UseSlashCommandsOptions): UseSlashComm
   })
 
   /**
+   * 先頭ハイフンが下限省略（上限のみ）を表すコマンド。
+   * これらの入力中は `-2000` / `-2020-12-31` を NOT 接頭辞ではなく片側範囲として扱う
+   */
+  const lowerBoundOmittedFilterTypes: ReadonlySet<string> = new Set(['atk', 'def', 'releaseDate'])
+
+  /**
+   * 先頭ハイフンが下限省略（上限のみ）かどうか
+   */
+  const isLowerBoundOmittedInput = computed(() => {
+    const filterType = pendingCommand.value?.filterType
+    return filterType !== undefined && lowerBoundOmittedFilterTypes.has(filterType) && searchQuery.value.trim().startsWith('-')
+  })
+
+  /**
    * 入力値がNOT条件かどうかを判定（-プレフィックス）
    */
   const isNegatedInput = computed(() => {
     const value = searchQuery.value.trim()
-    return value.startsWith('-') && value.length > 1
+    return value.startsWith('-') && value.length > 1 && !isLowerBoundOmittedInput.value
   })
 
   /**
-   * 実際の値（-プレフィックスを除去）
+   * 実際の値（-プレフィックスを除去。下限省略の先頭ハイフンは保持する）
    */
   const actualInputValue = computed(() => {
     const value = searchQuery.value.trim().toLowerCase()
-    if (value.startsWith('-')) {
+    if (value.startsWith('-') && !isLowerBoundOmittedInput.value) {
       return value.substring(1)
     }
     return value
