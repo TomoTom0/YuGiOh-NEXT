@@ -3,6 +3,14 @@
  */
 
 /**
+ * 候補リスト項目の型定義
+ */
+export interface Suggestion {
+  value: string
+  label: string
+}
+
+/**
  * プレビューチップの型定義
  */
 export interface PreviewChip {

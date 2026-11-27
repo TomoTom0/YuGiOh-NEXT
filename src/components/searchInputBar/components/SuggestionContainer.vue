@@ -41,8 +41,8 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import SuggestionList, { type Suggestion } from './SuggestionList.vue'
-import type { DeckSuggestion } from '@/types/search-ui'
+import SuggestionList from './SuggestionList.vue'
+import type { DeckSuggestion, Suggestion } from '@/types/search-ui'
 // @ts-ignore - PendingCommand is used in defineProps type parameter
 import { type PendingCommand } from '../composables/useSlashCommands'
 
