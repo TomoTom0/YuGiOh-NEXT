@@ -104,9 +104,32 @@ describe('useSlashCommands', () => {
       pendingCommand.value = { command: '/atk', filterType: 'atk' }
       expect(isValidCommandInput.value).toBe(true)
     })
+
+    it.each([
+      ['atk', '-2000'],
+      ['def', '-2000'],
+      ['releaseDate', '-2020-12-31']
+    ])('[covers:use-slash-commands.upper-only-range-accepted] %s で先頭ハイフン（下限省略・上限のみ）を有効と判定', (filterType, input) => {
+      const searchQuery = ref(input)
+      const { isValidCommandInput, pendingCommand } = useSlashCommands({ searchQuery })
+
+      pendingCommand.value = { command: `/${filterType}`, filterType }
+      expect(isValidCommandInput.value).toBe(true)
+    })
   })
 
   describe('isNegatedInput', () => {
+    it.each(['atk', 'def', 'releaseDate'])(
+      '[covers:use-slash-commands.lower-bound-omitted-hyphen-not-negation] %s の入力中は先頭ハイフンを下限省略（上限のみ）として扱いNOT条件にしない',
+      filterType => {
+        const searchQuery = ref('-2000')
+        const { isNegatedInput, pendingCommand } = useSlashCommands({ searchQuery })
+
+        pendingCommand.value = { command: `/${filterType}`, filterType }
+        expect(isNegatedInput.value).toBe(false)
+      }
+    )
+
     it('[covers:use-slash-commands.negation-hyphen-detected] - プレフィックスでNOT条件を判定', () => {
       const searchQuery = ref('-光')
       const { isNegatedInput } = useSlashCommands({ searchQuery })
@@ -123,6 +146,22 @@ describe('useSlashCommands', () => {
   })
 
   describe('actualInputValue', () => {
+
+    it.each([
+      ['atk', '-2000', '-2000'],
+      ['def', '-2000', '-2000'],
+      ['releaseDate', '-2020-12-31', '-2020-12-31']
+    ])(
+      '[covers:use-slash-commands.lower-bound-omitted-hyphen-kept-in-actual-value] %s の先頭ハイフン（下限省略）は除去せずそのまま返す',
+      (filterType, input, expected) => {
+        const searchQuery = ref(input)
+        const { actualInputValue, pendingCommand } = useSlashCommands({ searchQuery })
+
+        pendingCommand.value = { command: `/${filterType}`, filterType }
+        expect(actualInputValue.value).toBe(expected)
+      }
+    )
+
     it('[covers:use-slash-commands.actual-value-strips-negation-hyphen] - プレフィックスを除去した値を返す', () => {
       const searchQuery = ref('-光')
       const { actualInputValue } = useSlashCommands({ searchQuery })

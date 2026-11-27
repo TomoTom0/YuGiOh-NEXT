@@ -22,6 +22,7 @@ import { detectLanguage } from '@/utils/language-detector'
 import { mappingManager } from '@/utils/mapping-manager'
 import { useSearchHistory } from '@/composables/useSearchHistory'
 import {
+  parseFlexibleDate,
   COMMANDS,
   SEARCH_MODE_MAP,
   ATTRIBUTE_MAP,
@@ -37,6 +38,34 @@ import {
   MONSTER_TYPE_ID_TO_SHORTNAME
 } from '@/types/card-maps'
 import type { PendingCommand } from './useSlashCommands'
+
+/**
+ * 先頭ハイフン（下限省略）の入力を上限だけの条件として適用する
+ * 対象は atk / def の `-2000` と releaseDate の `-2020-12-31`。適用した場合は true を返す
+ */
+const applyUpperOnlyInput = (type: string, value: string, f: SearchFilters): boolean => {
+  if (!value.startsWith('-')) return false
+  const upper = value.substring(1).trim()
+
+  if (type === 'atk' || type === 'def') {
+    if (!/^\d+$/.test(upper)) return false
+    const stat = f[type]
+    // 上限だけを確定する: 残っている下限と完全一致を解除する
+    stat.exact = false
+    stat.min = undefined
+    stat.max = parseInt(upper, 10)
+    return true
+  }
+
+  if (type === 'releaseDate') {
+    const to = parseFlexibleDate(upper)
+    if (to === null) return false
+    f.releaseDate = { to }
+    return true
+  }
+
+  return false
+}
 
 export interface UseFilterInputOptions {
   searchQuery: Ref<string>
@@ -493,6 +522,9 @@ export function useFilterInput(options: UseFilterInputOptions): UseFilterInputRe
     if (isNot) return
 
     const f = searchFilters.value
+
+    // 先頭ハイフンは下限省略: 上限だけを確定する（-2000 / -2020-12-31）
+    if (applyUpperOnlyInput(type, value, f)) return
 
     switch (type) {
       case 'attributes':
