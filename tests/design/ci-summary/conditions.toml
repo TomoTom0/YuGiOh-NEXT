@@ -1,0 +1,106 @@
+# 検証対象: scripts/ci-summary.sh（TASK-654 (A): CI の失敗伝播）
+#
+# .github/workflows/ci.yml の Summary step (if: always()) から呼ばれる script。
+# Build / Run unit tests / Type check の conclusion と job status を並べて表示し、
+# 1つでも success 以外があれば 0 以外で終了して、失敗を Summary step にも反映する。
+#
+# 出典: 要件は TASK-654 の goal と body（手順2 (A)「Summary は失敗があれば 0 以外で終わる」）。
+# 入力の形式・表示・job status を含める判断などの設計は
+# tmp/tasks/tm-654/design_ci-failure-propagation.md (D1〜D5) に記録し、設計由来の条件の
+# source に参照する。
+#
+# テスト先行作成: tests/unit/scripts/ci-summary.test.ts と同時に作成し、script 実装がこれらを
+# 満たす。実装・検証後に meta の検証記録を書く。
+# ci.yml 側の配線 (continue-on-error 不在・Summary の always 実行) は
+# tests/design/ci-workflow/conditions.toml で条件化する。
+
+[meta]
+feature = "ci-summary"
+source_file = "scripts/ci-summary.sh"
+verified = true
+verified_at = "2026-11-28"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/scripts/ci-summary.test.ts"
+source_hash = "e65ef2025a88a5bd4e0988f12f9d7bfb50021345"
+note = "テスト先行作成（TASK-654 (A)。条件書とテストを先に作り、script 実装後に検証記録を書いた）。全条件を tests/unit/scripts/ci-summary.test.ts の [covers:] タグ付きitで検証する。2026-11-28の検証記録は OpenCode worker (GLM-5.4) による実施で、verified_by は規定値の claude を代用している"
+
+# --- 終了コードの判定 ---
+
+[[condition]]
+id = "ci-summary.all-success-exits-0"
+source_lines = "tests/unit/scripts/ci-summary.test.ts:82"
+target_function = "scripts/ci-summary.sh (本体)"
+source = "TASK-654 body 手順2 (A)「Summary は失敗があれば 0 以外で終わる」の対偶 (失敗がなければ 0)。設計 D3"
+description = "失敗が無いときは Summary step を成功させ、job を成功のまま終わらせる"
+given = "JOB_STATUS / BUILD_CONCLUSION / UNIT_TESTS_CONCLUSION / TYPE_CHECK_CONCLUSION がすべて success"
+expect_return = "exit 0。stdout に CI result: passed が出る"
+
+[[condition]]
+id = "ci-summary.step-not-success-exits-1"
+source_lines = "tests/unit/scripts/ci-summary.test.ts:129"
+target_function = "scripts/ci-summary.sh (本体)"
+source = "TASK-654 body 手順2 (A)「Summary は失敗があれば 0 以外で終わる」。設計 D3"
+description = "Build / Run unit tests / Type check のどれか1つでも success でなければ失敗として 0 以外で終わる。failure / cancelled / timed_out / skipped (前段の失敗で未実行) を区別しない。job status が success のまま渡された場合も step の conclusion 単独で判定する"
+given = "3 step の conclusion のいずれかが success 以外 (failure / cancelled / timed_out / skipped)"
+expect_return = "exit 1。stdout に CI result: failed と、success でなかった項目の値が出る"
+
+[[condition]]
+id = "ci-summary.job-status-not-success-exits-1"
+source_lines = "tests/unit/scripts/ci-summary.test.ts:136"
+target_function = "scripts/ci-summary.sh (本体)"
+source = "設計 D3 (job.status を判定に含める)"
+description = "3 step がすべて success でも、job status が success 以外なら失敗として 0 以外で終わる。3 step 以外 (checkout / setup / install / artifact upload) の失敗を Summary が成功と言い切らないための保険"
+given = "3 step の conclusion はすべて success で、JOB_STATUS のみ success 以外"
+expect_return = "exit 1。stdout に Job status の値と CI result: failed が出る"
+
+[[condition]]
+id = "ci-summary.unset-input-treated-as-not-success"
+source_lines = "tests/unit/scripts/ci-summary.test.ts:146"
+target_function = "scripts/ci-summary.sh (本体)"
+source = "設計 D3 (未設定は success 以外として扱う fail-closed)"
+description = "入力の環境変数が渡らなくても成功扱いにしない。未設定の項目は (unset) と表示して失敗として 0 以外で終わる"
+given = "入力の環境変数の一部または全部が未設定"
+expect_return = "exit 1。stdout で未設定の項目は (unset) と表示される"
+
+# --- 表示 ---
+
+[[condition]]
+id = "ci-summary.writes-step-summary-when-path-set"
+source_lines = "tests/unit/scripts/ci-summary.test.ts:155"
+target_function = "scripts/ci-summary.sh (本体)"
+source = "設計 D4 (GITHUB_STEP_SUMMARY への結果表の追記)"
+description = "GITHUB_STEP_SUMMARY が設定されていれば、その file に Build / Run unit tests / Type check / Job status の各結果と最終判定を追記する。終了コードは表示の有無に依らず判定に従う"
+given = "GITHUB_STEP_SUMMARY に書き込み可能な file path が設定されている"
+expect_return = "当該 file に4項目の結果と CI result の行が追記され、終了コードは入力に対応する値 (全成功なら 0、失敗ありなら 1)"
+
+[[condition]]
+id = "ci-summary.no-step-summary-file-when-unset"
+source_lines = "tests/unit/scripts/ci-summary.test.ts:167"
+target_function = "scripts/ci-summary.sh (本体)"
+source = "設計 D4 (GITHUB_STEP_SUMMARY は任意)"
+description = "GITHUB_STEP_SUMMARY が未設定なら file を一切作らず、stdout だけで結果を伝える (CI の外からの手動実行でも副作用が無い)"
+given = "GITHUB_STEP_SUMMARY が未設定"
+expect_return = "終了コードは入力に対応する値。cwd・HOME・TMPDIR に新しい file や directory ができない"
+
+[[condition]]
+id = "ci-summary.step-summary-write-failure-does-not-mask-result"
+source_lines = "tests/unit/scripts/ci-summary.test.ts:174"
+target_function = "scripts/ci-summary.sh (本体)"
+source = "設計 D4 (追記の失敗が本来の結果を上書きしない)"
+description = "GITHUB_STEP_SUMMARY への追記に失敗しても、終了コードと stdout の最終判定は入力に対応する値のまま"
+given = "GITHUB_STEP_SUMMARY に書き込めない path (directory など) が設定され、入力はすべて success"
+expect_return = "exit 0。stdout に CI result: passed が出る"
+
+[[excluded]]
+item = "GITHUB_STEP_SUMMARY に書く markdown の体裁 (見出しの文言・表の列順・罫線)"
+source = "設計 D4"
+reason = "表示体裁であり、終了コードや file の有無といった振る舞いに差を生まない (粒度基準「書かない」)。検証は4項目の結果と最終判定が file に含まれることまで (ci-summary.writes-step-summary-when-path-set)"
+decided_at = "2026-11-28"
+decided_by = "claude"
+
+[[excluded]]
+item = "GitHub Actions が steps.<id>.conclusion / job.status へ success / failure / cancelled / timed_out / skipped を渡すこと"
+source = "設計 D2 (ci.yml の Summary step の env)"
+reason = "GitHub Actions 側の仕様であり script の振る舞いではない。script は success 以外をすべて失敗として扱うため、値の種類が増えても挙動は変わらない"
+decided_at = "2026-11-28"
+decided_by = "claude"

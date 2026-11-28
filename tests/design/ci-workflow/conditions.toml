@@ -1,0 +1,76 @@
+# 検証対象: .github/workflows/ci.yml（TASK-654 (A): CI の失敗伝播）
+#
+# Build / Run unit tests / Type check の失敗が job を失敗にさせ、Summary step が
+# 失敗を握りつぶさないための配線を条件化する。
+# Summary step から呼ばれる script 本体の判定は tests/design/ci-summary/conditions.toml。
+#
+# 出典: TASK-654 の goal と body（手順2 (A)、手順4「実施時の注意」）。ci.yml は YAML であり
+# テストは step 単位の block に分解して配線を検証する (YAML parser は依存に持たない)。
+#
+# テスト先行作成: tests/unit/scripts/ci-summary.test.ts と同時に作成し、ci.yml の変更がこれらを
+# 満たす。変更・検証後に meta の検証記録を書く。
+
+[meta]
+feature = "ci-workflow"
+source_file = ".github/workflows/ci.yml"
+verified = true
+verified_at = "2026-11-28"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/scripts/ci-summary.test.ts"
+source_hash = "b722facbc9f2beb39da6887c2f33172380f7a24b"
+note = "テスト先行作成（TASK-654 (A)。ci.yml の変更前に条件書とテストを作成）。全条件を tests/unit/scripts/ci-summary.test.ts の [covers:] タグ付きitで検証する。ci.yml は step 単位の block に分解して配線を検証する (YAML parser 不使用)。2026-11-28の検証記録は OpenCode worker (GLM-5.4) による実施で、verified_by は規定値の claude を代用している"
+
+[[condition]]
+id = "ci-workflow.steps-have-no-continue-on-error"
+source_lines = "tests/unit/scripts/ci-summary.test.ts:231"
+target_function = "jobs.build-and-test.steps (Build / Run unit tests / Type check)"
+source = "TASK-654 goal「build / unit test / type-check step から continue-on-error を外し、失敗時に job が red になること」。body 手順2 (A)"
+description = "Build / Run unit tests / Type check の3 step に continue-on-error を書かない。書くと step が失敗しても job が成功扱いになり、失敗が伝播しない"
+given = "ci.yml の Build / Run unit tests / Type check の各 step block"
+expect_return = "3 step block とも continue-on-error という key が無い"
+
+[[condition]]
+id = "ci-workflow.summary-step-always-calls-script"
+source_lines = "tests/unit/scripts/ci-summary.test.ts:238"
+target_function = "jobs.build-and-test.steps (Summary)"
+source = "TASK-654 body 手順2 (A)「Summary は失敗があれば 0 以外で終わる」。設計 D1・D2"
+description = "Summary step は常に実行され、step の conclusion と job status を渡して scripts/ci-summary.sh を呼ぶ。step 本体に exit 0 を書いて失敗を握りつぶさない。conclusion を参照するために Build / Run unit tests / Type check は id (build / unit-tests / type-check) を持つ"
+given = "ci.yml の Build / Run unit tests / Type check / Summary の各 step block"
+expect_return = "3 step に id があり、Summary は if: always() と run: bash scripts/ci-summary.sh を持ち、env で JOB_STATUS と3つの conclusion を対応する式から受け取り、exit 0 を含まない"
+
+[[condition]]
+id = "ci-workflow.no-emoji"
+source_lines = "tests/unit/scripts/ci-summary.test.ts:255"
+target_function = "jobs.build-and-test.steps (Summary) と scripts/ci-summary.sh"
+source = "TASK-654 body 手順4「ci.yml の Summary に絵文字がある。規約により絵文字は使わない」。設計 D5"
+description = "ci.yml と、Summary step が呼ぶ scripts/ci-summary.sh に絵文字を含まない"
+given = "ci.yml と scripts/ci-summary.sh の全文"
+expect_return = "絵文字 (U+1F000〜U+1FAFF、U+2600〜U+27BF、U+2B00〜U+2BFF、異体字セレクタ U+FE0F) がどちらの file にも無い"
+
+[[excluded]]
+item = "dev の branch protection で CI の job を必須チェックにする (scripts/setup/setup-branch-protection.sh への build-and-test 追加、GitHub の保護設定、docs/dev/branch-protection.md の必須チェックの記載)"
+source = "TASK-654 goal 後半「dev の branch protection で当該 check を必須にする案はオーナー承認を経てから反映すること」。body 手順2 (B)・手順3"
+reason = "TASK-654 (B) でありオーナーの個別承認待ち (Item 133)。(A) のPRでは設定も文書も変えない"
+decided_at = "2026-11-28"
+decided_by = "claude"
+
+[[excluded]]
+item = "失敗時に job が red になること (GitHub Actions 上の実挙動)"
+source = "TASK-654 goal「失敗時に job が red になること」"
+reason = "GitHub Actions の実行結果に依存し unit test では検証できない。continue-on-error 不在 (ci-workflow.steps-have-no-continue-on-error) と Summary の 0 以外終了 (tests/design/ci-summary/conditions.toml) という配線条件で代替する"
+decided_at = "2026-11-28"
+decided_by = "claude"
+
+[[excluded]]
+item = "(A) を PR として出し、dev の push CI が緑であることを確認してから (B) へ進む"
+source = "TASK-654 body 手順4「実施時の注意」"
+reason = "作業手順であり ci.yml の配線ではない。PR の CI run と merge 後の dev の push CI run で確認する"
+decided_at = "2026-11-28"
+decided_by = "claude"
+
+[[excluded]]
+item = "(A) の時点で build が失敗すると Build step と TASK-652 のテスト (dynamic-import-bundle) の両方が失敗する重複表示。TASK-652 のテスト方針 (前提の明示化のみ) は変えない"
+source = "TASK-654 body 手順4「実施時の注意」"
+reason = "出典が「方針を変えない」と明記しており、tests/unit/webpack/dynamic-import-bundle.test.ts には変更を加えない。重複表示は ci.yml の失敗伝播の帰結"
+decided_at = "2026-11-28"
+decided_by = "claude"

@@ -59,6 +59,7 @@
 | `dev/cache-system.md` | キャッシュシステム変更時 | キャッシュ戦略、Indexed DB使用箇所 |
 | `dev/png-format-spec.md` | PNGエクスポート形式変更時 | PNG metadata仕様、エクスポート形式 |
 | `dev/testing.md` | テスト方針変更時 | テスト戦略、カバレッジ方針 |
+| `dev/ci.md` | CI ワークフロー (`.github/workflows/ci.yml`) や `scripts/ci-summary.sh` 変更時 | CI の実行内容、失敗の伝播、ローカルでの再現 |
 | `dev/i18n.md` | 多言語対応変更時 | 翻訳方針、言語検出ロジック |
 | `dev/official-api.md` | 公式API変更検知時 | APIエンドポイント、レスポンス形式 |
 

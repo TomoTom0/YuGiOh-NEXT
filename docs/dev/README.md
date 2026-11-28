@@ -127,6 +127,7 @@ cp docs/dev/session.example.env .env.local
 
 ### テスト・品質保証
 - [テスト](./testing.md) - テスト戦略と実行方法
+- [CI](./ci.md) - GitHub Actions の CI (実行内容・失敗の伝播・ローカルでの再現)
 
 ### 進行中の機能
 - **デッキロード画面サムネイル表示機能** - v0.5.4+
