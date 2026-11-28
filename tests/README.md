@@ -31,7 +31,7 @@
 | `search-modes/` | 検索モード | - |
 | `deck-display/` | デッキ表示 | - |
 | `parser/` | パーサー | - |
-| `scripts/` | デバッグ用シェルlib・design検証script（browser-config.sh等はbashサブシェル呼び出しで検証）・filename-case hook・型チェックscript | `browser-config.test.ts`, `verify-conditions.test.ts`, `filename-case-hook.test.ts`, `type-check.test.ts` |
+| `scripts/` | デバッグ用シェルlib・design検証script（browser-config.sh等はbashサブシェル呼び出しで検証）・filename-case hook・型チェックscript・CI summary script | `browser-config.test.ts`, `verify-conditions.test.ts`, `filename-case-hook.test.ts`, `type-check.test.ts`, `ci-summary.test.ts` |
 | `configs/` | configs TOMLと設定デフォルト値の整合（features/app-settings/ux） | `feature-defaults.test.ts`, `app-ux-defaults.test.ts` |
 | `constants/` | 定数データの整合 | `tag-master-data.test.ts` |
 | `services/` | LLMサービス等（`llm/`配下） | `tool-executor.test.ts`, `nano-pipeline.test.ts` |
@@ -58,6 +58,7 @@
 | **統合フローの変更** | `tests/e2e/` | E2Eテストを更新 | 推奨 |
 | **データモデルの変更** | `tests/fixtures/` | フィクスチャデータを更新 | 推奨 |
 | **バグ修正** | 該当するテストカテゴリ | 回帰テストを追加 | 必須 |
+| **CI ワークフロー (`.github/workflows/ci.yml`) や CI summary script (`scripts/ci-summary.sh`) の変更** | `tests/unit/scripts/` | `ci-summary.test.ts` を更新 | 必須 |
 
 ### テストファイルの命名規則
 
@@ -88,6 +89,7 @@
 | ファイル名大文字検出hook（.claude/hooks/check-new-filename.mjs） | `tests/unit/scripts/filename-case-hook.test.ts` | 新規Write時のrepo相対path大文字検出（ask）・除外（慣例名/*.vue/use*.ts/対応test）・fail-open。条件書: tests/design/filename-case-hook/conditions.toml |
 | loader.js 先行読み込み（ロード画面の最初の描画前表示） | `tests/unit/content/loader-early-loading.test.ts`（条件書: `tests/design/loader-early-loading/conditions.toml`） | TASK-510: チラつき解消の要。loader.js をvm評価して createLoader(deps) 依存注入で状態機械（notifyStart/handoff）・フェイルセーフ（自要素参照除去・同ID他人要素保護）・boot分岐・storage例外耐性・識別属性付与を検証。manifest 側（run_at document_start）と style-loader 挿入先は `tests/unit/webpack/dynamic-import-bundle.test.ts` |
 | loader由来要素の識別属性ゲート（削除・takeover） | `tests/unit/utils/loader-elements.test.ts`（条件書: `tests/design/loader-elements/conditions.toml`） | TASK-510 コードレビュー指摘3対応。data-ygo-next-loader 識別属性を持つ要素のみ削除・takeoverすることで同IDの他人要素を保護する |
+| CI summary script（`scripts/ci-summary.sh`）と CI ワークフロー（`.github/workflows/ci.yml`）の配線 | `tests/unit/scripts/ci-summary.test.ts`（条件書: `tests/design/ci-summary/conditions.toml`, `tests/design/ci-workflow/conditions.toml`） | TASK-654 (A)。Build / Run unit tests / Type check の失敗が job と Summary step に伝播することの検証（continue-on-error 不在・Summary の always 実行と success 以外での 0 以外終了・絵文字不使用）。CI の仕様は [docs/dev/ci.md](../docs/dev/ci.md) |
 
 ---
 

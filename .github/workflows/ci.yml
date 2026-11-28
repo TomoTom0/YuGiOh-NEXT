@@ -43,17 +43,19 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      # 失敗を job に伝播させるため continue-on-error は付けない (仕様: docs/dev/ci.md)。
+      # 各 step の conclusion を Summary step から steps.<id>.conclusion で参照する
       - name: Build
+        id: build
         run: pnpm run build:prod
-        continue-on-error: true
 
       - name: Run unit tests
+        id: unit-tests
         run: pnpm exec vitest run --reporter=verbose
-        continue-on-error: true
 
       - name: Type check (vue-tsc)
+        id: type-check
         run: pnpm run type-check
-        continue-on-error: true
       
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -63,9 +65,12 @@ jobs:
           path: dist/
           retention-days: 7
       
+      # always() で必ず実行するが、失敗があれば 0 以外で終わって失敗を握りつぶさない
       - name: Summary
         if: always()
-        run: |
-          echo "✅ CI completed"
-          echo "Note: Some steps may have failed, but this is expected for development branches"
-          exit 0
+        env:
+          JOB_STATUS: ${{ job.status }}
+          BUILD_CONCLUSION: ${{ steps.build.conclusion }}
+          UNIT_TESTS_CONCLUSION: ${{ steps.unit-tests.conclusion }}
+          TYPE_CHECK_CONCLUSION: ${{ steps.type-check.conclusion }}
+        run: bash scripts/ci-summary.sh
